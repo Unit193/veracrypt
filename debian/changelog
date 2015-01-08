@@ -1,3 +1,11 @@
+veracrypt (1.0f-1-0vanir1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches.
+  * d/watch: Pick up releases with underscores and dashes too.
+
+ -- Unit 193 <unit193@ubuntu.com>  Thu, 08 Jan 2015 04:45:50 -0500
+
 veracrypt (1.0f-0vanir1) unstable; urgency=medium
 
   * New upstream release.
