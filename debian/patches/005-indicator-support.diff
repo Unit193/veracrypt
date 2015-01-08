@@ -1,0 +1,226 @@
+From: Stefan Sundin <stefan@stefansundin.com>
+Date: Fri, 12 Sept 2013
+Subject: Switch from systray to application indicator
+
+This patch replaces the system tray icon with an application indicator applet.
+
+Forwarded: no
+
+Signed-off-by: Unit 193 <unit193@ninthfloor.org>
+
+Index: veracrypt/src/Main/Main.make
+===================================================================
+--- veracrypt.orig/src/Main/Main.make
++++ veracrypt/src/Main/Main.make
+@@ -123,7 +123,7 @@ endif
+ 
+ $(APPNAME): $(LIBS) $(OBJS)
+ 	@echo Linking $@
+-	$(CXX) -o $(APPNAME) $(LFLAGS) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) -ldl
++	$(CXX) -o $(APPNAME) $(LFLAGS) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) -ldl $(shell pkg-config --libs appindicator-0.1)
+ 
+ ifeq "$(TC_BUILD_CONFIG)" "Release"
+ ifndef NOSTRIP
+Index: veracrypt/src/Main/Forms/MainFrame.cpp
+===================================================================
+--- veracrypt.orig/src/Main/Forms/MainFrame.cpp
++++ veracrypt/src/Main/Forms/MainFrame.cpp
+@@ -42,6 +42,7 @@ namespace VeraCrypt
+ 	DEFINE_EVENT_TYPE(wxEVT_COMMAND_SHOW_WARNING)
+ 
+ 	MainFrame::MainFrame (wxWindow* parent) : MainFrameBase (parent),
++		indicator (NULL),
+ 		ListItemRightClickEventPending (false),
+ 		SelectedItemIndex (-1),
+ 		SelectedSlotNumber (0),
+@@ -1439,6 +1440,30 @@ namespace VeraCrypt
+ 		}
+ 	}
+ 
++	void MainFrame::SetBusy (bool busy)
++	{
++		gtk_widget_set_sensitive(indicator_item_mountfavorites, !busy);
++		gtk_widget_set_sensitive(indicator_item_dismountall, !busy);
++		gtk_widget_set_sensitive(indicator_item_prefs, !busy);
++		gtk_widget_set_sensitive(indicator_item_exit, !busy /*&& CanExit()*/);
++	}
++
++	static void IndicatorOnShowHideMenuItemSelected (GtkWidget *widget, MainFrame *self) { Gui->SetBackgroundMode (!Gui->IsInBackgroundMode()); }
++	static void IndicatorOnMountAllFavoritesMenuItemSelected (GtkWidget *widget, MainFrame *self) { self->SetBusy(true); self->MountAllFavorites (); self->SetBusy(false); }
++	static void IndicatorOnDismountAllMenuItemSelected (GtkWidget *widget, MainFrame *self) { self->SetBusy(true); Gui->DismountAllVolumes(); self->SetBusy(false); }
++	static void IndicatorOnPreferencesMenuItemSelected (GtkWidget *widget, MainFrame *self) {
++		self->SetBusy(true);
++		PreferencesDialog dialog (self);
++		dialog.ShowModal();
++		self->SetBusy(false);
++	}
++	static void IndicatorOnExitMenuItemSelected (GtkWidget *widget, MainFrame *self) {
++		self->SetBusy(true);
++		if (Core->GetMountedVolumes().empty() || Gui->AskYesNo (LangString ["CONFIRM_EXIT"], false, true))
++			self->Close (true);
++		self->SetBusy(false);
++	}
++
+ 	void MainFrame::ShowTaskBarIcon (bool show)
+ 	{
+ 		if (!show && mTaskBarIcon->IsIconInstalled())
+@@ -1448,8 +1473,43 @@ namespace VeraCrypt
+ 		else if (show && !mTaskBarIcon->IsIconInstalled())
+ 		{
+ #ifndef TC_MACOSX
+-			mTaskBarIcon->SetIcon (Resources::GetVeraCryptIcon(), L"VeraCrypt");
++			//mTaskBarIcon->SetIcon (Resources::GetVeraCryptIcon(), L"VeraCrypt");
+ #endif
++			if (indicator == NULL) {
++				indicator = app_indicator_new ("veracrypt", "veracrypt-indicator", APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
++				app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
++
++				GtkWidget *menu = gtk_menu_new();
++
++				indicator_item_showhide = gtk_menu_item_new_with_label (LangString[Gui->IsInBackgroundMode() ? "SHOW_TC" : "HIDE_TC"].mb_str());
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), indicator_item_showhide);
++				g_signal_connect (indicator_item_showhide, "activate", G_CALLBACK (IndicatorOnShowHideMenuItemSelected), this);
++
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_separator_menu_item_new());
++
++				indicator_item_mountfavorites = gtk_menu_item_new_with_label ("Mount All Favorite Volumes");
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), indicator_item_mountfavorites);
++				g_signal_connect (indicator_item_mountfavorites, "activate", G_CALLBACK (IndicatorOnMountAllFavoritesMenuItemSelected), this);
++
++				indicator_item_dismountall = gtk_menu_item_new_with_label ("Dismount All Mounted Volumes");
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), indicator_item_dismountall);
++				g_signal_connect (indicator_item_dismountall, "activate", G_CALLBACK (IndicatorOnDismountAllMenuItemSelected), this);
++
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_separator_menu_item_new());
++
++				indicator_item_prefs = gtk_menu_item_new_with_label ("Preferences...");
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), indicator_item_prefs);
++				g_signal_connect (indicator_item_prefs, "activate", G_CALLBACK (IndicatorOnPreferencesMenuItemSelected), this);
++
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_separator_menu_item_new());
++
++				indicator_item_exit = gtk_menu_item_new_with_label ("Exit");
++				gtk_menu_shell_append (GTK_MENU_SHELL (menu), indicator_item_exit);
++				g_signal_connect (indicator_item_exit, "activate", G_CALLBACK (IndicatorOnExitMenuItemSelected), this);
++
++				gtk_widget_show_all (menu);
++				app_indicator_set_menu (indicator, GTK_MENU (menu));
++			}
+ 		}
+ 	}
+ 
+Index: veracrypt/src/Main/Forms/MainFrame.h
+===================================================================
+--- veracrypt.orig/src/Main/Forms/MainFrame.h
++++ veracrypt/src/Main/Forms/MainFrame.h
+@@ -9,6 +9,10 @@
+ #ifndef TC_HEADER_Main_Forms_MainFrame
+ #define TC_HEADER_Main_Forms_MainFrame
+ 
++#define GSocket GlibGSocket
++#include <libappindicator/app-indicator.h>
++#undef GSocket
++ 
+ #include "Forms.h"
+ #include "ChangePasswordDialog.h"
+ 
+@@ -31,6 +35,16 @@ namespace VeraCrypt
+ 		static FilePath GetShowRequestFifoPath () { return Application::GetConfigFilePath (L".show-request-queue", true); }
+ #endif
+ 
++		void MountAllFavorites ();
++
++		AppIndicator *indicator;
++		GtkWidget *indicator_item_showhide;
++		GtkWidget *indicator_item_mountfavorites;
++		GtkWidget *indicator_item_dismountall;
++		GtkWidget *indicator_item_prefs;
++		GtkWidget *indicator_item_exit;
++		void SetBusy (bool busy);
++
+ 	protected:
+ 		enum
+ 		{
+@@ -64,7 +78,6 @@ namespace VeraCrypt
+ 		void LoadFavoriteVolumes ();
+ 		void LoadPreferences ();
+ 		void MountAllDevices ();
+-		void MountAllFavorites ();
+ 		void MountVolume ();
+ 		void OnAboutMenuItemSelected (wxCommandEvent& event);
+ 		void OnActivate (wxActivateEvent& event);
+Index: veracrypt/src/Main/GraphicUserInterface.cpp
+===================================================================
+--- veracrypt.orig/src/Main/GraphicUserInterface.cpp
++++ veracrypt/src/Main/GraphicUserInterface.cpp
+@@ -1360,19 +1360,19 @@ namespace VeraCrypt
+ 			File backupFile;
+ 			backupFile.Open (*files.front(), File::OpenRead);
+ 
+-			uint64 headerSize;
++			//uint64 headerSize;
+ 			bool legacyBackup;
+ 
+ 			// Determine the format of the backup file
+ 			switch (backupFile.Length())
+ 			{
+ 			case TC_VOLUME_HEADER_GROUP_SIZE:
+-				headerSize = TC_VOLUME_HEADER_SIZE;
++				//headerSize = TC_VOLUME_HEADER_SIZE;
+ 				legacyBackup = false;
+ 				break;
+ 
+ 			case TC_VOLUME_HEADER_SIZE_LEGACY * 2:
+-				headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
++				//headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
+ 				legacyBackup = true;
+ 				break;
+ 
+@@ -1595,6 +1595,8 @@ namespace VeraCrypt
+ 		}
+ 
+ 		BackgroundMode = state;
++
++		gtk_menu_item_set_label ((GtkMenuItem*) ((MainFrame*) mMainFrame)->indicator_item_showhide, LangString[Gui->IsInBackgroundMode() ? "SHOW_TC" : "HIDE_TC"].mb_str());
+ 	}
+ 
+ 	void GraphicUserInterface::SetListCtrlColumnWidths (wxListCtrl *listCtrl, list <int> columnWidthPermilles, bool hasVerticalScrollbar) const
+Index: veracrypt/src/Main/TextUserInterface.cpp
+===================================================================
+--- veracrypt.orig/src/Main/TextUserInterface.cpp
++++ veracrypt/src/Main/TextUserInterface.cpp
+@@ -1406,19 +1406,19 @@ namespace VeraCrypt
+ 			File backupFile;
+ 			backupFile.Open (filePath, File::OpenRead);
+ 
+-			uint64 headerSize;
++			//uint64 headerSize;
+ 			bool legacyBackup;
+ 
+ 			// Determine the format of the backup file
+ 			switch (backupFile.Length())
+ 			{
+ 			case TC_VOLUME_HEADER_GROUP_SIZE:
+-				headerSize = TC_VOLUME_HEADER_SIZE;
++				//headerSize = TC_VOLUME_HEADER_SIZE;
+ 				legacyBackup = false;
+ 				break;
+ 
+ 			case TC_VOLUME_HEADER_SIZE_LEGACY * 2:
+-				headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
++				//headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
+ 				legacyBackup = true;
+ 				break;
+ 
+Index: veracrypt/src/Makefile
+===================================================================
+--- veracrypt.orig/src/Makefile
++++ veracrypt/src/Makefile
+@@ -54,6 +54,7 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
+ CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
+ CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
+ LFLAGS+=$(shell dpkg-buildflags --get LDFLAGS)
++C_CXX_FLAGS += $(shell pkg-config --cflags appindicator-0.1)
+ 
+ export TC_BUILD_CONFIG := Release
+ 

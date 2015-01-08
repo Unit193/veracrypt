@@ -1,0 +1,35 @@
+VeraCrypt for Debian
+--------------------
+
+This file is part of an unofficial Debian packaging for VeraCrypt. It is
+unrelated to either Debian or VeraCrypt. It was created because the packaging
+author disliked installing deb files for which he couldn't get the Debian
+sources for.
+
+This packaging differs from the VeraCrypt Ubuntu/Debian packaging in at least
+these ways:
+
+- This package provides an init script that calls 'veracrypt -d' on shutdown. At
+  the point it is called, all filesystems (except root) should already have been
+  unmounted, but the VeraCrypt service processes and device mappings may still
+  be active. Calling 'veracrypt -d' is probably better than the system sending
+  the VeraCrypt service kill signals. It can be disabled by editing
+  /etc/default/veracrypt.
+
+- A Perl script transforms the output of 'veracrypt --help' to produce a 
+  troff man page. The upstream sources don't contain a man page.
+
+- This package adds itself to both the Debian menu system and the Gnome menu
+  system. The VeraCrypt package only adds itself to the latter.
+
+- The user manual is installed in /usr/share/doc/veracrypt as opposed to
+  /usr/share/veracrypt/doc.
+
+- This package uses libopencryptoki for the PKCS#11 headers rather than
+  including the ones from RSA (they are not included with the VeraCrypt
+  sources). These only implement PKCS#11 v2.11 rather than v2.20. The v2.20
+  headers define a few error codes that the v2.11 ones don't.  This does not
+  impact VeraCrypt functionality as it only uses them to map error codes back to
+  strings and will use the hex value of the code as a fallback. Secondly, there
+  does not appear to be a PCKS#11 v2.20 implementation in Debian at the moment
+  anyway, so they're also rather unlikely to appear.

@@ -1,0 +1,44 @@
+From: Stefan Sundin <stefan@stefansundin.com>
+Date: Fri, 12 Sept 2013 
+Subject: Add build flags
+
+Forwarded: no
+
+Index: veracrypt/src/Makefile
+===================================================================
+--- veracrypt.orig/src/Makefile	2013-02-13 23:53:27.131298700 -0500
++++ veracrypt/src/Makefile		2013-02-14 10:49:29.000000000 -0500
+@@ -50,6 +50,10 @@
+ export WXCONFIG_CXXFLAGS :=
+ WX_ROOT ?= ..
+ 
++CPPFLAGS+=$(shell dpkg-buildflags --get CPPFLAGS)
++CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
++CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
++LFLAGS+=$(shell dpkg-buildflags --get LDFLAGS)
+ 
+ export TC_BUILD_CONFIG := Release
+ 
+--- veracrypt.orig/src/Main/Main.make
++++ veracrypt/src/Main/Main.make
+@@ -123,7 +123,7 @@ TC_VERSION = $(shell grep VERSION_STRING
+ 
+ $(APPNAME): $(LIBS) $(OBJS)
+ 	@echo Linking $@
+-	$(CXX) -o $(APPNAME) $(LFLAGS) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS)
++	$(CXX) -o $(APPNAME) $(LFLAGS) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) -ldl
+ 
+ ifeq "$(TC_BUILD_CONFIG)" "Release"
+ ifndef NOSTRIP
+
+--- veracrypt.orig/src/Build/Include/Makefile.inc	2012-02-07 11:36:48.000000000 +0100
++++ veracrypt/src/Build/Include/Makefile.inc	2013-06-17 01:34:00.429636758 +0200
+@@ -10,7 +10,7 @@
+ 
+ clean:
+ 	@echo Cleaning $(NAME)
+-	rm -f $(APPNAME) $(NAME).a $(OBJS) $(OBJSEX) $(OBJS:.o=.d) *.gch
++	rm -f $(APPNAME) $(NAME).a $(OBJS) $(OBJS:.o=.d) *.gch $(RESOURCES) SystemPrecompiled.d
+ 
+ %.o: %.c
+ 	@echo Compiling $(<F)

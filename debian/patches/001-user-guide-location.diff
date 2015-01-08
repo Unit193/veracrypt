@@ -1,0 +1,22 @@
+From: Francis Russell <francis@unchartedbackwaters.co.uk>
+Date: Mon, 14 Jan 2013 11:44 
+Subject: Move manual
+
+The user manual is installed in /usr/share/doc/veracrypt as opposed to
+/usr/share/veracrypt/doc.
+
+Forwarded: no
+
+Index: veracrypt/src/Main/GraphicUserInterface.cpp
+===================================================================
+--- veracrypt.orig/src/Main/GraphicUserInterface.cpp	2013-01-13 23:15:11.109850819 +0000
++++ veracrypt/src/Main/GraphicUserInterface.cpp	2013-01-13 23:15:25.184237643 +0000
+@@ -1183,7 +1183,7 @@
+ #elif defined (TC_MACOSX)
+ 			docPath += L"/../Resources/VeraCrypt User Guide.pdf";
+ #elif defined (TC_UNIX)
+-			docPath = L"/usr/share/veracrypt/doc/VeraCrypt User Guide.pdf";
++			docPath = L"/usr/share/doc/veracrypt/user_guide.pdf";
+ #else
+ #	error TC_RESOURCE_DIR undefined
+ #endif

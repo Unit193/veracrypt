@@ -1,0 +1,14 @@
+veracrypt (1.0f-0vanir1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refreshed patches.
+  * d/watch: Update for tar.gz, bz2 and xz.
+  * d/copyright: Update years.
+
+ -- Unit 193 <unit193@ninthfloor.org>  Sat, 03 Jan 2015 04:11:10 -0500
+
+veracrypt (1.0e-0vanir1) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Unit 193 <unit193@ninthfloor.org>  Sun, 09 Nov 2014 15:36:54 -0500

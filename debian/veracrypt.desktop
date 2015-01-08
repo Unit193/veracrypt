@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=VeraCrypt
+GenericName=VeraCrypt volume manager
+Comment=Create and mount VeraCrypt encrypted volumes
+Icon=veracrypt
+Exec=veracrypt
+Categories=Security;Utility;Filesystem
+Terminal=false
+X-Ayatana-Desktop-Shortcuts=MountFavorites;DismountAll
+
+[MountFavorites Shortcut Group]
+Name=Mount All Favorite Volumes
+Exec=/usr/bin/veracrypt --auto-mount=favorites
+TargetEnvironment=Unity
+
+[DismountAll Shortcut Group]
+Name=Dismount All Mounted Volumes
+Exec=/usr/bin/veracrypt --dismount
+TargetEnvironment=Unity
+

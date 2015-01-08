@@ -1,0 +1,3 @@
+src/Main/veracrypt               usr/bin
+debian/veracrypt.desktop         usr/share/applications
+veracrypt.xpm                    usr/share/pixmaps/

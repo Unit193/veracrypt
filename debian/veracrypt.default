@@ -1,0 +1,6 @@
+# If enabled, the following option calls 'veracrypt -d' at shutdown. Although
+# all filesystems are unmounted automatically at shutdown, only calling
+# 'veracrypt -d' will stop the VeraCrypt processes and remove any device mappings.
+# It probably isn't necessary to do this, but it shouldn't hurt.
+
+VERACRYPT_SHUTDOWN_UNMOUNT="yes"
