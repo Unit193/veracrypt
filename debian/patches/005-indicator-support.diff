@@ -16,8 +16,8 @@ Index: veracrypt/src/Main/Main.make
  
  $(APPNAME): $(LIBS) $(OBJS)
  	@echo Linking $@
--	$(CXX) -o $(APPNAME) $(LFLAGS) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) -ldl
-+	$(CXX) -o $(APPNAME) $(LFLAGS) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) -ldl $(shell pkg-config --libs appindicator-0.1)
+-	$(CXX) -o $(APPNAME) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) $(LFLAGS)
++	$(CXX) -o $(APPNAME) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) $(LFLAGS) $(shell pkg-config --libs appindicator-0.1)
  
  ifeq "$(TC_BUILD_CONFIG)" "Release"
  ifndef NOSTRIP
