@@ -24,12 +24,3 @@ these ways:
 
 - The user manual is installed in /usr/share/doc/veracrypt as opposed to
   /usr/share/veracrypt/doc.
-
-- This package uses libopencryptoki for the PKCS#11 headers rather than
-  including the ones from RSA (they are not included with the VeraCrypt
-  sources). These only implement PKCS#11 v2.11 rather than v2.20. The v2.20
-  headers define a few error codes that the v2.11 ones don't.  This does not
-  impact VeraCrypt functionality as it only uses them to map error codes back to
-  strings and will use the hex value of the code as a fallback. Secondly, there
-  does not appear to be a PCKS#11 v2.20 implementation in Debian at the moment
-  anyway, so they're also rather unlikely to appear.
