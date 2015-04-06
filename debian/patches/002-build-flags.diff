@@ -6,9 +6,9 @@ Forwarded: no
 
 Index: veracrypt/src/Makefile
 ===================================================================
---- veracrypt.orig/src/Makefile	2013-02-13 23:53:27.131298700 -0500
-+++ veracrypt/src/Makefile		2013-02-14 10:49:29.000000000 -0500
-@@ -50,6 +50,10 @@
+--- veracrypt.orig/src/Makefile
++++ veracrypt/src/Makefile
+@@ -50,6 +50,10 @@ export WXCONFIG_CFLAGS :=
  export WXCONFIG_CXXFLAGS :=
  WX_ROOT ?= ..
  
@@ -19,9 +19,11 @@ Index: veracrypt/src/Makefile
  
  export TC_BUILD_CONFIG := Release
  
---- veracrypt.orig/src/Build/Include/Makefile.inc	2012-02-07 11:36:48.000000000 +0100
-+++ veracrypt/src/Build/Include/Makefile.inc	2013-06-17 01:34:00.429636758 +0200
-@@ -10,7 +10,7 @@
+Index: veracrypt/src/Build/Include/Makefile.inc
+===================================================================
+--- veracrypt.orig/src/Build/Include/Makefile.inc
++++ veracrypt/src/Build/Include/Makefile.inc
+@@ -10,7 +10,7 @@ $(NAME): $(NAME).a
  
  clean:
  	@echo Cleaning $(NAME)

@@ -33,7 +33,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  		ListItemRightClickEventPending (false),
  		SelectedItemIndex (-1),
  		SelectedSlotNumber (0),
-@@ -1439,6 +1440,30 @@ namespace VeraCrypt
+@@ -1531,6 +1532,30 @@ namespace VeraCrypt
  		}
  	}
  
@@ -64,7 +64,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  	void MainFrame::ShowTaskBarIcon (bool show)
  	{
  		if (!show && mTaskBarIcon->IsIconInstalled())
-@@ -1448,8 +1473,43 @@ namespace VeraCrypt
+@@ -1540,8 +1565,43 @@ namespace VeraCrypt
  		else if (show && !mTaskBarIcon->IsIconInstalled())
  		{
  #ifndef TC_MACOSX
@@ -148,12 +148,12 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
 -		void MountAllFavorites ();
  		void MountVolume ();
  		void OnAboutMenuItemSelected (wxCommandEvent& event);
- 		void OnActivate (wxActivateEvent& event);
+ 		void OnQuit(wxCommandEvent& event) { Close(true); }
 Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/GraphicUserInterface.cpp
 +++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1360,19 +1360,19 @@ namespace VeraCrypt
+@@ -1388,19 +1388,19 @@ namespace VeraCrypt
  			File backupFile;
  			backupFile.Open (*files.front(), File::OpenRead);
  
@@ -176,7 +176,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
  				legacyBackup = true;
  				break;
  
-@@ -1595,6 +1595,8 @@ namespace VeraCrypt
+@@ -1623,6 +1623,8 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
