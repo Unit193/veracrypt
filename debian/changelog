@@ -1,3 +1,13 @@
+veracrypt (1.0f-2-0vanir1) UNRELEASED; urgency=medium
+
+  * Imported Upstream version 1.0f-2
+    - Drop 003-file-manager.diff and 004-no-preference-x.diff, fixed upstream.
+    - Refresh remaining patches.
+  * Remove all references to opencryptoki.
+  * d/rules: Enable verbose build.
+
+ -- Unit 193 <unit193@ubuntu.com>  Mon, 06 Apr 2015 16:58:55 -0400
+
 veracrypt (1.0f-1-0vanir1) unstable; urgency=medium
 
   * New upstream release.
