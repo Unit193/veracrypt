@@ -17,14 +17,11 @@ Package: veracrypt
 Architecture: any
 Depends: dmsetup,
          dosfstools,
-         e2fsprogs(>=1.38-2),
-         module-init-tools,
-         mount (>=2.12r-4),
+         kmod,
          sudo,
-         xdg-utils,
-         xterm,
          ${misc:Depends},
          ${shlibs:Depends}
+Recommends: xdg-utils
 Description: Cross-platform on-the-fly encryption
  VeraCrypt provides cross-platform on-the-fly encryption for Linux, MacOS X and
  Windows. It can encrypt filesystems stored either within a file or on disk
