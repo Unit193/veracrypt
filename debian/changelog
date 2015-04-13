@@ -1,3 +1,13 @@
+veracrypt (1.0f-2-0vanir2) unstable; urgency=medium
+
+  * d/control:
+    - Drop version deps on e2fsprogs and mount.
+    - Replace module-init-tools with kmod.
+    - Drop dep on xterm.
+    - Bump xdg-utils down to recommends.
+
+ -- Unit 193 <unit193@ubuntu.com>  Mon, 13 Apr 2015 17:44:29 -0400
+
 veracrypt (1.0f-2-0vanir1) unstable; urgency=medium
 
   * Imported Upstream version 1.0f-2
