@@ -1,0 +1,57 @@
+From 5ae16a0af2fae9ce92f2762a45eb088ccb1c04a6 Mon Sep 17 00:00:00 2001
+From: Mounir IDRASSI <mounir.idrassi@idrix.fr>
+Date: Sun, 19 Apr 2015 16:30:28 +0200
+Subject: [PATCH] Linux: Correct wxWidgets assert warnings when displaying
+ about/LegalNotice dialogs. This didn't happen with official binaries because
+ the library used disables asserts.
+
+---
+ src/Main/Forms/Forms.cpp     | 2 --
+ src/Main/Forms/TrueCrypt.fbp | 4 ++--
+ 2 files changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/src/Main/Forms/Forms.cpp b/src/Main/Forms/Forms.cpp
+index d05524d..dcbd38f 100755
+--- a/src/Main/Forms/Forms.cpp
++++ b/src/Main/Forms/Forms.cpp
+@@ -717,7 +717,6 @@ AboutDialogBase::AboutDialogBase( wxWindow* parent, wxWindowID id, const wxStrin
+ 	bSizer117->Add( m_staticline3, 0, wxEXPAND|wxBOTTOM, 5 );
+ 	
+ 	CreditsTextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxSUNKEN_BORDER );
+-	CreditsTextCtrl->SetMaxLength( 0 ); 
+ 	bSizer117->Add( CreditsTextCtrl, 0, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 10 );
+ 	
+ 	
+@@ -1481,7 +1480,6 @@ LegalNoticesDialogBase::LegalNoticesDialogBase( wxWindow* parent, wxWindowID id,
+ 	bSizer115 = new wxBoxSizer( wxVERTICAL );
+ 	
+ 	LegalNoticesTextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY );
+-	LegalNoticesTextCtrl->SetMaxLength( 0 ); 
+ 	bSizer115->Add( LegalNoticesTextCtrl, 1, wxALL|wxEXPAND, 5 );
+ 	
+ 	wxButton* OKButton;
+diff --git a/src/Main/Forms/TrueCrypt.fbp b/src/Main/Forms/TrueCrypt.fbp
+index cf43cbf..86621ba 100755
+--- a/src/Main/Forms/TrueCrypt.fbp
++++ b/src/Main/Forms/TrueCrypt.fbp
+@@ -3874,7 +3874,7 @@
+                                 <property name="max_size"></property>
+                                 <property name="maximize_button">0</property>
+                                 <property name="maximum_size"></property>
+-                                <property name="maxlength">0</property>
++                                <property name="maxlength"></property>
+                                 <property name="min_size"></property>
+                                 <property name="minimize_button">0</property>
+                                 <property name="minimum_size"></property>
+@@ -10695,7 +10695,7 @@
+                                 <property name="max_size"></property>
+                                 <property name="maximize_button">0</property>
+                                 <property name="maximum_size"></property>
+-                                <property name="maxlength">0</property>
++                                <property name="maxlength"></property>
+                                 <property name="min_size"></property>
+                                 <property name="minimize_button">0</property>
+                                 <property name="minimum_size"></property>
+-- 
+2.1.1
+
