@@ -8,7 +8,7 @@ Index: veracrypt/src/Makefile
 ===================================================================
 --- veracrypt.orig/src/Makefile
 +++ veracrypt/src/Makefile
-@@ -50,6 +50,10 @@ export WXCONFIG_CFLAGS :=
+@@ -54,6 +54,10 @@ export WXCONFIG_CFLAGS :=
  export WXCONFIG_CXXFLAGS :=
  WX_ROOT ?= ..
  
@@ -23,7 +23,7 @@ Index: veracrypt/src/Build/Include/Makefile.inc
 ===================================================================
 --- veracrypt.orig/src/Build/Include/Makefile.inc
 +++ veracrypt/src/Build/Include/Makefile.inc
-@@ -10,7 +10,7 @@ $(NAME): $(NAME).a
+@@ -14,7 +14,7 @@ $(NAME): $(NAME).a
  
  clean:
  	@echo Cleaning $(NAME)

@@ -12,7 +12,7 @@ Index: veracrypt/src/Main/Main.make
 ===================================================================
 --- veracrypt.orig/src/Main/Main.make
 +++ veracrypt/src/Main/Main.make
-@@ -123,7 +123,7 @@ endif
+@@ -132,7 +132,7 @@ endif
  
  $(APPNAME): $(LIBS) $(OBJS)
  	@echo Linking $@
@@ -25,7 +25,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/Forms/MainFrame.cpp
 +++ veracrypt/src/Main/Forms/MainFrame.cpp
-@@ -42,6 +42,7 @@ namespace VeraCrypt
+@@ -46,6 +46,7 @@ namespace VeraCrypt
  	DEFINE_EVENT_TYPE(wxEVT_COMMAND_SHOW_WARNING)
  
  	MainFrame::MainFrame (wxWindow* parent) : MainFrameBase (parent),
@@ -33,7 +33,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  		ListItemRightClickEventPending (false),
  		SelectedItemIndex (-1),
  		SelectedSlotNumber (0),
-@@ -1531,6 +1532,30 @@ namespace VeraCrypt
+@@ -1552,6 +1553,30 @@ namespace VeraCrypt
  		}
  	}
  
@@ -64,7 +64,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  	void MainFrame::ShowTaskBarIcon (bool show)
  	{
  		if (!show && mTaskBarIcon->IsIconInstalled())
-@@ -1540,8 +1565,43 @@ namespace VeraCrypt
+@@ -1561,8 +1586,43 @@ namespace VeraCrypt
  		else if (show && !mTaskBarIcon->IsIconInstalled())
  		{
  #ifndef TC_MACOSX
@@ -113,7 +113,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
 ===================================================================
 --- veracrypt.orig/src/Main/Forms/MainFrame.h
 +++ veracrypt/src/Main/Forms/MainFrame.h
-@@ -9,6 +9,10 @@
+@@ -13,6 +13,10 @@
  #ifndef TC_HEADER_Main_Forms_MainFrame
  #define TC_HEADER_Main_Forms_MainFrame
  
@@ -124,7 +124,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
  #include "Forms.h"
  #include "ChangePasswordDialog.h"
  
-@@ -31,6 +35,16 @@ namespace VeraCrypt
+@@ -35,6 +39,16 @@ namespace VeraCrypt
  		static FilePath GetShowRequestFifoPath () { return Application::GetConfigFilePath (L".show-request-queue", true); }
  #endif
  
@@ -141,7 +141,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
  	protected:
  		enum
  		{
-@@ -64,7 +78,6 @@ namespace VeraCrypt
+@@ -68,7 +82,6 @@ namespace VeraCrypt
  		void LoadFavoriteVolumes ();
  		void LoadPreferences ();
  		void MountAllDevices ();
@@ -153,30 +153,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/GraphicUserInterface.cpp
 +++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1388,19 +1388,19 @@ namespace VeraCrypt
- 			File backupFile;
- 			backupFile.Open (*files.front(), File::OpenRead);
- 
--			uint64 headerSize;
-+			//uint64 headerSize;
- 			bool legacyBackup;
- 
- 			// Determine the format of the backup file
- 			switch (backupFile.Length())
- 			{
- 			case TC_VOLUME_HEADER_GROUP_SIZE:
--				headerSize = TC_VOLUME_HEADER_SIZE;
-+				//headerSize = TC_VOLUME_HEADER_SIZE;
- 				legacyBackup = false;
- 				break;
- 
- 			case TC_VOLUME_HEADER_SIZE_LEGACY * 2:
--				headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
-+				//headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
- 				legacyBackup = true;
- 				break;
- 
-@@ -1623,6 +1623,8 @@ namespace VeraCrypt
+@@ -1628,6 +1628,8 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
@@ -185,38 +162,11 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
  	}
  
  	void GraphicUserInterface::SetListCtrlColumnWidths (wxListCtrl *listCtrl, list <int> columnWidthPermilles, bool hasVerticalScrollbar) const
-Index: veracrypt/src/Main/TextUserInterface.cpp
-===================================================================
---- veracrypt.orig/src/Main/TextUserInterface.cpp
-+++ veracrypt/src/Main/TextUserInterface.cpp
-@@ -1406,19 +1406,19 @@ namespace VeraCrypt
- 			File backupFile;
- 			backupFile.Open (filePath, File::OpenRead);
- 
--			uint64 headerSize;
-+			//uint64 headerSize;
- 			bool legacyBackup;
- 
- 			// Determine the format of the backup file
- 			switch (backupFile.Length())
- 			{
- 			case TC_VOLUME_HEADER_GROUP_SIZE:
--				headerSize = TC_VOLUME_HEADER_SIZE;
-+				//headerSize = TC_VOLUME_HEADER_SIZE;
- 				legacyBackup = false;
- 				break;
- 
- 			case TC_VOLUME_HEADER_SIZE_LEGACY * 2:
--				headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
-+				//headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
- 				legacyBackup = true;
- 				break;
- 
 Index: veracrypt/src/Makefile
 ===================================================================
 --- veracrypt.orig/src/Makefile
 +++ veracrypt/src/Makefile
-@@ -54,6 +54,7 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
+@@ -58,6 +58,7 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
  CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
  CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
  LFLAGS+=$(shell dpkg-buildflags --get LDFLAGS)
