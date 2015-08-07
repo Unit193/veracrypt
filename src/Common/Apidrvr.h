@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2010 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #pragma once
@@ -62,6 +64,7 @@
 #define TC_IOCTL_SET_SYSTEM_FAVORITE_VOLUME_DIRTY		TC_IOCTL (36)
 #define TC_IOCTL_REREAD_DRIVER_CONFIG					TC_IOCTL (37)
 #define TC_IOCTL_GET_SYSTEM_DRIVE_DUMP_CONFIG			TC_IOCTL (38)
+#define VC_IOCTL_GET_BOOT_LOADER_FINGERPRINT			TC_IOCTL (39)
 
 // Legacy IOCTLs used before version 5.0
 #define TC_IOCTL_LEGACY_GET_DRIVER_VERSION		466968
@@ -103,6 +106,9 @@ typedef struct
 	int pkcs5_prf;
 	int ProtectedHidVolPkcs5Prf;
 	BOOL bTrueCryptMode;
+	uint32 BytesPerPhysicalSector;
+	int VolumePim;
+	int ProtectedHidVolPim;
 } MOUNT_STRUCT;
 
 typedef struct
@@ -142,6 +148,7 @@ typedef struct
 	unsigned __int64 totalBytesWritten;
 	int hiddenVolProtection;	/* Hidden volume protection status (e.g. HIDVOL_PROT_STATUS_NONE, HIDVOL_PROT_STATUS_ACTIVE, etc.) */
 	int volFormatVersion;
+	int volumePim;
 } VOLUME_PROPERTIES_STRUCT;
 
 typedef struct
@@ -240,6 +247,7 @@ typedef struct
 {
 	Password VolumePassword;
 	int pkcs5_prf;
+	int pim;
 } ReopenBootVolumeHeaderRequest;
 
 
@@ -248,6 +256,11 @@ typedef struct
 	char BootEncryptionAlgorithmName[256];
 	char BootPrfAlgorithmName[256];
 } GetBootEncryptionAlgorithmNameRequest;
+
+typedef struct
+{
+	byte Fingerprint[WHIRLPOOL_DIGESTSIZE + SHA512_DIGESTSIZE];
+} BootLoaderFingerprintRequest;
 
 typedef struct
 {

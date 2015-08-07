@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2005-2009 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "Language.h"
@@ -32,12 +36,14 @@ BOOL LocalizationActive;
 int LocalizationSerialNo;
 
 wchar_t UnknownString[1024];
-static char *LanguageFileBuffer;
+static char *LanguageFileBuffer = NULL;
 static HANDLE LanguageFileFindHandle = INVALID_HANDLE_VALUE;
 static char PreferredLangId[6];
-static char *LanguageResource;
-static char *HeaderResource[2];
-static char ActiveLangPackVersion[6];
+static char *LanguageResource = NULL;
+static DWORD LanguageResourceSize = 0;
+static char *HeaderResource[2] = {NULL, NULL};
+static DWORD HeaderResourceSize[2] = {0, 0};
+static char ActiveLangPackVersion[6] = {0};
 
 static char *MapFirstLanguageFile ()
 {
@@ -47,14 +53,31 @@ static char *MapFirstLanguageFile ()
 		LanguageFileFindHandle = INVALID_HANDLE_VALUE;
 	}
 
+	if (LanguageFileBuffer != NULL)
+	{
+		free (LanguageFileBuffer);
+		LanguageFileBuffer = NULL;
+	}
+
 	if (LanguageResource == NULL)
 	{
 		DWORD size;
 		LanguageResource = MapResource ("Xml", IDR_LANGUAGE, &size);
-		LanguageResource[size - 1] = 0;
+		if (LanguageResource)
+			LanguageResourceSize = size;
 	}
 
-	return LanguageResource;
+	if (LanguageResource)
+	{
+		LanguageFileBuffer = malloc(LanguageResourceSize + 1);
+		if (LanguageFileBuffer)
+		{
+			memcpy (LanguageFileBuffer, LanguageResource, LanguageResourceSize);
+			LanguageFileBuffer[LanguageResourceSize] = 0;
+		}
+	}
+
+	return LanguageFileBuffer;
 }
 
 
@@ -65,6 +88,13 @@ static char *MapNextLanguageFile ()
 	HANDLE file;
 	DWORD read;
 	BOOL bStatus;
+
+	/* free memory here to avoid leaks */
+	if (LanguageFileBuffer != NULL)
+	{
+		free (LanguageFileBuffer);
+		LanguageFileBuffer = NULL;
+	}
 
 	if (LanguageFileFindHandle == INVALID_HANDLE_VALUE)
 	{
@@ -84,10 +114,10 @@ static char *MapNextLanguageFile ()
 		return NULL;
 	}
 
+	if (LanguageFileFindHandle == INVALID_HANDLE_VALUE) return NULL;
 	if (find.nFileSizeHigh != 0) return NULL;
 
-	if (LanguageFileBuffer != NULL) free (LanguageFileBuffer);
-	LanguageFileBuffer = malloc(find.nFileSizeLow);
+	LanguageFileBuffer = malloc(find.nFileSizeLow + 1);
 	if (LanguageFileBuffer == NULL) return NULL;
 
 	GetModuleFileNameW (NULL, f, sizeof (f) / sizeof(f[0]));
@@ -95,6 +125,7 @@ static char *MapNextLanguageFile ()
 	if (t == NULL)
 	{
 		free(LanguageFileBuffer);
+		LanguageFileBuffer = NULL;
 		return NULL;
 	}
 
@@ -105,6 +136,7 @@ static char *MapNextLanguageFile ()
 	if (file == INVALID_HANDLE_VALUE)
 	{
 		free(LanguageFileBuffer);
+		LanguageFileBuffer = NULL;
 		return NULL;
 	}
 
@@ -113,8 +145,11 @@ static char *MapNextLanguageFile ()
 	if (!bStatus || (read != find.nFileSizeLow))
 	{
 		free(LanguageFileBuffer);
+		LanguageFileBuffer = NULL;
 		return NULL;
 	}
+
+	LanguageFileBuffer [find.nFileSizeLow] = 0; // we have allocated (find.nFileSizeLow + 1) bytes
 
 	return LanguageFileBuffer;
 }
@@ -124,7 +159,7 @@ BOOL LoadLanguageFile ()
 {
 	DWORD size;
 	BYTE *res;
-	char *xml, *header;
+	char *xml, *header, *headerPtr;
 	char langId[6] = "en", attr[32768], key[128];
 	BOOL defaultLangParsed = FALSE, langFound = FALSE;
 	WCHAR wattr[32768];
@@ -309,10 +344,22 @@ BOOL LoadLanguageFile ()
 		if (HeaderResource[i] == NULL)
 		{
 			HeaderResource[i] = MapResource ("Header", headers[i], &size);
-			*(HeaderResource[i] + size - 1) = 0;
+			if (HeaderResource[i])
+				HeaderResourceSize[i] = size;
 		}
 
-		header = HeaderResource[i];
+		headerPtr = NULL;
+		if (HeaderResource[i])
+		{
+			headerPtr = (char*) malloc (HeaderResourceSize[i] + 1);
+			if (headerPtr)
+			{
+				memcpy (headerPtr, HeaderResource[i], HeaderResourceSize[i]);
+				headerPtr [HeaderResourceSize[i]] = 0;
+			}
+		}
+
+		header = headerPtr;
 		if (header == NULL) return FALSE;
 
 		do
@@ -326,6 +373,8 @@ BOOL LoadLanguageFile ()
 			}
 
 		} while ((header = strchr (header, '\n') + 1) != (char *) 1);
+
+		free (headerPtr);
 	}
 
 	return TRUE;
@@ -362,7 +411,7 @@ BOOL CALLBACK LanguageDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					if (len != 0 && len != ERROR_NO_UNICODE_TRANSLATION
 						&& (!defaultLangFound || wcscmp (wattr, L"English") != 0))
 					{
-						int i = SendDlgItemMessageW (hwndDlg, IDC_LANGLIST, LB_ADDSTRING, 0, (LPARAM)wattr);
+						int i = (int) SendDlgItemMessageW (hwndDlg, IDC_LANGLIST, LB_ADDSTRING, 0, (LPARAM)wattr);
 						if (i >= 0)
 						{
 							int id;
@@ -441,11 +490,11 @@ BOOL CALLBACK LanguageDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 		if (lw == IDOK || hw == LBN_DBLCLK)
 		{
-			int i = SendDlgItemMessage (hwndDlg, IDC_LANGLIST, LB_GETCURSEL, 0, 0);
+			int i = (int) SendDlgItemMessage (hwndDlg, IDC_LANGLIST, LB_GETCURSEL, 0, 0);
 
 			if (i >= 0)
 			{
-				int id = SendDlgItemMessage (hwndDlg, IDC_LANGLIST, LB_GETITEMDATA, i, 0);
+				int id = (int) SendDlgItemMessage (hwndDlg, IDC_LANGLIST, LB_GETITEMDATA, i, 0);
 
 				if (id != LB_ERR)
 				{

@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2012 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include "TCdefs.h"
@@ -120,8 +122,8 @@ NTSTATUS DriverAddDevice (PDRIVER_OBJECT driverObject, PDEVICE_OBJECT pdo)
 
 	if (VolumeClassFilterRegistered && BootArgsValid && BootArgs.HiddenSystemPartitionStart != 0)
 	{
-		PWSTR interfaceLinks;
-		if (NT_SUCCESS (IoGetDeviceInterfaces (&GUID_DEVINTERFACE_VOLUME, pdo, DEVICE_INTERFACE_INCLUDE_NONACTIVE, &interfaceLinks)))
+		PWSTR interfaceLinks = NULL;
+		if (NT_SUCCESS (IoGetDeviceInterfaces (&GUID_DEVINTERFACE_VOLUME, pdo, DEVICE_INTERFACE_INCLUDE_NONACTIVE, &interfaceLinks)) && interfaceLinks)
 		{
 			if (interfaceLinks[0] != UNICODE_NULL)
 			{
@@ -628,6 +630,42 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 		}
 		break;
 
+	case IOCTL_STORAGE_QUERY_PROPERTY:
+		if (ValidateIOBufferSize (Irp, sizeof (STORAGE_PROPERTY_QUERY), ValidateInput))
+		{			
+			PSTORAGE_PROPERTY_QUERY pStoragePropQuery = (PSTORAGE_PROPERTY_QUERY) Irp->AssociatedIrp.SystemBuffer;
+			STORAGE_QUERY_TYPE type = pStoragePropQuery->QueryType;
+
+			if (type == PropertyExistsQuery)
+			{
+				if (pStoragePropQuery->PropertyId == StorageAccessAlignmentProperty)
+				{
+					Irp->IoStatus.Status = STATUS_SUCCESS;
+					Irp->IoStatus.Information = 0;
+				}
+			}
+			else if (type == PropertyStandardQuery)
+			{
+				if (pStoragePropQuery->PropertyId == StorageAccessAlignmentProperty)
+				{
+					if (ValidateIOBufferSize (Irp, sizeof (STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR), ValidateOutput))
+					{
+						PSTORAGE_ACCESS_ALIGNMENT_DESCRIPTOR outputBuffer = (PSTORAGE_ACCESS_ALIGNMENT_DESCRIPTOR) Irp->AssociatedIrp.SystemBuffer;
+
+						outputBuffer->Version = sizeof(STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR);
+						outputBuffer->Size = sizeof(STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR);
+						outputBuffer->BytesPerLogicalSector = Extension->BytesPerSector;
+						outputBuffer->BytesPerPhysicalSector = Extension->HostBytesPerPhysicalSector;
+						outputBuffer->BytesOffsetForSectorAlignment = Extension->BytesOffsetForSectorAlignment;
+						Irp->IoStatus.Status = STATUS_SUCCESS;
+						Irp->IoStatus.Information = sizeof (STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR);
+					}
+				}
+			}
+		}
+		
+		break;
+
 	case IOCTL_DISK_GET_PARTITION_INFO:
 		if (ValidateIOBufferSize (Irp, sizeof (PARTITION_INFORMATION), ValidateOutput))
 		{
@@ -716,7 +754,7 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 				&ullNewOffset);
 			if (hResult != S_OK)
 				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
-			else if (S_OK != ULongLongAdd(ullNewOffset, (ULONGLONG) pVerifyInformation->Length, &ullEndOffset))
+			else if (S_OK != ULongLongAdd(ullStartingOffset, (ULONGLONG) pVerifyInformation->Length, &ullEndOffset))
 				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
 			else if (ullEndOffset > (ULONGLONG) Extension->DiskLength)
 				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
@@ -993,7 +1031,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 			IO_STATUS_BLOCK IoStatus;
 			LARGE_INTEGER offset;
 			byte readBuffer [TC_SECTOR_SIZE_BIOS];
-
+				
 			if (!ValidateIOBufferSize (Irp, sizeof (GetSystemDriveConfigurationRequest), ValidateInputOutput))
 				break;
 
@@ -1191,6 +1229,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 					prop->mode = ListExtension->cryptoInfo->mode;
 					prop->pkcs5 = ListExtension->cryptoInfo->pkcs5;
 					prop->pkcs5Iterations = ListExtension->cryptoInfo->noIterations;
+					prop->volumePim = ListExtension->cryptoInfo->volumePim;
 #if 0
 					prop->volumeCreationTime = ListExtension->cryptoInfo->volume_creation_time;
 					prop->headerCreationTime = ListExtension->cryptoInfo->header_creation_time;
@@ -1367,6 +1406,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 
 			if (mount->VolumePassword.Length > MAX_PASSWORD || mount->ProtectedHidVolPassword.Length > MAX_PASSWORD
 				||	mount->pkcs5_prf < 0 || mount->pkcs5_prf > LAST_PRF_ID 
+				||	mount->VolumePim < 0 || mount->VolumePim == INT_MAX
 				|| mount->ProtectedHidVolPkcs5Prf < 0 || mount->ProtectedHidVolPkcs5Prf > LAST_PRF_ID 
 				|| (mount->bTrueCryptMode != FALSE && mount->bTrueCryptMode != TRUE)
 				)
@@ -1384,8 +1424,10 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 			burn (&mount->VolumePassword, sizeof (mount->VolumePassword));
 			burn (&mount->ProtectedHidVolPassword, sizeof (mount->ProtectedHidVolPassword));
 			burn (&mount->pkcs5_prf, sizeof (mount->pkcs5_prf));
+			burn (&mount->VolumePim, sizeof (mount->VolumePim));
 			burn (&mount->bTrueCryptMode, sizeof (mount->bTrueCryptMode));
 			burn (&mount->ProtectedHidVolPkcs5Prf, sizeof (mount->ProtectedHidVolPkcs5Prf));
+			burn (&mount->ProtectedHidVolPim, sizeof (mount->ProtectedHidVolPim));
 		}
 		break;
 
@@ -1451,6 +1493,10 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 
 	case TC_IOCTL_REOPEN_BOOT_VOLUME_HEADER:
 		ReopenBootVolumeHeader (Irp, irpSp);
+		break;
+
+	case VC_IOCTL_GET_BOOT_LOADER_FINGERPRINT:
+		GetBootLoaderFingerprint (Irp, irpSp);
 		break;
 
 	case TC_IOCTL_GET_BOOT_ENCRYPTION_ALGORITHM_NAME:

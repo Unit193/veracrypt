@@ -163,6 +163,10 @@
 #define IDC_PKCS5_OLD_PRF_ID            1139
 #define IDC_TRUECRYPT_MODE              1140
 #define IDC_PREF_TEMP_CACHE_ON_MULTIPLE_MOUNT 1141
+#define IDT_OLD_PIM                     1142
+#define IDC_OLD_PIM                     1143
+#define IDC_OLD_PIM_HELP                1144
+#define IDC_NEW_PIM_ENABLE              1145
 #define IDM_HELP                        40001
 #define IDM_ABOUT                       40002
 #define IDM_UNMOUNT_VOLUME              40003
@@ -228,8 +232,8 @@
 #define IDM_ANALYZE_SYSTEM_CRASH        40063
 #define IDM_DONATE                      40064
 #define IDM_VOLUME_EXPANDER             40065
-#define ID_SETTINGS_DEFAULTMOUNTOPTIONS 40066
-#define IDM_DEFAULT_MOUNT_PARAMETERS    40067
+#define IDM_DEFAULT_MOUNT_PARAMETERS    40066
+#define IDM_DECRYPT_NONSYS_VOL          40067
 
 // Next default values for new objects
 // 
@@ -238,7 +242,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        119
 #define _APS_NEXT_COMMAND_VALUE         40068
-#define _APS_NEXT_CONTROL_VALUE         1142
+#define _APS_NEXT_CONTROL_VALUE         1146
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

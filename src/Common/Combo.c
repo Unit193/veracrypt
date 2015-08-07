@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2008 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include "Tcdefs.h"
@@ -133,23 +135,64 @@ LPARAM UpdateComboOrder (HWND hComboBox)
 	return nIndex;
 }
 
-void LoadCombo (HWND hComboBox)
+void LoadCombo (HWND hComboBox, BOOL bEnabled, BOOL bOnlyCheckModified, BOOL *pbModified)
 {
 	DWORD size;
 	char *history = LoadFile (GetConfigPath (TC_APPD_FILENAME_HISTORY), &size);
 	char *xml = history;
 	char volume[MAX_PATH];
+	int i, nComboIdx[SIZEOF_MRU_LIST] = {0};
+	int count = SendMessage (hComboBox, CB_GETCOUNT, 0, 0);
 
-	if (xml == NULL) return;
-
-	while (xml = XmlFindElement (xml, "volume"))
+	if (xml == NULL)
 	{
-		XmlGetNodeText (xml, volume, sizeof (volume));
-		AddComboItem (hComboBox, volume, TRUE);
-		xml++;
+		// No history XML file but history is enabled
+		if (bEnabled && pbModified)
+		*pbModified = TRUE;
+		return;
 	}
 
-	SendMessage (hComboBox, CB_SETCURSEL, 0, 0);
+	if (!bEnabled && bOnlyCheckModified)
+	{
+		// History is disable but there is a history XML file
+		if (pbModified)
+			*pbModified = TRUE;
+		free (history);
+		return;
+	}
+
+
+	/* combo list part:- get mru items */
+	for (i = 0; i < SIZEOF_MRU_LIST; i++)
+		nComboIdx[i] = GetOrderComboIdx (hComboBox, &nComboIdx[0], i);
+
+	i = 0;
+	while (xml = XmlFindElement (xml, "volume"))
+	{
+		char szTmp[MAX_PATH] = { 0 };
+		 
+		if (i < count)
+		{
+			if (SendMessage (hComboBox, CB_GETLBTEXTLEN, nComboIdx[i], 0) < sizeof (szTmp))
+				SendMessage (hComboBox, CB_GETLBTEXT, nComboIdx[i], (LPARAM) & szTmp[0]);
+		}
+
+		XmlGetNodeText (xml, volume, sizeof (volume));
+		if (!bOnlyCheckModified)
+			AddComboItem (hComboBox, volume, TRUE);
+
+		if (pbModified && strcmp (volume, szTmp))
+			*pbModified = TRUE;
+
+		xml++;
+		i++;
+	}
+
+	if (pbModified && (i != count))
+		*pbModified = TRUE;
+
+	if (!bOnlyCheckModified)
+		SendMessage (hComboBox, CB_SETCURSEL, 0, 0);
 
 	free (history);
 }

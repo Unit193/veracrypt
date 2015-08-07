@@ -1,31 +1,18 @@
 /*
+ Legal Notice: Some portions of the source code contained in this file were
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ and also from the source code of extcv, which is Copyright (c) 2009-2010 Kih-Oskh
+ or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
-Some portions of the source code contained in this file were derived from the
-source code of TrueCrypt 7.0a, which is governed by the TrueCrypt License 3.0
-that can be found in the file 'License.txt' in the folder 'TrueCrypt-License'.
-
-Modifications and additions to the original source code (contained in this file)
-and all other portions of this file are Copyright (c) 2009-2010 by Kih-Oskh or
-Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
-
-
-Some portions of the source code here are derived from 'Mount\Mount.c'
-
--------------------------------------------------------------------------------
-
-Original legal notice of the TrueCrypt source:
-
-	 Legal Notice: Some portions of the source code contained in this file were
-	 derived from the source code of Encryption for the Masses 2.02a, which is
-	 Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
-	 Agreement for Encryption for the Masses'. Modifications and additions to
-	 the original source code (contained in this file) and all other portions
-	 of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
-	 and are governed by the TrueCrypt License 3.0 the full text of which is
-	 contained in the file License.txt included in TrueCrypt binary and source
-	 code distribution packages.
-
-*/
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages. */
 
 #include "Tcdefs.h"
 
@@ -72,7 +59,7 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 namespace VeraCryptExpander
 {
 /* defined in WinMain.c, referenced by ExpandVolumeWizard() */
-int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions);
+int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions);
 }
 
 
@@ -385,7 +372,7 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 				pProgressDlgParam->hwndDlg = hwndDlg;
 				if ( _beginthread (volTransformThreadFunction, 0, pProgressDlgParam) == -1L )
 				{
-					handleError (hwndDlg, ERR_OS_ERROR);
+					handleError (hwndDlg, ERR_OS_ERROR, SRC_POS);
 					EndDialog (hwndDlg, lw);
 				}
 				WaitCursor();
@@ -406,6 +393,7 @@ typedef struct
 	const char *volumePath;
 	Password *password;
 	int pkcs5_prf;
+	int pim;
 	BOOL truecryptMode;
 	BOOL write;
 	BOOL preserveTimestamps;
@@ -418,7 +406,7 @@ void CALLBACK OpenVolumeWaitThreadProc(void* pArg, HWND hwndDlg)
 	OpenVolumeThreadParam* pThreadParam = (OpenVolumeThreadParam*) pArg;
 
 	*(pThreadParam)->nStatus = OpenVolume(pThreadParam->context, pThreadParam->volumePath, pThreadParam->password, pThreadParam->pkcs5_prf,
-		pThreadParam->truecryptMode, pThreadParam->write, pThreadParam->preserveTimestamps, pThreadParam->useBackupHeader);
+		pThreadParam->pim, pThreadParam->truecryptMode, pThreadParam->write, pThreadParam->preserveTimestamps, pThreadParam->useBackupHeader);
 }
 
 /*
@@ -444,7 +432,7 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 	int nStatus = ERR_OS_ERROR;
 	wchar_t szTmp[4096];
 	Password VolumePassword;
-	int VolumePkcs5 = 0;
+	int VolumePkcs5 = 0, VolumePim = -1;
 	uint64 hostSize, volSize, hostSizeFree, maxSizeFS;
 	BOOL bIsDevice, bIsLegacy;
 	DWORD dwError;
@@ -512,7 +500,7 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 		OpenVolumeContext expandVol;
 		BOOL truecryptMode = FALSE;
 
-		if (!VeraCryptExpander::ExtcvAskVolumePassword (hwndDlg, &VolumePassword, &VolumePkcs5, &truecryptMode, "ENTER_NORMAL_VOL_PASSWORD", FALSE))
+		if (!VeraCryptExpander::ExtcvAskVolumePassword (hwndDlg, &VolumePassword, &VolumePkcs5, &VolumePim, &truecryptMode, "ENTER_NORMAL_VOL_PASSWORD", FALSE))
 		{
 			goto ret;
 		}
@@ -530,6 +518,7 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 		threadParam.volumePath = lpszVolume;
 		threadParam.password = &VolumePassword;
 		threadParam.pkcs5_prf = VolumePkcs5;
+		threadParam.pim = VolumePim;
 		threadParam.truecryptMode = FALSE;
 		threadParam.write = FALSE;
 		threadParam.preserveTimestamps = bPreserveTimestamp;
@@ -570,13 +559,13 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 
 		NormalCursor();
 
-		handleError (hwndDlg, nStatus);
+		handleError (hwndDlg, nStatus, SRC_POS);
 	}
 
 	WaitCursor();
 
 	// auto mount the volume to check the file system type
-	nStatus=MountVolTemp(hwndDlg, lpszVolume, &driveNo, &VolumePassword, VolumePkcs5);
+	nStatus=MountVolTemp(hwndDlg, lpszVolume, &driveNo, &VolumePassword, VolumePkcs5, VolumePim);
 
 	if (nStatus != ERR_SUCCESS)
 		goto error;
@@ -651,6 +640,7 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 	VolExpandParam.FileSystem = volFSType;
 	VolExpandParam.pVolumePassword = &VolumePassword;
 	VolExpandParam.VolumePkcs5 = VolumePkcs5;
+	VolExpandParam.VolumePim = VolumePim;
 	VolExpandParam.bIsDevice = bIsDevice;
 	VolExpandParam.bIsLegacy = bIsLegacy;
 	VolExpandParam.oldSize = bIsDevice ? volSize : hostSize;
@@ -719,7 +709,7 @@ ret:
 error:
 
 	if (nStatus != 0)
-		handleError (hwndDlg, nStatus);
+		handleError (hwndDlg, nStatus, SRC_POS);
 
 	burn (&VolumePassword, sizeof (VolumePassword));
 

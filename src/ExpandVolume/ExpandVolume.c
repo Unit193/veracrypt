@@ -1,36 +1,18 @@
 /*
+ Legal Notice: Some portions of the source code contained in this file were
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ and also from the source code of extcv, which is Copyright (c) 2009-2010 Kih-Oskh
+ or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
-Some portions of the source code contained in this file were derived from the
-source code of TrueCrypt 7.0a, which is governed by the TrueCrypt License 3.0
-that can be found in the file 'License.txt' in the folder 'TrueCrypt-License'.
-
-Modifications and additions to the original source code (contained in this file)
-and all other portions of this file are Copyright (c) 2009-2010 by Kih-Oskh or
-Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
-
-TrueCrypt source files used to derive some portions of the source code in this
-file are:
-
-    - 'Mount\Mount.c'
-    - 'Common\Format.c'
-	- 'Common\Password.c'
-    - 'Format\Tcformat.c'
-
--------------------------------------------------------------------------------
-
-Original legal notice of the TrueCrypt source files:
-
-	 Legal Notice: Some portions of the source code contained in this file were
-	 derived from the source code of Encryption for the Masses 2.02a, which is
-	 Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
-	 Agreement for Encryption for the Masses'. Modifications and additions to
-	 the original source code (contained in this file) and all other portions
-	 of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
-	 and are governed by the TrueCrypt License 3.0 the full text of which is
-	 contained in the file License.txt included in TrueCrypt binary and source
-	 code distribution packages.
-
-*/
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages. */
 
 #include "Tcdefs.h"
 
@@ -55,6 +37,10 @@ Original legal notice of the TrueCrypt source files:
 #include "InitDataArea.h"
 #include "ExpandVolume.h"
 #include "Resource.h"
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 #define DEBUG_EXPAND_VOLUME
 
@@ -98,7 +84,7 @@ static int FsctlExtendVolume(char * szVolume, LONGLONG nTotalSectors );
 		int with Truecrypt error code (ERR_SUCCESS on success)
 
 */
-int MountVolTemp (HWND hwndDlg, char *volumePath, int *driveNo, Password *password, int pkcs5)
+int MountVolTemp (HWND hwndDlg, char *volumePath, int *driveNo, Password *password, int pkcs5, int pim)
 {
 	MountOptions mountOptions;
 	ZeroMemory (&mountOptions, sizeof (mountOptions));
@@ -118,7 +104,7 @@ int MountVolTemp (HWND hwndDlg, char *volumePath, int *driveNo, Password *passwo
 	mountOptions.PartitionInInactiveSysEncScope = FALSE;
 	mountOptions.UseBackupHeader = FALSE;
 
-	if (MountVolume (hwndDlg, *driveNo, volumePath, password, pkcs5, FALSE, FALSE, TRUE, &mountOptions, FALSE, FALSE) < 1)
+	if (MountVolume (hwndDlg, *driveNo, volumePath, password, pkcs5, pim, FALSE, FALSE, TRUE, &mountOptions, FALSE, FALSE) < 1)
 	{
 		*driveNo = -3;
 		return ERR_VOL_MOUNT_FAILED;
@@ -385,7 +371,7 @@ uint64 GetVolumeSizeByDataAreaSize (uint64 dataAreaSize, BOOL legacyVolume)
 }
 
 
-int ExtendFileSystem (HWND hwndDlg , char *lpszVolume, Password *pVolumePassword, int VolumePkcs5, uint64 newDataAreaSize)
+int ExtendFileSystem (HWND hwndDlg , char *lpszVolume, Password *pVolumePassword, int VolumePkcs5, int VolumePim, uint64 newDataAreaSize)
 {
 	char szVolumeGUID[128];
 	int driveNo = -1;
@@ -399,7 +385,7 @@ int ExtendFileSystem (HWND hwndDlg , char *lpszVolume, Password *pVolumePassword
 
 	DebugAddProgressDlgStatus (hwndDlg, "Mounting volume ...\r\n");
 
-	nStatus=MountVolTemp(hwndDlg, lpszVolume, &driveNo, pVolumePassword, VolumePkcs5);
+	nStatus=MountVolTemp(hwndDlg, lpszVolume, &driveNo, pVolumePassword, VolumePkcs5, VolumePim);
 	if (nStatus!=ERR_SUCCESS)
 	{
 		driveNo = -1;
@@ -500,7 +486,7 @@ error:
 	Remarks: a lot of code is from TrueCrypt 'Common\Password.c' :: ChangePwd()
 
 */
-static int ExpandVolume (HWND hwndDlg, char *lpszVolume, Password *pVolumePassword, int VolumePkcs5, uint64 newHostSize, BOOL initFreeSpace)
+static int ExpandVolume (HWND hwndDlg, char *lpszVolume, Password *pVolumePassword, int VolumePkcs5, int VolumePim, uint64 newHostSize, BOOL initFreeSpace)
 {
 	int nDosLinkCreated = 1, nStatus = ERR_OS_ERROR;
 	char szDiskFile[TC_MAX_PATH], szCFDevice[TC_MAX_PATH];
@@ -644,7 +630,7 @@ static int ExpandVolume (HWND hwndDlg, char *lpszVolume, Password *pVolumePasswo
 
 	/* Try to decrypt the header */
 
-	nStatus = ReadVolumeHeader (FALSE, buffer, pVolumePassword, VolumePkcs5, FALSE, &cryptoInfo, NULL);
+	nStatus = ReadVolumeHeader (FALSE, buffer, pVolumePassword, VolumePkcs5, VolumePim, FALSE, &cryptoInfo, NULL);
 	if (nStatus == ERR_CIPHER_INIT_WEAK_KEY)
 		nStatus = 0;	// We can ignore this error here
 
@@ -802,6 +788,7 @@ static int ExpandVolume (HWND hwndDlg, char *lpszVolume, Password *pVolumePasswo
 			cryptoInfo->mode,
 			pVolumePassword,
 			cryptoInfo->pkcs5,
+			VolumePim,
 			(char*)(cryptoInfo->master_keydata),
 			&ci,
 			newDataAreaSize,
@@ -968,7 +955,7 @@ error:
 
 	if (nStatus == ERR_SUCCESS)
 	{
-		nStatus = ExtendFileSystem (hwndDlg, lpszVolume, pVolumePassword, VolumePkcs5, newDataAreaSize);
+		nStatus = ExtendFileSystem (hwndDlg, lpszVolume, pVolumePassword, VolumePkcs5, VolumePim, newDataAreaSize);
 	}
 
 	return nStatus;
@@ -983,10 +970,10 @@ void __cdecl volTransformThreadFunction (void *pExpandDlgParam)
 	HWND hwndDlg = (HWND) pParam->hwndDlg;
 
 	nStatus = ExpandVolume (hwndDlg, (char*)pParam->szVolumeName, pParam->pVolumePassword,
-		pParam->VolumePkcs5, pParam->newSize, pParam->bInitFreeSpace );
+		pParam->VolumePkcs5, pParam->VolumePim, pParam->newSize, pParam->bInitFreeSpace );
 
 	if (nStatus!=ERR_SUCCESS && nStatus!=ERR_USER_ABORT)
-			handleError (hwndDlg, nStatus);
+			handleError (hwndDlg, nStatus, SRC_POS);
 
 	bVolTransformThreadCancel = FALSE;
 

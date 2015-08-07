@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,6,3
- PRODUCTVERSION 1,0,6,3
+ FILEVERSION 1,12,22,0
+ PRODUCTVERSION 1,12,22,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -46,11 +46,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "IDRIX"
             VALUE "FileDescription", "VeraCrypt Setup"
-            VALUE "FileVersion", "1.0f-2"
+            VALUE "FileVersion", "1.12"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCrypt Setup.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.0f-2"
+            VALUE "ProductVersion", "1.12"
         END
     END
     BLOCK "VarFileInfo"
@@ -82,7 +82,7 @@ IDR_COMREG              REGISTRY                "ComSetup.rgs"
 IDD_UNINSTALL DIALOGEX 0, 0, 349, 234
 STYLE DS_SETFONT | DS_SETFOREGROUND | DS_3DLOOK | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Uninstall VeraCrypt"
-CLASS "CustomDlg"
+CLASS "VeraCryptCustomDlg"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     LTEXT           "Click Uninstall to remove VeraCrypt from this system.",IDT_UNINSTALL_DIR,8,8,334,8
@@ -128,7 +128,7 @@ END
 IDD_INSTL_DLG DIALOGEX 0, 0, 374, 231
 STYLE DS_SETFONT | DS_SETFOREGROUND | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt Setup Wizard"
-CLASS "CustomDlg"
+CLASS "VeraCryptCustomDlg"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     PUSHBUTTON      "&Help",IDHELP,150,211,50,14

@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "Platform/Finally.h"
@@ -132,8 +136,8 @@ namespace VeraCrypt
 			{ CKA_CLASS, &dataClass, sizeof (dataClass) },
 			{ CKA_TOKEN, &trueVal, sizeof (trueVal) },
 			{ CKA_PRIVATE, &trueVal, sizeof (trueVal) },
-			{ CKA_LABEL, (CK_UTF8CHAR *) name.c_str(), name.size() },
-			{ CKA_VALUE, &keyfileData.front(), keyfileData.size() }
+			{ CKA_LABEL, (CK_UTF8CHAR *) name.c_str(), (CK_ULONG) name.size() },
+			{ CKA_VALUE, &keyfileData.front(), (CK_ULONG) keyfileData.size() }
 		};
 
 		CK_OBJECT_HANDLE keyfileHandle;
@@ -420,7 +424,7 @@ namespace VeraCrypt
 		else if (Sessions[slotId].UserLoggedIn)
 			return;
 
-		CK_RV status = Pkcs11Functions->C_Login (Sessions[slotId].Handle, CKU_USER, (CK_CHAR_PTR) pin.c_str(), pin.size());
+		CK_RV status = Pkcs11Functions->C_Login (Sessions[slotId].Handle, CKU_USER, (CK_CHAR_PTR) pin.c_str(), (CK_ULONG) pin.size());
 
 		if (status != CKR_OK)
 			throw Pkcs11Exception (status);

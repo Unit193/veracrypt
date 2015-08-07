@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #ifndef TC_HEADER_Encryption_Hash
@@ -27,6 +31,7 @@ namespace VeraCrypt
 		virtual size_t GetBlockSize () const = 0;
 		virtual size_t GetDigestSize () const = 0;
 		virtual wstring GetName () const = 0;
+		virtual wstring GetAltName () const = 0;
 		virtual shared_ptr <Hash> GetNew () const = 0;
 		virtual void Init () = 0;
 		bool IsDeprecated () const { return Deprecated; }
@@ -54,6 +59,7 @@ namespace VeraCrypt
 		virtual size_t GetBlockSize () const { return 64; }
 		virtual size_t GetDigestSize () const { return 160 / 8; }
 		virtual wstring GetName () const { return L"RIPEMD-160"; }
+		virtual wstring GetAltName () const { return L"RIPEMD160"; }
 		virtual shared_ptr <Hash> GetNew () const { return shared_ptr <Hash> (new Ripemd160); }
 		virtual void Init ();
 		virtual void ProcessData (const ConstBufferPtr &data);
@@ -76,6 +82,7 @@ namespace VeraCrypt
 		virtual size_t GetBlockSize () const { return 64; }
 		virtual size_t GetDigestSize () const { return 256 / 8; }
 		virtual wstring GetName () const { return L"SHA-256"; }
+		virtual wstring GetAltName () const { return L"SHA256"; }
 		virtual shared_ptr <Hash> GetNew () const { return shared_ptr <Hash> (new Sha256); }
 		virtual void Init ();
 		virtual void ProcessData (const ConstBufferPtr &data);
@@ -98,6 +105,7 @@ namespace VeraCrypt
 		virtual size_t GetBlockSize () const { return 128; }
 		virtual size_t GetDigestSize () const { return 512 / 8; }
 		virtual wstring GetName () const { return L"SHA-512"; }
+		virtual wstring GetAltName () const { return L"SHA512"; }
 		virtual shared_ptr <Hash> GetNew () const { return shared_ptr <Hash> (new Sha512); }
 		virtual void Init ();
 		virtual void ProcessData (const ConstBufferPtr &data);
@@ -120,6 +128,7 @@ namespace VeraCrypt
 		virtual size_t GetBlockSize () const { return 64; }
 		virtual size_t GetDigestSize () const { return 512 / 8; }
 		virtual wstring GetName () const { return L"Whirlpool"; }
+		virtual wstring GetAltName () const { return L"Whirlpool"; }
 		virtual shared_ptr <Hash> GetNew () const { return shared_ptr <Hash> (new Whirlpool); }
 		virtual void Init ();
 		virtual void ProcessData (const ConstBufferPtr &data);

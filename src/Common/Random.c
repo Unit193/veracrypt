@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include "Tcdefs.h"
@@ -36,6 +38,12 @@ static HANDLE PeriodicFastPollThreadHandle = NULL;
 /* Macro to add four bytes to the pool */
 #define RandaddInt32(x) RandAddInt((unsigned __int32)x);
 
+#ifdef _WIN64
+#define RandaddIntPtr(x) RandAddInt64((unsigned __int64)x);
+#else
+#define RandaddIntPtr(x) RandAddInt((unsigned __int32)x);
+#endif
+
 void RandAddInt (unsigned __int32 x)
 {
 	RandaddByte(x); 
@@ -44,8 +52,25 @@ void RandAddInt (unsigned __int32 x)
 	RandaddByte((x >> 24));
 }
 
+void RandAddInt64 (unsigned __int64 x)
+{
+	RandaddByte(x); 
+	RandaddByte((x >> 8)); 
+	RandaddByte((x >> 16));
+	RandaddByte((x >> 24));
+
+	RandaddByte((x >> 32));
+	RandaddByte((x >> 40));
+	RandaddByte((x >> 48));
+	RandaddByte((x >> 56));
+}
+
 #include <tlhelp32.h>
 #include "Dlgcode.h"
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 HHOOK hMouse = NULL;		/* Mouse hook for the random number generator */
 HHOOK hKeyboard = NULL;		/* Keyboard hook for the random number generator */
@@ -93,12 +118,12 @@ int Randinit ()
 	}
 
 	hKeyboard = SetWindowsHookEx (WH_KEYBOARD, (HOOKPROC)&KeyboardProc, NULL, GetCurrentThreadId ());
-	if (hKeyboard == 0) handleWin32Error (0);
+	if (hKeyboard == 0) handleWin32Error (0, SRC_POS);
 
 	hMouse = SetWindowsHookEx (WH_MOUSE, (HOOKPROC)&MouseProc, NULL, GetCurrentThreadId ());
 	if (hMouse == 0)
 	{
-		handleWin32Error (0);
+		handleWin32Error (0, SRC_POS);
 		goto error;
 	}
 	
@@ -369,7 +394,7 @@ BOOL RandgetBytesFull ( void* hwndDlg, unsigned char *buf , int len, BOOL forceS
 	{
 		if (!SlowPoll ())
 		{
-			handleError ((HWND) hwndDlg, ERR_CAPI_INIT_FAILED);
+			handleError ((HWND) hwndDlg, ERR_CAPI_INIT_FAILED, SRC_POS);
 			ret = FALSE;
 		}
 		else
@@ -378,7 +403,7 @@ BOOL RandgetBytesFull ( void* hwndDlg, unsigned char *buf , int len, BOOL forceS
 
 	if (!FastPoll ())
 	{
-		handleError ((HWND) hwndDlg, ERR_CAPI_INIT_FAILED);
+		handleError ((HWND) hwndDlg, ERR_CAPI_INIT_FAILED, SRC_POS);
 		ret = FALSE;
 	}
 
@@ -539,7 +564,7 @@ LRESULT CALLBACK KeyboardProc (int nCode, WPARAM wParam, LPARAM lParam)
 		}
 
 		EnterCriticalSection (&critRandProt);
-		RandaddInt32 ((unsigned __int32) (crc32int(&lParam) + timeCrc));
+		RandaddInt32 ((unsigned __int32) (GetCrc32((unsigned char*) &lParam, sizeof(lParam)) + timeCrc));
 		LeaveCriticalSection (&critRandProt);
 	}
 
@@ -734,36 +759,36 @@ BOOL FastPoll (void)
 	int nOriginalRandIndex = nRandIndex;
 	static BOOL addedFixedItems = FALSE;
 	FILETIME creationTime, exitTime, kernelTime, userTime;
-	DWORD minimumWorkingSetSize, maximumWorkingSetSize;
+	SIZE_T minimumWorkingSetSize, maximumWorkingSetSize;
 	LARGE_INTEGER performanceCount;
 	MEMORYSTATUS memoryStatus;
 	HANDLE handle;
 	POINT point;
 
 	/* Get various basic pieces of system information */
-	RandaddInt32 (GetActiveWindow ());	/* Handle of active window */
-	RandaddInt32 (GetCapture ());	/* Handle of window with mouse
+	RandaddIntPtr (GetActiveWindow ());	/* Handle of active window */
+	RandaddIntPtr (GetCapture ());	/* Handle of window with mouse
 					   capture */
-	RandaddInt32 (GetClipboardOwner ());	/* Handle of clipboard owner */
-	RandaddInt32 (GetClipboardViewer ());	/* Handle of start of
+	RandaddIntPtr (GetClipboardOwner ());	/* Handle of clipboard owner */
+	RandaddIntPtr (GetClipboardViewer ());	/* Handle of start of
 						   clpbd.viewer list */
-	RandaddInt32 (GetCurrentProcess ());	/* Pseudohandle of current
+	RandaddIntPtr (GetCurrentProcess ());	/* Pseudohandle of current
 						   process */
 	RandaddInt32 (GetCurrentProcessId ());	/* Current process ID */
-	RandaddInt32 (GetCurrentThread ());	/* Pseudohandle of current
+	RandaddIntPtr (GetCurrentThread ());	/* Pseudohandle of current
 						   thread */
 	RandaddInt32 (GetCurrentThreadId ());	/* Current thread ID */
 	RandaddInt32 (GetCurrentTime ());	/* Milliseconds since Windows
 						   started */
-	RandaddInt32 (GetDesktopWindow ());	/* Handle of desktop window */
-	RandaddInt32 (GetFocus ());	/* Handle of window with kb.focus */
+	RandaddIntPtr (GetDesktopWindow ());	/* Handle of desktop window */
+	RandaddIntPtr (GetFocus ());	/* Handle of window with kb.focus */
 	RandaddInt32 (GetInputState ());	/* Whether sys.queue has any events */
 	RandaddInt32 (GetMessagePos ());	/* Cursor pos.for last message */
 	RandaddInt32 (GetMessageTime ());	/* 1 ms time for last message */
-	RandaddInt32 (GetOpenClipboardWindow ());	/* Handle of window with
+	RandaddIntPtr (GetOpenClipboardWindow ());	/* Handle of window with
 							   clpbd.open */
-	RandaddInt32 (GetProcessHeap ());	/* Handle of process heap */
-	RandaddInt32 (GetProcessWindowStation ());	/* Handle of procs
+	RandaddIntPtr (GetProcessHeap ());	/* Handle of process heap */
+	RandaddIntPtr (GetProcessWindowStation ());	/* Handle of procs
 							   window station */
 	RandaddInt32 (GetQueueStatus (QS_ALLEVENTS));	/* Types of events in
 							   input queue */
@@ -800,8 +825,8 @@ BOOL FastPoll (void)
 	   process */
 	GetProcessWorkingSetSize (handle, &minimumWorkingSetSize,
 				  &maximumWorkingSetSize);
-	RandaddInt32 (minimumWorkingSetSize);
-	RandaddInt32 (maximumWorkingSetSize);
+	RandaddIntPtr (minimumWorkingSetSize);
+	RandaddIntPtr (maximumWorkingSetSize);
 
 	/* The following are fixed for the lifetime of the process so we only
 	   add them once */

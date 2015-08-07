@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2010 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include "TCdefs.h"
@@ -80,7 +82,9 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 		PARTITION_INFORMATION pi;
 		PARTITION_INFORMATION_EX pix;
 		LARGE_INTEGER diskLengthInfo;
-		DISK_GEOMETRY dg;
+		DISK_GEOMETRY dg;    
+		STORAGE_PROPERTY_QUERY storagePropertyQuery = {0};
+		STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR storageDescriptor = {0};
 
 		ntStatus = IoGetDeviceObjectPointer (&FullFileName,
 			FILE_READ_DATA | FILE_READ_ATTRIBUTES,
@@ -96,6 +100,21 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 
 		lDiskLength.QuadPart = dg.Cylinders.QuadPart * dg.SectorsPerTrack * dg.TracksPerCylinder * dg.BytesPerSector;
 		Extension->HostBytesPerSector = dg.BytesPerSector;
+
+		storagePropertyQuery.PropertyId = StorageAccessAlignmentProperty;
+		storagePropertyQuery.QueryType = PropertyStandardQuery;
+
+		/* IOCTL_STORAGE_QUERY_PROPERTY supported only on Vista and above */
+		if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY, 
+			(char*) &storagePropertyQuery, sizeof(storagePropertyQuery), 
+			(char *) &storageDescriptor, sizeof (storageDescriptor))))
+		{
+			Extension->HostBytesPerPhysicalSector = storageDescriptor.BytesPerPhysicalSector;
+		}
+		else
+		{
+			Extension->HostBytesPerPhysicalSector = dg.BytesPerSector;
+		}
 
 		// Drive geometry is used only when IOCTL_DISK_GET_PARTITION_INFO fails
 		if (NT_SUCCESS (TCSendHostDeviceIoControlRequest (DeviceObject, Extension, IOCTL_DISK_GET_PARTITION_INFO_EX, (char *) &pix, sizeof (pix))))
@@ -144,6 +163,7 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 		}
 
 		Extension->HostBytesPerSector = mount->BytesPerSector;
+		Extension->HostBytesPerPhysicalSector = mount->BytesPerPhysicalSector;
 
 		if (Extension->HostBytesPerSector != TC_SECTOR_SIZE_FILE_HOSTED_VOLUME)
 			disableBuffering = FALSE;
@@ -449,6 +469,7 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 				readBuffer,
 				&mount->ProtectedHidVolPassword,
 				mount->ProtectedHidVolPkcs5Prf,
+				mount->ProtectedHidVolPim,
 				mount->bTrueCryptMode,
 				&tmpCryptoInfo);
 		}
@@ -460,6 +481,7 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 				readBuffer,
 				&mount->VolumePassword,
 				mount->pkcs5_prf,
+				mount->VolumePim,
 				mount->bTrueCryptMode,
 				&Extension->cryptoInfo);
 		}
@@ -746,9 +768,11 @@ void TCCloseVolume (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension)
 }
 
 
-NTSTATUS TCSendHostDeviceIoControlRequest (PDEVICE_OBJECT DeviceObject,
+NTSTATUS TCSendHostDeviceIoControlRequestEx (PDEVICE_OBJECT DeviceObject,
 			       PEXTENSION Extension,
 			       ULONG IoControlCode,
+					 void *InputBuffer,
+					 ULONG InputBufferSize,
 			       void *OutputBuffer,
 			       ULONG OutputBufferSize)
 {
@@ -762,7 +786,7 @@ NTSTATUS TCSendHostDeviceIoControlRequest (PDEVICE_OBJECT DeviceObject,
 
 	Irp = IoBuildDeviceIoControlRequest (IoControlCode,
 					     Extension->pFsdDevice,
-					     NULL, 0,
+					     InputBuffer, InputBufferSize,
 					     OutputBuffer, OutputBufferSize,
 					     FALSE,
 					     &Extension->keVolumeEvent,
@@ -785,6 +809,15 @@ NTSTATUS TCSendHostDeviceIoControlRequest (PDEVICE_OBJECT DeviceObject,
 	}
 
 	return ntStatus;
+}
+
+NTSTATUS TCSendHostDeviceIoControlRequest (PDEVICE_OBJECT DeviceObject,
+			       PEXTENSION Extension,
+			       ULONG IoControlCode,
+			       void *OutputBuffer,
+			       ULONG OutputBufferSize)
+{
+	return TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IoControlCode, NULL, 0, OutputBuffer, OutputBufferSize);
 }
 
 NTSTATUS COMPLETE_IRP (PDEVICE_OBJECT DeviceObject,

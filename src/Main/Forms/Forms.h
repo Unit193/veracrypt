@@ -463,6 +463,7 @@ namespace VeraCrypt
 		private:
 		
 		protected:
+			wxBoxSizer* MainSizer;
 			wxBoxSizer* PasswordSizer;
 			wxButton* OKButton;
 			wxButton* CancelButton;
@@ -959,6 +960,10 @@ namespace VeraCrypt
 			wxTextCtrl* PasswordTextCtrl;
 			wxStaticText* ConfirmPasswordStaticText;
 			wxTextCtrl* ConfirmPasswordTextCtrl;
+			wxStaticText* VolumePimStaticText;
+			wxTextCtrl* VolumePimTextCtrl;
+			wxStaticText* VolumePimHelpStaticText;
+			wxCheckBox* PimCheckBox;
 			wxCheckBox* CacheCheckBox;
 			wxCheckBox* DisplayPasswordCheckBox;
 			wxCheckBox* UseKeyfilesCheckBox;
@@ -973,11 +978,14 @@ namespace VeraCrypt
 			
 			// Virtual event handlers, overide them in your derived class
 			virtual void OnTextChanged( wxCommandEvent& event ) { event.Skip(); }
+			virtual void OnPimChanged( wxCommandEvent& event ) { event.Skip(); }
+			virtual void OnUsePimCheckBoxClick( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnDisplayPasswordCheckBoxClick( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnUseKeyfilesCheckBoxClick( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnKeyfilesButtonClick( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnKeyfilesButtonRightDown( wxMouseEvent& event ) { event.Skip(); }
 			virtual void OnKeyfilesButtonRightClick( wxMouseEvent& event ) { event.Skip(); }
+			virtual void OnTrueCryptModeChecked( wxCommandEvent& event ) { event.Skip(); }
 			
 		
 		public:
@@ -1002,6 +1010,32 @@ namespace VeraCrypt
 			
 			VolumePasswordWizardPageBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxTAB_TRAVERSAL ); 
 			~VolumePasswordWizardPageBase();
+		
+	};
+	
+	///////////////////////////////////////////////////////////////////////////////
+	/// Class VolumePimWizardPageBase
+	///////////////////////////////////////////////////////////////////////////////
+	class VolumePimWizardPageBase : public WizardPage
+	{
+		private:
+		
+		protected:
+			wxBoxSizer* PimPanelSizer;
+			wxBoxSizer* PimSizer;
+			wxStaticText* VolumePimStaticText;
+			wxTextCtrl* VolumePimTextCtrl;
+			wxStaticText* VolumePimHelpStaticText;
+			wxStaticText* InfoStaticText;
+			
+			// Virtual event handlers, overide them in your derived class
+			virtual void OnPimChanged( wxCommandEvent& event ) { event.Skip(); }
+			
+		
+		public:
+			
+			VolumePimWizardPageBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( -1,-1 ), long style = wxTAB_TRAVERSAL ); 
+			~VolumePimWizardPageBase();
 		
 	};
 	

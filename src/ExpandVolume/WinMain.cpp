@@ -1,31 +1,18 @@
 /*
+ Legal Notice: Some portions of the source code contained in this file were
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ and also from the source code of extcv, which is Copyright (c) 2009-2010 Kih-Oskh
+ or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
-Most of the source code contained in this file is taken from the source code of
-TrueCrypt 7.0a, which is governed by the TrueCrypt License 3.0 that can be found
-in the file 'License.txt' in the folder 'TrueCrypt-License'.
-
-Modifications and additions to the original source code (contained in this file)
-and all other portions of this file are Copyright (c) 2009-2010 by Kih-Oskh or
-Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
-
-
-Source code in this file is derived from 'Mount\Mount.c'
-
--------------------------------------------------------------------------------
-
-Original legal notice of the TrueCrypt source:
-
-	 Legal Notice: Some portions of the source code contained in this file were
-	 derived from the source code of Encryption for the Masses 2.02a, which is
-	 Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
-	 Agreement for Encryption for the Masses'. Modifications and additions to
-	 the original source code (contained in this file) and all other portions
-	 of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
-	 and are governed by the TrueCrypt License 3.0 the full text of which is
-	 contained in the file License.txt included in TrueCrypt binary and source
-	 code distribution packages.
-
-*/
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages. */
 
 #include "Tcdefs.h"
 
@@ -134,7 +121,7 @@ int MaxVolumeIdleTime = -120;
 int nCurrentShowType = 0;			/* current display mode, mount, unmount etc */
 int nSelectedDriveIndex = -1;		/* Item number of selected drive */
 
-int cmdUnmountDrive = 0;			/* Volume drive letter to unmount (-1 = all) */
+int cmdUnmountDrive = -2;			/* Volume drive letter to unmount (-1 = all) */
 Password VolumePassword;			/* Password used for mounting volumes */
 Password CmdVolumePassword;			/* Password passed from command line */
 BOOL CmdVolumePasswordValid = FALSE;
@@ -392,6 +379,7 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 	WORD lw = LOWORD (wParam);
 	static Password *szXPwd;
 	static int *pkcs5;
+	static int *pim;
 	static BOOL* truecryptMode;
 
 	switch (msg)
@@ -401,6 +389,7 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			int i, nIndex;
 			szXPwd = ((PasswordDlgParam *) lParam) -> password;
 			pkcs5 = ((PasswordDlgParam *) lParam) -> pkcs5;
+			pim = ((PasswordDlgParam *) lParam) -> pim;
 			truecryptMode = ((PasswordDlgParam *) lParam) -> truecryptMode;
 			LocalizeDialog (hwndDlg, "IDD_PASSWORD_DLG");
 			DragAcceptFiles (hwndDlg, TRUE);
@@ -443,6 +432,18 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD), EM_LIMITTEXT, MAX_PASSWORD, 0);
 			SendMessage (GetDlgItem (hwndDlg, IDC_CACHE), BM_SETCHECK, bCacheInDriver ? BST_CHECKED:BST_UNCHECKED, 0);
+			SendMessage (GetDlgItem (hwndDlg, IDC_PIM), EM_LIMITTEXT, MAX_PIM, 0);
+
+			SetPim (hwndDlg, IDC_PIM, *pim);
+
+			/* make PIM field visible if a PIM value has been explicitely specified */
+			if (*pim > 0)
+			{
+				ShowWindow (GetDlgItem (hwndDlg, IDC_PIM_ENABLE), SW_HIDE);
+				ShowWindow (GetDlgItem( hwndDlg, IDT_PIM), SW_SHOW);
+				ShowWindow (GetDlgItem( hwndDlg, IDC_PIM), SW_SHOW);
+				ShowWindow (GetDlgItem( hwndDlg, IDC_PIM_HELP), SW_SHOW);
+			}
 
 			SetCheckBox (hwndDlg, IDC_KEYFILES_ENABLE, KeyFilesEnable);
 
@@ -534,10 +535,15 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			}
 
 			SetCheckBox (hwndDlg, IDC_SHOW_PASSWORD, FALSE);
-			EnableWindow (GetDlgItem (hwndDlg, IDC_SHOW_PASSWORD), FALSE);
 
 			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD), EM_SETPASSWORDCHAR, '*', 0);
 			InvalidateRect (GetDlgItem (hwndDlg, IDC_PASSWORD), NULL, TRUE);
+
+			SetCheckBox (hwndDlg, IDC_KEYFILES_ENABLE, FALSE);
+			EnableWindow (GetDlgItem (hwndDlg, IDC_KEYFILES_ENABLE), FALSE);
+			EnableWindow (GetDlgItem (hwndDlg, IDC_KEY_FILES), FALSE);
+
+			SetPim (hwndDlg, IDC_PIM, *pim);
 
 			bPrebootPasswordDlgMode = TRUE;
 		}
@@ -597,6 +603,15 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			return 1;
 		}
 
+		if (lw == IDC_PIM_ENABLE)
+		{
+			ShowWindow (GetDlgItem (hwndDlg, IDC_PIM_ENABLE), SW_HIDE);
+			ShowWindow (GetDlgItem( hwndDlg, IDT_PIM), SW_SHOW);
+			ShowWindow (GetDlgItem( hwndDlg, IDC_PIM), SW_SHOW);
+			ShowWindow (GetDlgItem( hwndDlg, IDC_PIM_HELP), SW_SHOW);
+			return 1;
+		}
+
 		if (lw == IDC_SHOW_PASSWORD)
 		{
 			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD),
@@ -648,12 +663,23 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				bCacheInDriver = IsButtonChecked (GetDlgItem (hwndDlg, IDC_CACHE));	 
 				*pkcs5 = (int) SendMessage (GetDlgItem (hwndDlg, IDC_PKCS5_PRF_ID), CB_GETITEMDATA, SendMessage (GetDlgItem (hwndDlg, IDC_PKCS5_PRF_ID), CB_GETCURSEL, 0, 0), 0);
 				*truecryptMode = GetCheckBox (hwndDlg, IDC_TRUECRYPT_MODE);
+
+				*pim = GetPim (hwndDlg, IDC_PIM);
+
 				/* SHA-256 is not supported by TrueCrypt */
 				if (	(*truecryptMode) 
 					&& ((*pkcs5 == SHA256) || (mountOptions.ProtectHiddenVolume && mountOptions.ProtectedHidVolPkcs5Prf == SHA256))
 					)
 				{
 					Error ("ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE", hwndDlg);
+					return 1;
+				}
+
+				if (	(*truecryptMode) 
+					&&	(*pim != 0)
+					)
+				{
+					Error ("PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE", hwndDlg);
 					return 1;
 				}
 			}
@@ -754,7 +780,7 @@ int RestoreVolumeHeader (HWND hwndDlg, char *lpszVolume)
 	return 0;
 }
 
-int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions)
+int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions)
 {
 	int result;
 	PasswordDlgParam dlgParam;
@@ -764,6 +790,7 @@ int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, BOOL* 
 
 	dlgParam.password = password;
 	dlgParam.pkcs5 = pkcs5;
+	dlgParam.pim = pim;
 	dlgParam.truecryptMode = truecryptMode;
 
 	result = DialogBoxParamW (hInst, 
@@ -774,6 +801,7 @@ int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, BOOL* 
 	{
 		password->Length = 0;
 		*pkcs5 = 0;
+		*pim = 0;
 		*truecryptMode = FALSE;
 		burn (&mountOptions.ProtectedHidVolPassword, sizeof (mountOptions.ProtectedHidVolPassword));
 		burn (&mountOptions.ProtectedHidVolPkcs5Prf, sizeof (mountOptions.ProtectedHidVolPkcs5Prf));
@@ -797,8 +825,10 @@ static BOOL SelectContainer (HWND hwndDlg)
 
 static BOOL SelectPartition (HWND hwndDlg)
 {
+	RawDevicesDlgParam param;
+	param.pszFileName = szFileName;
 	int nResult = DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_RAWDEVICES_DLG), hwndDlg,
-		(DLGPROC) RawDevicesDlgProc, (LPARAM) & szFileName[0]);
+		(DLGPROC) RawDevicesDlgProc, (LPARAM) & param);
 	if (nResult == IDOK)
 	{
 		AddComboItem (GetDlgItem (hwndDlg, IDC_VOLUME), szFileName, bHistory);
@@ -954,9 +984,9 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpszComm
 	if (status != 0)
 	{
 		if (status == ERR_OS_ERROR)
-			handleWin32Error (NULL);
+			handleWin32Error (NULL, SRC_POS);
 		else
-			handleError (NULL, status);
+			handleError (NULL, status, SRC_POS);
 
 		AbortProcess ("NODRIVER");
 	}

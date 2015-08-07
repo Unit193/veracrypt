@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "Crc32.h"
@@ -78,7 +82,7 @@ namespace VeraCrypt
 		EncryptNew (headerBuffer, options.Salt, options.HeaderKey, options.Kdf);
 	}
 
-	bool VolumeHeader::Decrypt (const ConstBufferPtr &encryptedData, const VolumePassword &password, shared_ptr <Pkcs5Kdf> kdf, bool truecryptMode, const Pkcs5KdfList &keyDerivationFunctions, const EncryptionAlgorithmList &encryptionAlgorithms, const EncryptionModeList &encryptionModes)
+	bool VolumeHeader::Decrypt (const ConstBufferPtr &encryptedData, const VolumePassword &password, int pim, shared_ptr <Pkcs5Kdf> kdf, bool truecryptMode, const Pkcs5KdfList &keyDerivationFunctions, const EncryptionAlgorithmList &encryptionAlgorithms, const EncryptionModeList &encryptionModes)
 	{
 		if (password.Size() < 1)
 			throw PasswordEmpty (SRC_POS);
@@ -92,7 +96,7 @@ namespace VeraCrypt
 			if (kdf && (kdf->GetName() != pkcs5->GetName()))
 				continue;
 
-			pkcs5->DeriveKey (headerKey, password, salt);
+			pkcs5->DeriveKey (headerKey, password, pim, salt);
 
 			foreach (shared_ptr <EncryptionMode> mode, encryptionModes)
 			{

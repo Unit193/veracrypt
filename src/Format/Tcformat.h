@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include "Common/Common.h"
@@ -42,6 +44,7 @@ void DisplaySizingErrorText ( HWND hwndTextBox );
 void EnableDisableFileNext ( HWND hComboBox , HWND hMainButton );
 BOOL QueryFreeSpace ( HWND hwndDlg , HWND hwndTextBox , BOOL display );
 static BOOL FinalPreTransformPrompts (void);
+void UpdateLastDialogId (void);
 void HandleOldAssignedDriveLetter (void);
 void AddCipher ( HWND hComboBox , char *lpszCipher , int nCipher );
 BOOL CALLBACK PageDialogProc ( HWND hwndDlg , UINT uMsg , WPARAM wParam , LPARAM lParam );
@@ -67,7 +70,7 @@ static void NonSysInplaceEncPause (void);
 static void NonSysInplaceEncResume (void);
 void ShowNonSysInPlaceEncUIStatus (void);
 void UpdateNonSysInPlaceEncControls (void);
-int MountHiddenVolHost ( HWND hwndDlg, char *volumePath, int *driveNo, Password *password, int pkcs5_prf, BOOL bReadOnly );
+int MountHiddenVolHost ( HWND hwndDlg, char *volumePath, int *driveNo, Password *password, int pkcs5_prf, int pim, BOOL bReadOnly );
 int AnalyzeHiddenVolumeHost (HWND hwndDlg, int *driveNo, __int64 hiddenVolHostSize, int *realClusterSize, __int64 *pnbrFreeClusters);
 int ScanVolClusterBitmap ( HWND hwndDlg, int *driveNo, __int64 nbrClusters, __int64 *nbrFreeClusters);
 static void WipeStart (void);
@@ -90,10 +93,12 @@ extern volatile BOOL bVolTransformThreadCancel;
 extern volatile BOOL bInPlaceEncNonSysResumed;
 extern volatile BOOL bFirstNonSysInPlaceEncResumeDone;
 extern volatile BOOL bInPlaceEncNonSys;
+extern volatile BOOL bInPlaceDecNonSys;
 extern __int64 NonSysInplaceEncBytesDone;
 extern __int64 NonSysInplaceEncTotalSize;
 extern int nPbar;
 extern volatile int WizardMode;
+extern volatile BOOL bInPlaceEncNonSysResumed;
 
 extern char HeaderKeyGUIView [KEY_GUI_VIEW_SIZE];
 extern char MasterKeyGUIView [KEY_GUI_VIEW_SIZE];

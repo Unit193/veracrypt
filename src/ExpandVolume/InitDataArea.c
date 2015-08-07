@@ -1,44 +1,17 @@
 /*
-
-Most of the source code contained in this file is taken from the source code of
-TrueCrypt 7.0a, which is governed by the TrueCrypt License 3.0 that can be found
-in the file 'License.txt' in the folder 'TrueCrypt-License'.
-
-Modifications and additions to the original source code (contained in this file)
-and all other portions of this file are Copyright (c) 2009-2010 by Kih-Oskh or
-Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
-
-
-Source code here is copied from 'Common/Format.c' with the following changes:
-
-	- functions removed:
-		GetVolumeDataAreaSize (BOOL hiddenVolume, uint64 volumeSize)
-		TCFormatVolume (volatile FORMAT_VOL_PARAMETERS *volParams)
-		FormatNtfs (int driveNo, int clusterSize)
-		FormatExCallback (int command, DWORD subCommand, PVOID parameter)
-
-	- variables removed:
-		volatile BOOLEAN FormatExResult;
-
-	- removed static linkage class from StartFormatWriteThread() and
-	  StopFormatWriteThread()
-
-	- new functions:
-		SetFormatSectorSize(uint32 sector_size)
-
-
--------------------------------------------------------------------------------
-
-Original legal notice of the TrueCrypt source:
-
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2010 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ and also from the source code of extcv, which is Copyright (c) 2009-2010 Kih-Oskh
+ or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
+
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include <stdlib.h>
@@ -58,6 +31,10 @@ Original legal notice of the TrueCrypt source:
 #include "Resource.h"
 
 #include "InitDataArea.h"
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 int FormatWriteBufferSize = 1024 * 1024;
 static uint32 FormatSectorSize = 0;
@@ -226,7 +203,7 @@ static void __cdecl FormatWriteThreadProc (void *arg)
 	{
 		if (WaitForSingleObject (WriteBufferFullEvent, INFINITE) == WAIT_FAILED)
 		{
-			handleWin32Error (NULL);
+			handleWin32Error (NULL, SRC_POS);
 			break;
 		}
 
@@ -240,7 +217,7 @@ static void __cdecl FormatWriteThreadProc (void *arg)
 
 		if (!SetEvent (WriteBufferEmptyEvent))
 		{
-			handleWin32Error (NULL);
+			handleWin32Error (NULL, SRC_POS);
 			break;
 		}
 	}

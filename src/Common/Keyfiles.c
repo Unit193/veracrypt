@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2005-2009 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include <stdlib.h>
@@ -252,7 +256,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile)
 				if (keyfileData.empty())
 				{
 					SetLastError (ERROR_HANDLE_EOF); 
-					handleWin32Error (hwndDlg);
+					handleWin32Error (hwndDlg, SRC_POS);
 					Error ("ERR_PROCESS_KEYFILE", hwndDlg);
 					status = FALSE;
 					continue;
@@ -291,7 +295,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile)
 		// Determine whether it's a path or a file
 		if (stat (kf->FileName, &statStruct) != 0)
 		{
-			handleWin32Error (hwndDlg);
+			handleWin32Error (hwndDlg, SRC_POS);
 			Error ("ERR_PROCESS_KEYFILE", hwndDlg);
 			status = FALSE;
 			continue;
@@ -305,7 +309,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile)
 			StringCbPrintfA (searchPath, sizeof (searchPath), "%s\\*.*", kf->FileName);
 			if ((searchHandle = _findfirst (searchPath, &fBuf)) == -1)
 			{
-				handleWin32Error (hwndDlg);
+				handleWin32Error (hwndDlg, SRC_POS);
 				Error ("ERR_PROCESS_KEYFILE_PATH", hwndDlg);
 				status = FALSE;
 				continue;
@@ -323,7 +327,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile)
 				// Determine whether it's a path or a file
 				if (stat (kfSub->FileName, &statStruct) != 0)
 				{
-					handleWin32Error (hwndDlg);
+					handleWin32Error (hwndDlg, SRC_POS);
 					Error ("ERR_PROCESS_KEYFILE", hwndDlg);
 					status = FALSE;
 					continue;
@@ -347,7 +351,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile)
 				// Apply keyfile to the pool
 				if (!KeyFileProcess (keyPool, kfSub))
 				{
-					handleWin32Error (hwndDlg);
+					handleWin32Error (hwndDlg, SRC_POS);
 					Error ("ERR_PROCESS_KEYFILE", hwndDlg);
 					status = FALSE;
 				}
@@ -366,7 +370,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile)
 		// Apply keyfile to the pool
 		else if (!KeyFileProcess (keyPool, kf))
 		{
-			handleWin32Error (hwndDlg);
+			handleWin32Error (hwndDlg, SRC_POS);
 			Error ("ERR_PROCESS_KEYFILE", hwndDlg);
 			status = FALSE;
 		}

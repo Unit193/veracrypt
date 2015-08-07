@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "CoreUnix.h"
@@ -61,6 +65,31 @@ namespace VeraCrypt
 		{
 			Process::Execute ("xterm", args, 1000);
 		} catch (TimeOut&) { }
+#ifdef TC_LINUX
+		catch (SystemException&)
+		{
+			// xterm not available. Try with KDE konsole if it exists
+			struct stat sb;
+			if (stat("/usr/bin/konsole", &sb) == 0)
+			{
+				args.clear ();
+				args.push_back ("--title");
+				args.push_back ("fsck");
+				args.push_back ("--caption");
+				args.push_back ("fsck");
+				args.push_back ("-e");				
+				args.push_back ("sh");				
+				args.push_back ("-c");				
+				args.push_back (xargs);
+				try
+				{
+					Process::Execute ("konsole", args, 1000);
+				} catch (TimeOut&) { }
+			}
+			else
+				throw;
+		}
+#endif
 	}
 
 	void CoreUnix::DismountFilesystem (const DirectoryPath &mountPoint, bool force) const
@@ -409,11 +438,13 @@ namespace VeraCrypt
 					options.Path,
 					options.PreserveTimestamps,
 					options.Password,
+					options.Pim,
 					options.Kdf,
 					options.TrueCryptMode,
 					options.Keyfiles,
 					options.Protection,
 					options.ProtectionPassword,
+					options.ProtectionPim,
 					options.ProtectionKdf,
 					options.ProtectionKeyfiles,
 					options.SharedAccessAllowed,
