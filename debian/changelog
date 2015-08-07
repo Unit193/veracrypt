@@ -1,3 +1,12 @@
+veracrypt (1.12-0vanir1) unstable; urgency=medium
+
+  * Imported Upstream version 1.12.
+    - Remove upstream commits.
+      + d/p/004-Correct-wxWidgets-assert-warnings-when-displaying-about.diff
+    - Refresh remaining patches.
+
+ -- Unit 193 <unit193@ubuntu.com>  Thu, 06 Aug 2015 20:52:40 -0400
+
 veracrypt (1.0f-2-0vanir3) unstable; urgency=medium
 
   * d/p/004-Correct-wxWidgets-assert-warnings-when-displaying-about.diff:
