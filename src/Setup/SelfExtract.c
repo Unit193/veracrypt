@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2009 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "Tcdefs.h"
@@ -19,6 +23,10 @@
 #include "Language.h"
 #include "Resource.h"
 #include <Strsafe.h>
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 #define OutputPackageFile "VeraCrypt Setup " VERSION_STRING ".exe"
 
@@ -252,7 +260,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 
 	if (!TCCopyFile (inputFile, outputFile))
 	{
-		handleWin32Error (hwndDlg);
+		handleWin32Error (hwndDlg, SRC_POS);
 		PkgError ("Cannot copy 'VeraCrypt Setup.exe' to the package");
 		goto err;
 	}
@@ -297,7 +305,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 
 
 	// Write the start marker
-	if (!SaveBufferToFile (MAG_START_MARKER, outputFile, strlen (MAG_START_MARKER), TRUE))
+	if (!SaveBufferToFile (MAG_START_MARKER, outputFile, strlen (MAG_START_MARKER), TRUE, FALSE))
 	{		
 		if (remove (outputFile))
 			PkgError ("Cannot write the start marker\nFailed also to delete package file");
@@ -357,7 +365,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 	// Write total size of the uncompressed data
 	szTmp32bitPtr = szTmp32bit;
 	mputLong (szTmp32bitPtr, (unsigned __int32) uncompressedDataLen);
-	if (!SaveBufferToFile (szTmp32bit, outputFile, sizeof (szTmp32bit), TRUE))
+	if (!SaveBufferToFile (szTmp32bit, outputFile, sizeof (szTmp32bit), TRUE, FALSE))
 	{
 		if (remove (outputFile))
 			PkgError ("Cannot write the total size of the uncompressed data.\nFailed also to delete package file");
@@ -394,7 +402,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 	// Write the total size of the compressed data
 	szTmp32bitPtr = szTmp32bit;
 	mputLong (szTmp32bitPtr, (unsigned __int32) compressedDataLen);
-	if (!SaveBufferToFile (szTmp32bit, outputFile, sizeof (szTmp32bit), TRUE))
+	if (!SaveBufferToFile (szTmp32bit, outputFile, sizeof (szTmp32bit), TRUE, FALSE))
 	{
 		if (remove (outputFile))
 			PkgError ("Cannot write the total size of the compressed data.\nFailed also to delete package file");
@@ -404,7 +412,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 	}
 
 	// Write the compressed data
-	if (!SaveBufferToFile (compressedBuffer, outputFile, compressedDataLen, TRUE))
+	if (!SaveBufferToFile (compressedBuffer, outputFile, compressedDataLen, TRUE, FALSE))
 	{
 		if (remove (outputFile))
 			PkgError ("Cannot write compressed data to the package.\nFailed also to delete package file");
@@ -414,7 +422,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 	}
 
 	// Write the end marker
-	if (!SaveBufferToFile (MagEndMarker, outputFile, strlen (MagEndMarker), TRUE))
+	if (!SaveBufferToFile (MagEndMarker, outputFile, strlen (MagEndMarker), TRUE, FALSE))
 	{
 		if (remove (outputFile))
 			PkgError ("Cannot write the end marker.\nFailed also to delete package file");
@@ -435,7 +443,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 
 		if (tmpBuffer == NULL)
 		{
-			handleWin32Error (hwndDlg);
+			handleWin32Error (hwndDlg, SRC_POS);
 			if (remove (outputFile))
 				PkgError ("Cannot load the package to compute CRC.\nFailed also to delete package file");
 			else
@@ -450,7 +458,7 @@ BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir)
 		mputLong (szTmp32bitPtr, GetCrc32 (tmpBuffer, tmpFileSize));
 		free (tmpBuffer);
 
-		if (!SaveBufferToFile (szTmp32bit, outputFile, sizeof (szTmp32bit), TRUE))
+		if (!SaveBufferToFile (szTmp32bit, outputFile, sizeof (szTmp32bit), TRUE, FALSE))
 		{
 			if (remove (outputFile))
 				PkgError ("Cannot write the total size of the compressed data.\nFailed also to delete package file");
@@ -720,7 +728,7 @@ void __cdecl ExtractAllFilesThread (void *hwndDlg)
 		{
 			wchar_t szTmp[TC_MAX_PATH];
 
-			handleWin32Error (hwndDlg);
+			handleWin32Error (hwndDlg, SRC_POS);
 			StringCbPrintfW (szTmp, sizeof(szTmp), GetString ("CANT_CREATE_FOLDER"), DestExtractPath);
 			MessageBoxW (hwndDlg, szTmp, lpszTitle, MB_ICONHAND);
 			bSuccess = FALSE;
@@ -745,7 +753,7 @@ void __cdecl ExtractAllFilesThread (void *hwndDlg)
 			Decompressed_Files[fileNo].fileContent,
 			filePath,
 			Decompressed_Files[fileNo].fileLength,
-			FALSE))
+			FALSE, FALSE))
 		{
 			wchar_t szTmp[512];
 

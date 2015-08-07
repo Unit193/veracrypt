@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2004-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "Tcdefs.h"
@@ -65,12 +69,12 @@ BOOL ReadLocalMachineRegistryString (const char *subKey, char *name, char *str, 
 	return type == REG_SZ;
 }
 
-BOOL ReadLocalMachineRegistryStringNonReflected (const char *subKey, char *name, char *str, DWORD *size)
+BOOL ReadLocalMachineRegistryStringNonReflected (const char *subKey, char *name, char *str, DWORD *size, BOOL b32bitApp)
 {
 	HKEY hkey = 0;
 	DWORD type;
 
-	if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, subKey, 0, KEY_READ | KEY_WOW64_64KEY, &hkey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, subKey, 0, KEY_READ | (b32bitApp? KEY_WOW64_32KEY: KEY_WOW64_64KEY), &hkey) != ERROR_SUCCESS)
 		return FALSE;
 
 	if (RegQueryValueEx (hkey, name, NULL, &type, (BYTE *) str, size) != ERROR_SUCCESS)
@@ -232,7 +236,7 @@ BOOL WriteLocalMachineRegistryString (char *subKey, char *name, char *str, BOOL 
 		return FALSE;
 	}
 
-	if ((status = RegSetValueEx (hkey, name, 0, expandable ? REG_EXPAND_SZ : REG_SZ, (BYTE *) str, strlen (str) + 1)) != ERROR_SUCCESS)
+	if ((status = RegSetValueEx (hkey, name, 0, expandable ? REG_EXPAND_SZ : REG_SZ, (BYTE *) str, (DWORD) strlen (str) + 1)) != ERROR_SUCCESS)
 	{
 		RegCloseKey (hkey);
 		SetLastError (status);
@@ -252,7 +256,7 @@ void WriteRegistryString (char *subKey, char *name, char *str)
 		0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hkey, &disp) != ERROR_SUCCESS)
 		return;
 
-	RegSetValueEx (hkey, name, 0, REG_SZ, (BYTE *) str, strlen (str) + 1);
+	RegSetValueEx (hkey, name, 0, REG_SZ, (BYTE *) str, (DWORD) strlen (str) + 1);
 	RegCloseKey (hkey);
 }
 

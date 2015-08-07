@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "System.h"
@@ -20,7 +24,9 @@ namespace VeraCrypt
 	CommandLineInterface::CommandLineInterface (int argc, wchar_t** argv, UserInterfaceType::Enum interfaceType) :
 		ArgCommand (CommandId::None),
 		ArgFilesystem (VolumeCreationOptions::FilesystemType::Unknown),
+		ArgNewPim (-1),
 		ArgNoHiddenVolumeProtection (false),
+		ArgPim (-1),
 		ArgSize (0),
 		ArgVolumeType (VolumeType::Unknown),
 		ArgTrueCryptMode (false),
@@ -40,7 +46,6 @@ namespace VeraCrypt
 		parser.AddSwitch (L"C", L"change",				_("Change password or keyfiles"));
 		parser.AddSwitch (L"c", L"create",				_("Create new volume"));
 		parser.AddSwitch (L"",	L"create-keyfile",		_("Create new keyfile"));
-		parser.AddOption (L"",	L"current-hash",		_("Current hash algorithm for change password/keyfiles operation"));
 		parser.AddSwitch (L"",	L"delete-token-keyfiles", _("Delete security token keyfiles"));
 		parser.AddSwitch (L"d", L"dismount",			_("Dismount volume"));
 		parser.AddSwitch (L"",	L"display-password",	_("Display password while typing"));
@@ -61,21 +66,25 @@ namespace VeraCrypt
 		parser.AddSwitch (L"",	L"load-preferences",	_("Load user preferences"));
 		parser.AddSwitch (L"",	L"mount",				_("Mount volume interactively"));
 		parser.AddOption (L"m", L"mount-options",		_("VeraCrypt volume mount options"));
+		parser.AddOption (L"",	L"new-hash",			_("New hash algorithm"));
 		parser.AddOption (L"",	L"new-keyfiles",		_("New keyfiles"));
 		parser.AddOption (L"",	L"new-password",		_("New password"));
+		parser.AddOption (L"",	L"new-pim",				_("New PIM"));
 		parser.AddSwitch (L"",	L"non-interactive",		_("Do not interact with user"));
 		parser.AddOption (L"p", L"password",			_("Password"));
+		parser.AddOption (L"",  L"pim",					_("PIM"));
 		parser.AddOption (L"",	L"protect-hidden",		_("Protect hidden volume"));
 		parser.AddOption (L"",	L"protection-hash",		_("Hash algorithm for protected hidden volume"));
 		parser.AddOption (L"",	L"protection-keyfiles",	_("Keyfiles for protected hidden volume"));
 		parser.AddOption (L"",	L"protection-password",	_("Password for protected hidden volume"));
+		parser.AddOption (L"",	L"protection-pim",		_("PIM for protected hidden volume"));
 		parser.AddOption (L"",	L"random-source",		_("Use file as source of random data"));
 		parser.AddSwitch (L"",  L"restore-headers",		_("Restore volume headers"));
 		parser.AddSwitch (L"",	L"save-preferences",	_("Save user preferences"));
 		parser.AddSwitch (L"",	L"quick",				_("Enable quick format"));
 		parser.AddOption (L"",	L"size",				_("Size in bytes"));
 		parser.AddOption (L"",	L"slot",				_("Volume slot number"));
-		parser.AddOption (L"tc",L"truecrypt",			_("Enable TrueCrypt mode. Should be put first to avoid issues."));
+		parser.AddSwitch (L"tc",L"truecrypt",			_("Enable TrueCrypt mode. Should be put first to avoid issues."));
 		parser.AddSwitch (L"",	L"test",				_("Test internal algorithms"));
 		parser.AddSwitch (L"t", L"text",				_("Use text user interface"));
 		parser.AddOption (L"",	L"token-lib",			_("Security token library"));
@@ -307,7 +316,9 @@ namespace VeraCrypt
 
 			foreach (shared_ptr <Hash> hash, Hash::GetAvailableAlgorithms())
 			{
-				if (wxString (hash->GetName()).IsSameAs (str, false))
+				wxString hashName (hash->GetName());
+				wxString hashAltName (hash->GetAltName());
+				if (hashName.IsSameAs (str, false) || hashAltName.IsSameAs (str, false))
 					ArgHash = hash;
 			}
 
@@ -315,17 +326,19 @@ namespace VeraCrypt
 				throw_err (LangString["UNKNOWN_OPTION"] + L": " + str);
 		}
 
-		if (parser.Found (L"current-hash", &str))
+		if (parser.Found (L"new-hash", &str))
 		{
-			ArgCurrentHash.reset();
+			ArgNewHash.reset();
 
 			foreach (shared_ptr <Hash> hash, Hash::GetAvailableAlgorithms())
 			{
-				if (wxString (hash->GetName()).IsSameAs (str, false))
-					ArgCurrentHash = hash;
+				wxString hashName (hash->GetName());
+				wxString hashAltName (hash->GetAltName());
+				if (hashName.IsSameAs (str, false) || hashAltName.IsSameAs (str, false))
+					ArgNewHash = hash;
 			}
 
-			if (!ArgCurrentHash)
+			if (!ArgNewHash)
 				throw_err (LangString["UNKNOWN_OPTION"] + L": " + str);
 		}
 
@@ -364,6 +377,23 @@ namespace VeraCrypt
 		if (parser.Found (L"new-password", &str))
 			ArgNewPassword.reset (new VolumePassword (wstring (str)));
 		
+		if (parser.Found (L"new-pim", &str))
+		{
+			try
+			{
+				ArgNewPim = StringConverter::ToInt32 (wstring (str));
+			}
+			catch (...)
+			{
+				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
+			}
+
+			if (ArgNewPim < 0)
+				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
+			else if (ArgNewPim > 0 && ArgTrueCryptMode)
+				throw_err (LangString["PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
+		}
+		
 		if (parser.Found (L"non-interactive"))
 		{
 			if (interfaceType != UserInterfaceType::Text)
@@ -374,6 +404,23 @@ namespace VeraCrypt
 
 		if (parser.Found (L"password", &str))
 			ArgPassword.reset (new VolumePassword (wstring (str)));
+		
+		if (parser.Found (L"pim", &str))
+		{
+			try
+			{
+				ArgPim = StringConverter::ToInt32 (wstring (str));
+			}
+			catch (...)
+			{
+				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
+			}
+
+			if (ArgPim < 0)
+				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
+			else if (ArgPim > 0 && ArgTrueCryptMode)
+				throw_err (LangString["PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
+		}
 
 		if (parser.Found (L"protect-hidden", &str))
 		{
@@ -399,13 +446,32 @@ namespace VeraCrypt
 			ArgMountOptions.ProtectionPassword.reset (new VolumePassword (wstring (str)));
 			ArgMountOptions.Protection = VolumeProtection::HiddenVolumeReadOnly;
 		}
+		
+		if (parser.Found (L"protection-pim", &str))
+		{
+			int pim = -1;
+			try
+			{
+				pim = StringConverter::ToInt32 (wstring (str));
+				if (pim < 0)
+					throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
+			}
+			catch (...)
+			{
+				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
+			}
+			ArgMountOptions.ProtectionPim = pim;
+			ArgMountOptions.Protection = VolumeProtection::HiddenVolumeReadOnly;
+		}
 
 		if (parser.Found (L"protection-hash", &str))
 		{
 			bool bHashFound = false;
 			foreach (shared_ptr <Hash> hash, Hash::GetAvailableAlgorithms())
 			{
-				if (wxString (hash->GetName()).IsSameAs (str, false))
+				wxString hashName (hash->GetName());
+				wxString hashAltName (hash->GetAltName());
+				if (hashName.IsSameAs (str, false) || hashAltName.IsSameAs (str, false))
 				{
 					bHashFound = true;
 					ArgMountOptions.ProtectionKdf = Pkcs5Kdf::GetAlgorithm (*hash, ArgTrueCryptMode);

@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "System.h"
@@ -180,6 +184,34 @@ namespace VeraCrypt
 		return password;
 	}
 	
+	int TextUserInterface::AskPim (const wxString &message) const
+	{
+		int pim = -1;
+		wxString msg = _("Enter new PIM: ");
+		if (!message.empty())
+			msg = message + L": ";
+		while (pim < 0)
+		{
+			wstring pimStr = AskString (msg);
+			if (pimStr.empty())
+				pim = 0;
+			else
+			{
+				try
+				{
+					pim = (int) StringConverter::ToUInt32 (pimStr);
+				}
+				catch (...)
+				{
+					pim = -1;
+					continue;
+				}
+			}
+		}
+		
+		return pim;
+	}
+	
 	ssize_t TextUserInterface::AskSelection (ssize_t optionCount, ssize_t defaultOption) const
 	{
 		while (true)
@@ -272,6 +304,7 @@ namespace VeraCrypt
 			{
 				ShowString (L"\n");
 				options->Password = AskPassword (LangString[volumeType == VolumeType::Hidden ? "ENTER_HIDDEN_VOL_PASSWORD" : "ENTER_NORMAL_VOL_PASSWORD"]);
+				options->Pim = AskPim (volumeType == VolumeType::Hidden ?_("Enter PIM for the hidden volume") : _("Enter PIM for the normal/outer volume"));
 				options->Keyfiles = AskKeyfiles();
 
 				try
@@ -280,11 +313,13 @@ namespace VeraCrypt
 						options->Path,
 						options->PreserveTimestamps,
 						options->Password,
+						options->Pim,
 						kdf,
 						false,
 						options->Keyfiles,
 						options->Protection,
 						options->ProtectionPassword,
+						options->ProtectionPim,
 						options->ProtectionKdf,
 						options->ProtectionKeyfiles,
 						true,
@@ -345,14 +380,14 @@ namespace VeraCrypt
 
 		// Re-encrypt volume header
 		SecureBuffer newHeaderBuffer (normalVolume->GetLayout()->GetHeaderSize());
-		Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, normalVolume->GetHeader(), normalVolumeMountOptions.Password, normalVolumeMountOptions.Keyfiles);
+		Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, normalVolume->GetHeader(), normalVolumeMountOptions.Password, normalVolumeMountOptions.Pim, normalVolumeMountOptions.Keyfiles);
 
 		backupFile.Write (newHeaderBuffer);
 
 		if (hiddenVolume)
 		{
 			// Re-encrypt hidden volume header
-			Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, hiddenVolume->GetHeader(), hiddenVolumeMountOptions.Password, hiddenVolumeMountOptions.Keyfiles);
+			Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, hiddenVolume->GetHeader(), hiddenVolumeMountOptions.Password, hiddenVolumeMountOptions.Pim, hiddenVolumeMountOptions.Keyfiles);
 		}
 		else
 		{
@@ -368,7 +403,7 @@ namespace VeraCrypt
 		ShowInfo ("VOL_HEADER_BACKED_UP");
 	}
 
-	void TextUserInterface::ChangePassword (shared_ptr <VolumePath> volumePath, shared_ptr <VolumePassword> password, shared_ptr <Hash> currentHash, bool truecryptMode, shared_ptr <KeyfileList> keyfiles, shared_ptr <VolumePassword> newPassword, shared_ptr <KeyfileList> newKeyfiles, shared_ptr <Hash> newHash) const
+	void TextUserInterface::ChangePassword (shared_ptr <VolumePath> volumePath, shared_ptr <VolumePassword> password, int pim, shared_ptr <Hash> currentHash, bool truecryptMode, shared_ptr <KeyfileList> keyfiles, shared_ptr <VolumePassword> newPassword, int newPim, shared_ptr <KeyfileList> newKeyfiles, shared_ptr <Hash> newHash) const
 	{
 		shared_ptr <Volume> volume;
 
@@ -411,6 +446,12 @@ namespace VeraCrypt
 			{
 				password = AskPassword ();
 			}
+			
+			// current PIM
+			if (!truecryptMode && !Preferences.NonInteractive && (pim < 0))
+			{
+				pim = AskPim (_("Enter current PIM"));
+			}
 
 			// Current keyfiles
 			try
@@ -421,7 +462,7 @@ namespace VeraCrypt
 					try
 					{
 						keyfiles.reset (new KeyfileList);
-						volume = Core->OpenVolume (volumePath, Preferences.DefaultMountOptions.PreserveTimestamps, password, kdf, truecryptMode, keyfiles);
+						volume = Core->OpenVolume (volumePath, Preferences.DefaultMountOptions.PreserveTimestamps, password, pim, kdf, truecryptMode, keyfiles);
 					}
 					catch (PasswordException&)
 					{
@@ -431,7 +472,7 @@ namespace VeraCrypt
 				}	
 
 				if (!volume.get())
-					volume = Core->OpenVolume (volumePath, Preferences.DefaultMountOptions.PreserveTimestamps, password, kdf, truecryptMode, keyfiles);
+					volume = Core->OpenVolume (volumePath, Preferences.DefaultMountOptions.PreserveTimestamps, password, pim, kdf, truecryptMode, keyfiles);
 			}
 			catch (PasswordException &e)
 			{
@@ -450,6 +491,10 @@ namespace VeraCrypt
 			newPassword->CheckPortability();
 		else if (!Preferences.NonInteractive)
 			newPassword = AskPassword (_("Enter new password"), true);
+		
+		// New PIM
+		if ((newPim < 0) && !Preferences.NonInteractive)
+			newPim = AskPim (_("Enter new PIM"));
 
 		// New keyfiles
 		if (!newKeyfiles.get() && !Preferences.NonInteractive)
@@ -464,7 +509,7 @@ namespace VeraCrypt
 		RandomNumberGenerator::SetEnrichedByUserStatus (false);
 		UserEnrichRandomPool();
 
-		Core->ChangePassword (volume, newPassword, newKeyfiles,
+		Core->ChangePassword (volume, newPassword, newPim, newKeyfiles,
 			newHash ? Pkcs5Kdf::GetAlgorithm (*newHash, false) : shared_ptr <Pkcs5Kdf>());
 
 		ShowInfo ("PASSWORD_CHANGED");
@@ -747,6 +792,13 @@ namespace VeraCrypt
 
 		if (options->Password)
 			options->Password->CheckPortability();
+		
+		// PIM
+		if ((options->Pim < 0) && !Preferences.NonInteractive)
+		{
+			ShowString (L"\n");
+			options->Pim = AskPim (_("Enter PIM"));
+		}
 
 		// Keyfiles
 		if (!options->Keyfiles && !Preferences.NonInteractive)
@@ -819,6 +871,7 @@ namespace VeraCrypt
 			mountOptions.NoFilesystem = true;
 			mountOptions.Protection = VolumeProtection::None;
 			mountOptions.Password = options->Password;
+			mountOptions.Pim = options->Pim;
 			mountOptions.Keyfiles = options->Keyfiles;
 
 			shared_ptr <VolumeInfo> volume = Core->MountVolume (mountOptions);
@@ -1070,6 +1123,9 @@ namespace VeraCrypt
 		{
 			if (!options.Password)
 				options.Password = AskPassword();
+			
+			if (!options.TrueCryptMode && (options.Pim < 0))
+				options.Pim = AskPim (_("Enter PIM"));
 
 			if (!options.Keyfiles)
 				options.Keyfiles = AskKeyfiles();
@@ -1080,6 +1136,7 @@ namespace VeraCrypt
 				return mountedVolumes;
 
 			options.Password.reset();
+			options.Pim = -1;
 		}
 	}
 	
@@ -1144,6 +1201,11 @@ namespace VeraCrypt
 					ShowWarning ("UNSUPPORTED_CHARS_IN_PWD_RECOM");
 				}
 			}
+			
+			if (!options.TrueCryptMode && (options.Pim < 0))
+			{
+				options.Pim = AskPim (StringFormatter (_("Enter PIM for {0}"), wstring (*options.Path)));
+			}
 
 			// Keyfiles
 			if (!options.Keyfiles)
@@ -1159,6 +1221,8 @@ namespace VeraCrypt
 			{
 				if (!options.ProtectionPassword)
 					options.ProtectionPassword = AskPassword (_("Enter password for hidden volume"));
+				if (!options.TrueCryptMode && (options.ProtectionPim < 0))
+					options.ProtectionPim = AskPim (_("Enter PIM for hidden volume"));
 				if (!options.ProtectionKeyfiles)
 					options.ProtectionKeyfiles = AskKeyfiles (_("Enter keyfile for hidden volume"));
 			}
@@ -1171,6 +1235,7 @@ namespace VeraCrypt
 			{
 				ShowInfo (e);
 				options.ProtectionPassword.reset();
+				options.ProtectionPim = -1;
 			}
 			catch (PasswordIncorrect &e)
 			{
@@ -1337,6 +1402,7 @@ namespace VeraCrypt
 			{
 				ShowString (L"\n");
 				options.Password = AskPassword();
+				options.Pim = AskPim();
 				options.Keyfiles = AskKeyfiles();
 
 				try
@@ -1345,11 +1411,13 @@ namespace VeraCrypt
 						options.Path,
 						options.PreserveTimestamps,
 						options.Password,
+						options.Pim,
 						kdf,
 						false,
 						options.Keyfiles,
 						options.Protection,
 						options.ProtectionPassword,
+						options.ProtectionPim,
 						options.ProtectionKdf,
 						options.ProtectionKeyfiles,
 						options.SharedAccessAllowed,
@@ -1374,7 +1442,7 @@ namespace VeraCrypt
 
 			// Re-encrypt volume header
 			SecureBuffer newHeaderBuffer (volume->GetLayout()->GetHeaderSize());
-			Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, volume->GetHeader(), options.Password, options.Keyfiles);
+			Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, volume->GetHeader(), options.Password, options.Pim,  options.Keyfiles);
 
 			// Write volume header
 			int headerOffset = volume->GetLayout()->GetHeaderOffset();
@@ -1406,19 +1474,16 @@ namespace VeraCrypt
 			File backupFile;
 			backupFile.Open (filePath, File::OpenRead);
 
-			uint64 headerSize;
 			bool legacyBackup;
 
 			// Determine the format of the backup file
 			switch (backupFile.Length())
 			{
 			case TC_VOLUME_HEADER_GROUP_SIZE:
-				headerSize = TC_VOLUME_HEADER_SIZE;
 				legacyBackup = false;
 				break;
 
 			case TC_VOLUME_HEADER_SIZE_LEGACY * 2:
-				headerSize = TC_VOLUME_HEADER_SIZE_LEGACY;
 				legacyBackup = true;
 				break;
 
@@ -1434,6 +1499,7 @@ namespace VeraCrypt
 			while (!decryptedLayout)
 			{
 				options.Password = AskPassword (L"\n" + LangString["ENTER_HEADER_BACKUP_PASSWORD"]);
+				options.Pim = AskPim (_("Enter PIM"));
 				options.Keyfiles = AskKeyfiles();
 
 				try
@@ -1455,7 +1521,7 @@ namespace VeraCrypt
 
 						// Decrypt header
 						shared_ptr <VolumePassword> passwordKey = Keyfile::ApplyListToPassword (options.Keyfiles, options.Password);
-						if (layout->GetHeader()->Decrypt (headerBuffer, *passwordKey, kdf, false, layout->GetSupportedKeyDerivationFunctions(false), layout->GetSupportedEncryptionAlgorithms(), layout->GetSupportedEncryptionModes()))
+						if (layout->GetHeader()->Decrypt (headerBuffer, *passwordKey, options.Pim, kdf, false, layout->GetSupportedKeyDerivationFunctions(false), layout->GetSupportedEncryptionAlgorithms(), layout->GetSupportedEncryptionModes()))
 						{
 							decryptedLayout = layout;
 							break;
@@ -1479,7 +1545,7 @@ namespace VeraCrypt
 
 			// Re-encrypt volume header
 			SecureBuffer newHeaderBuffer (decryptedLayout->GetHeaderSize());
-			Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, decryptedLayout->GetHeader(), options.Password, options.Keyfiles);
+			Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, decryptedLayout->GetHeader(), options.Password, options.Pim, options.Keyfiles);
 
 			// Write volume header
 			int headerOffset = decryptedLayout->GetHeaderOffset();
@@ -1493,7 +1559,7 @@ namespace VeraCrypt
 			if (decryptedLayout->HasBackupHeader())
 			{
 				// Re-encrypt backup volume header
-				Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, decryptedLayout->GetHeader(), options.Password, options.Keyfiles);
+				Core->ReEncryptVolumeHeaderWithNewSalt (newHeaderBuffer, decryptedLayout->GetHeader(), options.Password, options.Pim, options.Keyfiles);
 				
 				// Write backup volume header
 				headerOffset = decryptedLayout->GetBackupHeaderOffset();

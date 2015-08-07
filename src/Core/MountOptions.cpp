@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "MountOptions.h"
@@ -26,6 +30,7 @@ namespace VeraCrypt
 		TC_CLONE (NoHardwareCrypto);
 		TC_CLONE (NoKernelCrypto);
 		TC_CLONE_SHARED (VolumePassword, Password);
+		TC_CLONE (Pim);
 		if (other.Kdf)
 		{
 			Kdf.reset(other.Kdf->Clone());
@@ -37,6 +42,7 @@ namespace VeraCrypt
 		TC_CLONE (PreserveTimestamps);
 		TC_CLONE (Protection);
 		TC_CLONE_SHARED (VolumePassword, ProtectionPassword);
+		TC_CLONE (ProtectionPim);
 		if (other.ProtectionKdf)
 			ProtectionKdf.reset(other.ProtectionKdf->Clone());
 		else
@@ -116,6 +122,9 @@ namespace VeraCrypt
 			}
 		}
 		catch(...) {}
+		
+		sr.Deserialize ("Pim", Pim);
+		sr.Deserialize ("ProtectionPim", ProtectionPim);
 	}
 
 	void MountOptions::Serialize (shared_ptr <Stream> stream) const
@@ -167,6 +176,9 @@ namespace VeraCrypt
 		sr.Serialize ("ProtectionKdfNull", ProtectionKdf == nullptr);
 		if (ProtectionKdf)
 			sr.Serialize ("ProtectionKdf", ProtectionKdf->GetName());
+		
+		sr.Serialize ("Pim", Pim);
+		sr.Serialize ("ProtectionPim", ProtectionPim);
 	}
 
 	TC_SERIALIZER_FACTORY_ADD_CLASS (MountOptions);

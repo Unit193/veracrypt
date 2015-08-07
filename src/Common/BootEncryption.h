@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #ifndef TC_HEADER_Common_BootEncryption
@@ -26,7 +30,7 @@ namespace VeraCrypt
 		File (string path,bool readOnly = false, bool create = false);
 		virtual ~File () { Close(); }
 
-		void CheckOpened () { if (!FileOpen) { SetLastError (LastError); throw SystemException ();} }
+		void CheckOpened (const char* srcPos) { if (!FileOpen) { SetLastError (LastError); throw SystemException (srcPos);} }
 		void Close ();
 		DWORD Read (byte *buffer, DWORD size);
 		void Write (byte *buffer, DWORD size);
@@ -140,11 +144,12 @@ namespace VeraCrypt
 			DumpFilter
 		};
 
+		void SetParentWindow (HWND parent) { ParentWindow = parent; }
 		void AbortDecoyOSWipe ();
 		void AbortSetup ();
 		void AbortSetupWait ();
 		void CallDriver (DWORD ioctl, void *input = nullptr, DWORD inputSize = 0, void *output = nullptr, DWORD outputSize = 0);
-		int ChangePassword (Password *oldPassword, int old_pkcs5, Password *newPassword, int pkcs5, int wipePassCount, HWND hwndDlg);
+		int ChangePassword (Password *oldPassword, int old_pkcs5, int old_pim, Password *newPassword, int pkcs5, int pim, int wipePassCount, HWND hwndDlg);
 		void CheckDecoyOSWipeResult ();
 		void CheckEncryptionSetupResult ();
 		void CheckRequirements ();
@@ -157,6 +162,7 @@ namespace VeraCrypt
 		DWORD GetDriverServiceStartType ();
 		unsigned int GetHiddenOSCreationPhase ();
 		uint16 GetInstalledBootLoaderVersion ();
+		void GetInstalledBootLoaderFingerprint (byte fingerprint[WHIRLPOOL_DIGESTSIZE + SHA512_DIGESTSIZE]);
 		Partition GetPartitionForHiddenOS ();
 		bool IsBootLoaderOnDrive (char *devicePath);
 		BootEncryptionStatus GetStatus ();
@@ -164,19 +170,22 @@ namespace VeraCrypt
 		void GetVolumeProperties (VOLUME_PROPERTIES_STRUCT *properties);
 		SystemDriveConfiguration GetSystemDriveConfiguration ();
 		void Install (bool hiddenSystem);
+		void InstallBootLoader (Device& device, bool preserveUserConfig = false, bool hiddenOSCreation = false);
 		void InstallBootLoader (bool preserveUserConfig = false, bool hiddenOSCreation = false);
+		bool CheckBootloaderFingerprint (bool bSilent = false);
 		void InvalidateCachedSysDriveProperties ();
 		bool IsCDDrivePresent ();
 		bool IsHiddenSystemRunning ();
 		bool IsPagingFileActive (BOOL checkNonWindowsPartitionsOnly);
 		void PrepareHiddenOSCreation (int ea, int mode, int pkcs5);
-		void PrepareInstallation (bool systemPartitionOnly, Password &password, int ea, int mode, int pkcs5, const string &rescueIsoImagePath);
+		void PrepareInstallation (bool systemPartitionOnly, Password &password, int ea, int mode, int pkcs5, int pim, const string &rescueIsoImagePath);
 		void ProbeRealSystemDriveSize ();
 		void ReadBootSectorConfig (byte *config, size_t bufLength, byte *userConfig = nullptr, string *customUserMessage = nullptr, uint16 *bootLoaderVersion = nullptr);
 		uint32 ReadDriverConfigurationFlags ();
 		void RegisterBootDriver (bool hiddenSystem);
 		void RegisterFilterDriver (bool registerDriver, FilterType filterType);
 		void RegisterSystemFavoritesService (BOOL registerService);
+		void RegisterSystemFavoritesService (BOOL registerService, BOOL noFileHandling);
 		void RenameDeprecatedSystemLoaderBackup ();
 		bool RestartComputer (void);
 		void InitialSecurityChecksForHiddenOS ();
@@ -204,7 +213,7 @@ namespace VeraCrypt
 
 		void BackupSystemLoader ();
 		void CreateBootLoaderInMemory (byte *buffer, size_t bufferSize, bool rescueDisk, bool hiddenOSCreation = false);
-		void CreateVolumeHeader (uint64 volumeSize, uint64 encryptedAreaStart, Password *password, int ea, int mode, int pkcs5);
+		void CreateVolumeHeader (uint64 volumeSize, uint64 encryptedAreaStart, Password *password, int ea, int mode, int pkcs5, int pim);
 		string GetSystemLoaderBackupPath ();
 		uint32 GetChecksum (byte *data, size_t size);
 		DISK_GEOMETRY GetDriveGeometry (int driveNumber);

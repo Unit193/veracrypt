@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2009 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #ifndef TC_HEADER_Main_TextUserInterface
@@ -24,13 +28,14 @@ namespace VeraCrypt
 		virtual FilePath AskFilePath (const wxString &message = wxEmptyString) const;
 		virtual shared_ptr <KeyfileList> AskKeyfiles (const wxString &message = L"") const;
 		virtual shared_ptr <VolumePassword> AskPassword (const wxString &message = L"", bool verify = false) const;
+		virtual int AskPim (const wxString &message = L"") const;
 		virtual ssize_t AskSelection (ssize_t optionCount, ssize_t defaultOption = -1) const;
 		virtual wstring AskString (const wxString &message = wxEmptyString) const;
 		virtual shared_ptr <VolumePath> AskVolumePath (const wxString &message = L"") const;
 		virtual bool AskYesNo (const wxString &message, bool defaultYes = false, bool warning = false) const;
 		virtual void BackupVolumeHeaders (shared_ptr <VolumePath> volumePath) const;
 		virtual void BeginBusyState () const { }
-		virtual void ChangePassword (shared_ptr <VolumePath> volumePath = shared_ptr <VolumePath>(), shared_ptr <VolumePassword> password = shared_ptr <VolumePassword>(), shared_ptr <Hash> currentHash = shared_ptr <Hash>(), bool truecryptMode = false, shared_ptr <KeyfileList> keyfiles = shared_ptr <KeyfileList>(), shared_ptr <VolumePassword> newPassword = shared_ptr <VolumePassword>(), shared_ptr <KeyfileList> newKeyfiles = shared_ptr <KeyfileList>(), shared_ptr <Hash> newHash = shared_ptr <Hash>()) const;
+		virtual void ChangePassword (shared_ptr <VolumePath> volumePath = shared_ptr <VolumePath>(), shared_ptr <VolumePassword> password = shared_ptr <VolumePassword>(), int pim = 0, shared_ptr <Hash> currentHash = shared_ptr <Hash>(), bool truecryptMode = false, shared_ptr <KeyfileList> keyfiles = shared_ptr <KeyfileList>(), shared_ptr <VolumePassword> newPassword = shared_ptr <VolumePassword>(), int newPim = 0, shared_ptr <KeyfileList> newKeyfiles = shared_ptr <KeyfileList>(), shared_ptr <Hash> newHash = shared_ptr <Hash>()) const;
 		virtual void CreateKeyfile (shared_ptr <FilePath> keyfilePath = shared_ptr <FilePath>()) const;
 		virtual void CreateVolume (shared_ptr <VolumeCreationOptions> options) const;
 		virtual void DeleteSecurityTokenKeyfiles () const;

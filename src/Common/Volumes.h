@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2010 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #ifndef TC_HEADER_Common_Volumes
@@ -114,7 +116,7 @@ extern "C" {
 
 // Volume header flags
 #define TC_HEADER_FLAG_ENCRYPTED_SYSTEM			0x1
-#define TC_HEADER_FLAG_NONSYS_INPLACE_ENC		0x2		// The volume has been created using non-system in-place encryption
+#define TC_HEADER_FLAG_NONSYS_INPLACE_ENC		0x2		// The volume has been created (or is being encrypted/decrypted) using non-system in-place encryption
 
 
 #ifndef TC_HEADER_Volume_VolumeHeader
@@ -127,13 +129,16 @@ uint16 GetHeaderField16 (byte *header, int offset);
 uint32 GetHeaderField32 (byte *header, int offset);
 UINT64_STRUCT GetHeaderField64 (byte *header, int offset);
 #ifdef TC_WINDOWS_BOOT
-int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo);
+int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int pim, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo);
 #else
-int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int pkcs5_prf, BOOL truecryptMode, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo);
+int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int pkcs5_prf, int pim, BOOL truecryptMode, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo);
+#ifdef _WIN32
+void ComputeBootloaderFingerprint (byte *bootLoaderBuf, unsigned int bootLoaderSize, byte* fingerprint);
+#endif
 #endif
 
 #if !defined (DEVICE_DRIVER) && !defined (TC_WINDOWS_BOOT)
-int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *encryptedHeader, int ea, int mode, Password *password, int pkcs5_prf, char *masterKeydata, PCRYPTO_INFO *retInfo, unsigned __int64 volumeSize, unsigned __int64 hiddenVolumeSize, unsigned __int64 encryptedAreaStart, unsigned __int64 encryptedAreaLength, uint16 requiredProgramVersion, uint32 headerFlags, uint32 sectorSize, BOOL bWipeMode);
+int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *encryptedHeader, int ea, int mode, Password *password, int pkcs5_prf, int pim, char *masterKeydata, PCRYPTO_INFO *retInfo, unsigned __int64 volumeSize, unsigned __int64 hiddenVolumeSize, unsigned __int64 encryptedAreaStart, unsigned __int64 encryptedAreaLength, uint16 requiredProgramVersion, uint32 headerFlags, uint32 sectorSize, BOOL bWipeMode);
 BOOL ReadEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, byte *header, DWORD *bytesRead);
 BOOL WriteEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, byte *header);
 int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO *cryptoInfo, uint64 dataAreaSize, BOOL bPrimaryOnly, BOOL bBackupOnly);

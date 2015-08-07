@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2010 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 /* Update the following when adding a new cipher or EA:
@@ -197,6 +199,7 @@ typedef struct CRYPTO_INFO_t
 	int ea;									/* Encryption algorithm ID */
 	int mode;								/* Mode of operation (e.g., XTS) */
 	int pkcs5;								/* PRF algorithm */
+
 	unsigned __int8 ks[MAX_EXPANDED_KEY];	/* Primary key schedule (if it is a cascade, it conatins multiple concatenated keys) */
 	unsigned __int8 ks2[MAX_EXPANDED_KEY];	/* Secondary key schedule (if cascade, multiple concatenated) for XTS mode. */
 
@@ -212,6 +215,7 @@ typedef struct CRYPTO_INFO_t
 	unsigned __int8 salt[PKCS5_SALT_SIZE];
 	int noIterations;	
 	BOOL bTrueCryptMode;
+	int volumePim;
 
 	uint64 volume_creation_time;	// Legacy
 	uint64 header_creation_time;	// Legacy

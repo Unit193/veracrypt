@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2010 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include <stdlib.h>
@@ -30,6 +32,10 @@
 #include "Format/Tcformat.h"
 
 #include <Strsafe.h>
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 int FormatWriteBufferSize = 1024 * 1024;
 static uint32 FormatSectorSize = 0;
@@ -146,6 +152,7 @@ int TCFormatVolume (volatile FORMAT_VOL_PARAMETERS *volParams)
 					 FIRST_MODE_OF_OPERATION_ID,
 				     volParams->password,
 				     volParams->pkcs5,
+					  volParams->pim,
 					 NULL,
 				     &cryptoInfo,
 					 dataAreaSize,
@@ -285,7 +292,7 @@ begin_format:
 				}
 				else
 				{
-					handleWin32Error (volParams->hwndDlg);
+					handleWin32Error (volParams->hwndDlg, SRC_POS);
 					Error ("CANT_ACCESS_VOL", hwndDlg);
 					nStatus = ERR_DONT_REPORT; 
 					goto error;
@@ -538,6 +545,7 @@ begin_format:
 		FIRST_MODE_OF_OPERATION_ID,
 		volParams->password,
 		volParams->pkcs5,
+		volParams->pim,
 		cryptoInfo->master_keydata,
 		&cryptoInfo,
 		dataAreaSize,
@@ -624,7 +632,7 @@ error:
 		mountOptions.PartitionInInactiveSysEncScope = FALSE;
 		mountOptions.UseBackupHeader = FALSE;
 
-		if (MountVolume (volParams->hwndDlg, driveNo, volParams->volumePath, volParams->password, volParams->pkcs5, FALSE, FALSE, TRUE, &mountOptions, FALSE, TRUE) < 1)
+		if (MountVolume (volParams->hwndDlg, driveNo, volParams->volumePath, volParams->password, volParams->pkcs5, volParams->pim, FALSE, FALSE, TRUE, &mountOptions, FALSE, TRUE) < 1)
 		{
 			MessageBoxW (volParams->hwndDlg, GetString ("CANT_MOUNT_VOLUME"), lpszTitle, ICON_HAND);
 			MessageBoxW (volParams->hwndDlg, GetString ("FORMAT_NTFS_STOP"), lpszTitle, ICON_HAND);
@@ -639,7 +647,7 @@ error:
 
 		if (retCode != TRUE)
 		{
-			if (!UnmountVolume (volParams->hwndDlg, driveNo, FALSE))
+			if (!UnmountVolumeAfterFormatExCall (volParams->hwndDlg, driveNo))
 				MessageBoxW (volParams->hwndDlg, GetString ("CANT_DISMOUNT_VOLUME"), lpszTitle, ICON_HAND);
 
 			if (dataAreaSize <= TC_MAX_FAT_SECTOR_COUNT * FormatSectorSize)
@@ -661,7 +669,7 @@ error:
 			goto fv_end;
 		}
 
-		if (!UnmountVolume (volParams->hwndDlg, driveNo, FALSE))
+		if (!UnmountVolumeAfterFormatExCall (volParams->hwndDlg, driveNo))
 			MessageBoxW (volParams->hwndDlg, GetString ("CANT_DISMOUNT_VOLUME"), lpszTitle, ICON_HAND);
 	}
 
@@ -787,13 +795,64 @@ fail:
 }
 
 
-volatile BOOLEAN FormatExResult;
+volatile BOOLEAN FormatExError;
 
 BOOLEAN __stdcall FormatExCallback (int command, DWORD subCommand, PVOID parameter)
 {
-	if (command == FMIFS_DONE)
-		FormatExResult = *(BOOLEAN *) parameter;
-	return TRUE;
+	if (FormatExError)
+		return FALSE;
+
+	switch(command) {
+	case FMIFS_PROGRESS:
+		break;
+	case FMIFS_STRUCTURE_PROGRESS:
+		break;
+	case FMIFS_DONE:
+		if(*(BOOLEAN*)parameter == FALSE) {
+			FormatExError = TRUE;
+		}
+		break;
+	case FMIFS_DONE_WITH_STRUCTURE:
+		break;
+	case FMIFS_INCOMPATIBLE_FILE_SYSTEM:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_ACCESS_DENIED:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_MEDIA_WRITE_PROTECTED:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_VOLUME_IN_USE:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_DEVICE_NOT_READY:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_CANT_QUICK_FORMAT:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_BAD_LABEL:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_OUTPUT:
+		break;
+	case FMIFS_CLUSTER_SIZE_TOO_BIG:
+	case FMIFS_CLUSTER_SIZE_TOO_SMALL:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_VOLUME_TOO_BIG:
+	case FMIFS_VOLUME_TOO_SMALL:
+		FormatExError = TRUE;
+		break;
+	case FMIFS_NO_MEDIA_IN_DRIVE:
+		FormatExError = TRUE;
+		break;
+	default:
+		FormatExError = TRUE;
+		break;
+	}
+	return (FormatExError? FALSE : TRUE);
 }
 
 BOOL FormatNtfs (int driveNo, int clusterSize)
@@ -824,20 +883,21 @@ BOOL FormatNtfs (int driveNo, int clusterSize)
 
 	StringCbCatW (dir, sizeof(dir), L":\\");
 
-	FormatExResult = FALSE;
-
+	FormatExError = TRUE;
+	
 	// Windows sometimes fails to format a volume (hosted on a removable medium) as NTFS.
 	// It often helps to retry several times.
-	for (i = 0; i < 50 && FormatExResult != TRUE; i++)
+	for (i = 0; i < 50 && FormatExError; i++)
 	{
+		FormatExError = FALSE;
 		FormatEx (dir, FMIFS_HARDDISK, L"NTFS", L"", TRUE, clusterSize * FormatSectorSize, FormatExCallback);
 	}
 
 	// The device may be referenced for some time after FormatEx() returns
-	Sleep (2000);
+	Sleep (4000);
 
 	FreeLibrary (hModule);
-	return FormatExResult;
+	return FormatExError? FALSE : TRUE;
 }
 
 
@@ -891,7 +951,7 @@ static void __cdecl FormatWriteThreadProc (void *arg)
 	{
 		if (WaitForSingleObject (WriteBufferFullEvent, INFINITE) == WAIT_FAILED)
 		{
-			handleWin32Error (NULL);
+			handleWin32Error (NULL, SRC_POS);
 			break;
 		}
 
@@ -905,7 +965,7 @@ static void __cdecl FormatWriteThreadProc (void *arg)
 
 		if (!SetEvent (WriteBufferEmptyEvent))
 		{
-			handleWin32Error (NULL);
+			handleWin32Error (NULL, SRC_POS);
 			break;
 		}
 	}

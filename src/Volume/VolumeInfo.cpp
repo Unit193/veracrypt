@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2009 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "Common/Tcdefs.h"
@@ -51,6 +55,7 @@ namespace VeraCrypt
 		VirtualDevice = sr.DeserializeWString ("VirtualDevice");
 		sr.Deserialize ("VolumeCreationTime", VolumeCreationTime);
 		sr.Deserialize ("TrueCryptMode", TrueCryptMode);
+		sr.Deserialize ("Pim", Pim);
 	}
 
 	bool VolumeInfo::FirstVolumeMountedAfterSecond (shared_ptr <VolumeInfo> first, shared_ptr <VolumeInfo> second)
@@ -91,6 +96,7 @@ namespace VeraCrypt
 		sr.Serialize ("VirtualDevice", wstring (VirtualDevice));
 		sr.Serialize ("VolumeCreationTime", VolumeCreationTime);
 		sr.Serialize ("TrueCryptMode", TrueCryptMode);
+		sr.Serialize ("Pim", Pim);
 	}
 
 	void VolumeInfo::Set (const Volume &volume)
@@ -105,7 +111,7 @@ namespace VeraCrypt
 		HiddenVolumeProtectionTriggered = volume.IsHiddenVolumeProtectionTriggered();
 		MinRequiredProgramVersion = volume.GetHeader()->GetRequiredMinProgramVersion();
 		Path = volume.GetPath();
-		Pkcs5IterationCount = volume.GetPkcs5Kdf()->GetIterationCount();
+		Pkcs5IterationCount = volume.GetPkcs5Kdf()->GetIterationCount(volume.GetPim ());
 		Pkcs5PrfName = volume.GetPkcs5Kdf()->GetName();
 		Protection = volume.GetProtectionType();
 		Size = volume.GetSize();
@@ -115,6 +121,7 @@ namespace VeraCrypt
 		TotalDataRead = volume.GetTotalDataRead();
 		TotalDataWritten = volume.GetTotalDataWritten();
 		TrueCryptMode = volume.GetTrueCryptMode();
+		Pim = volume.GetPim ();
 	}
 
 	TC_SERIALIZER_FACTORY_ADD_CLASS (VolumeInfo);

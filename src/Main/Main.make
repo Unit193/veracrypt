@@ -1,9 +1,13 @@
 #
-# Copyright (c) 2008-2009 TrueCrypt Developers Association. All rights reserved.
+# Derived from source code of TrueCrypt 7.1a, which is
+# Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+# by the TrueCrypt License 3.0.
 #
-# Governed by the TrueCrypt License 3.0 the full text of which is contained in
-# the file License.txt included in TrueCrypt binary and source code distribution
-# packages.
+# Modifications and additions to the original source code (contained in this file) 
+# and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+# and are governed by the Apache License 2.0 the full text of which is
+# contained in the file License.txt included in VeraCrypt binary and source
+# code distribution packages.
 #
 
 OBJS :=
@@ -51,6 +55,7 @@ OBJS += Forms/VolumeCreationWizard.o
 OBJS += Forms/VolumeFormatOptionsWizardPage.o
 OBJS += Forms/VolumeLocationWizardPage.o
 OBJS += Forms/VolumePasswordWizardPage.o
+OBJS += Forms/VolumePimWizardPage.o
 OBJS += Forms/VolumeSizeWizardPage.o
 OBJS += Forms/WaitDialog.o
 OBJS += Forms/WizardFrame.o
@@ -77,7 +82,11 @@ CXXFLAGS += -I$(BASE_DIR)/Main
 #------ wxWidgets configuration ------
 
 ifdef TC_NO_GUI
+ifdef VC_WX_STATIC
 WX_CONFIG_LIBS := base
+else
+WX_CONFIG_LIBS := adv,core,base
+endif
 else
 WX_CONFIG_LIBS := adv,core,base
 endif
@@ -197,7 +206,7 @@ endif
 	@echo "VERSION=$(TC_VERSION)" >> $(INTERNAL_INSTALLER_NAME)
 	@echo "PACKAGE_TYPE=tar" >> $(INTERNAL_INSTALLER_NAME)
 	@echo "PACKAGE_NAME=$(PACKAGE_NAME)" >> $(INTERNAL_INSTALLER_NAME)
-	@echo "PACKAGE_START=916" >> $(INTERNAL_INSTALLER_NAME)
+	@echo "PACKAGE_START=1107" >> $(INTERNAL_INSTALLER_NAME)
 	@echo "INSTALLER_TYPE=$(INSTALLER_TYPE)" >> $(INTERNAL_INSTALLER_NAME)
 	
 	@cat $(PWD)/Setup/Linux/veracrypt_install_template.sh >> $(INTERNAL_INSTALLER_NAME)

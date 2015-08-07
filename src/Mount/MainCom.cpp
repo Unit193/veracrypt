@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2007-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include <atlcomcli.h>
@@ -69,8 +73,8 @@ public:
 
 	virtual void STDMETHODCALLTYPE AnalyzeKernelMiniDump (LONG_PTR hwndDlg)
 	{
+		// Do nothing
 		MainDlg = (HWND) hwndDlg;
-		::AnalyzeKernelMiniDump ((HWND) hwndDlg);
 	}
 
 	virtual int STDMETHODCALLTYPE BackupVolumeHeader (LONG_PTR hwndDlg, BOOL bRequireConfirmation, BSTR lpszVolume)
@@ -106,7 +110,7 @@ public:
 		CW2A volumePathA(volumePath);
 		MainDlg = (HWND) hWnd;
 		if (volumePathA.m_psz)
-			return ::ChangePwd (volumePathA.m_psz, oldPassword, 0, FALSE, newPassword, pkcs5, wipePassCount, (HWND) hWnd);
+			return ::ChangePwd (volumePathA.m_psz, oldPassword, 0, 0, FALSE, newPassword, pkcs5, 0, wipePassCount, (HWND) hWnd);
 		else
 			return ERR_OUTOFMEMORY;
 	}
@@ -157,7 +161,7 @@ public:
 		CW2A volumePathA(volumePath);
 		MainDlg = (HWND) hWnd;
 		if (volumePathA.m_psz)
-			return ::ChangePwd (volumePathA.m_psz, oldPassword, old_pkcs5, FALSE, newPassword, pkcs5, wipePassCount, (HWND) hWnd);
+			return ::ChangePwd (volumePathA.m_psz, oldPassword, old_pkcs5, 0, FALSE, newPassword, pkcs5, 0, wipePassCount, (HWND) hWnd);
 		else
 			return ERR_OUTOFMEMORY;
 	}
@@ -168,7 +172,18 @@ public:
 		CW2A volumePathA(volumePath);
 		MainDlg = (HWND) hWnd;
 		if (volumePathA.m_psz)
-			return ::ChangePwd (volumePathA.m_psz, oldPassword, old_pkcs5, truecryptMode, newPassword, pkcs5, wipePassCount, (HWND) hWnd);
+			return ::ChangePwd (volumePathA.m_psz, oldPassword, old_pkcs5, 0, truecryptMode, newPassword, pkcs5, 0, wipePassCount, (HWND) hWnd);
+		else
+			return ERR_OUTOFMEMORY;
+	}
+
+	virtual int STDMETHODCALLTYPE ChangePasswordEx3 (BSTR volumePath, Password *oldPassword, int old_pkcs5, int old_pim, BOOL truecryptMode, Password *newPassword, int pkcs5, int pim, int wipePassCount, LONG_PTR hWnd)
+	{
+		USES_CONVERSION;
+		CW2A volumePathA(volumePath);
+		MainDlg = (HWND) hWnd;
+		if (volumePathA.m_psz)
+			return ::ChangePwd (volumePathA.m_psz, oldPassword, old_pkcs5, old_pim, truecryptMode, newPassword, pkcs5, pim, wipePassCount, (HWND) hWnd);
 		else
 			return ERR_OUTOFMEMORY;
 	}
@@ -230,23 +245,6 @@ ITrueCryptMainCom *GetElevatedInstance (HWND parent)
 }
 
 
-extern "C" void UacAnalyzeKernelMiniDump (HWND hwndDlg)
-{
-	CComPtr<ITrueCryptMainCom> tc;
-
-	CoInitialize (NULL);
-
-	if (ComGetInstance (hwndDlg, &tc))
-	{
-		WaitCursor();
-		tc->AnalyzeKernelMiniDump ((LONG_PTR) hwndDlg);
-		NormalCursor();
-	}
-
-	CoUninitialize ();
-}
-
-
 extern "C" int UacBackupVolumeHeader (HWND hwndDlg, BOOL bRequireConfirmation, char *lpszVolume)
 {
 	CComPtr<ITrueCryptMainCom> tc;
@@ -303,10 +301,12 @@ extern "C" int UacRestoreVolumeHeader (HWND hwndDlg, char *lpszVolume)
 }
 
 
-extern "C" int UacChangePwd (char *lpszVolume, Password *oldPassword, int old_pkcs5, BOOL truecryptMode, Password *newPassword, int pkcs5, int wipePassCount, HWND hwndDlg)
+extern "C" int UacChangePwd (char *lpszVolume, Password *oldPassword, int old_pkcs5, int old_pim, BOOL truecryptMode, Password *newPassword, int pkcs5, int pim, int wipePassCount, HWND hwndDlg)
 {
 	CComPtr<ITrueCryptMainCom> tc;
 	int r;
+
+	CoInitialize (NULL);
 
 	if (ComGetInstance (hwndDlg, &tc))
 	{
@@ -317,7 +317,7 @@ extern "C" int UacChangePwd (char *lpszVolume, Password *oldPassword, int old_pk
 		{
 			volumeBstr.Attach (bstr);
 
-			r = tc->ChangePasswordEx2 (volumeBstr, oldPassword, old_pkcs5, truecryptMode, newPassword, pkcs5, wipePassCount, (LONG_PTR) hwndDlg);
+			r = tc->ChangePasswordEx3 (volumeBstr, oldPassword, old_pkcs5, old_pim, truecryptMode, newPassword, pkcs5, pim, wipePassCount, (LONG_PTR) hwndDlg);
 		}
 		else
 			r = ERR_OUTOFMEMORY;
@@ -325,6 +325,8 @@ extern "C" int UacChangePwd (char *lpszVolume, Password *oldPassword, int old_pk
 	}
 	else
 		r = -1;
+
+	CoUninitialize ();
 
 	return r;
 }

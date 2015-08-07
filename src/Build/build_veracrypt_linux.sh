@@ -1,3 +1,10 @@
+#
+# Copyright (c) 2013-2015 IDRIX
+# Governed by the Apache License 2.0 the full text of which is contained
+# in the file License.txt included in VeraCrypt binary and source
+# code distribution packages.
+#
+
 # Absolute path to this script
 SCRIPT=$(readlink -f "$0")
 # Absolute path this script is in
@@ -17,13 +24,24 @@ fi
 export WX_ROOT=$PARENTDIR/wxWidgets-3.0.2
 echo "Using wxWidgets sources in $WX_ROOT"
 
-# this will be the temporary wxWidgets directory
-export WX_BUILD_DIR=$PARENTDIR/wxBuild
-
 cd $SOURCEPATH
 
 echo "Building GUI version of VeraCrypt"
+
+# this will be the temporary wxWidgets directory
+export WX_BUILD_DIR=$PARENTDIR/wxBuildGui
+
 make WXSTATIC=1 wxbuild && make WXSTATIC=1 clean && make WXSTATIC=1
 
+# Uncomment below and comment line above to reuse existing wxWidgets build
+# make WXSTATIC=1 clean && make WXSTATIC=1
+
 echo "Building console version of VeraCrypt"
+
+# this will be the temporary wxWidgets directory
+export WX_BUILD_DIR=$PARENTDIR/wxBuildConsole
+
 make WXSTATIC=1 NOGUI=1 wxbuild && make WXSTATIC=1 NOGUI=1 clean && make WXSTATIC=1 NOGUI=1
+
+# Uncomment below and comment line above to reuse existing wxWidgets build
+# make WXSTATIC=1 NOGUI=1 clean && make WXSTATIC=1 NOGUI=1

@@ -1,12 +1,14 @@
 /*
  Legal Notice: Some portions of the source code contained in this file were
- derived from the source code of Encryption for the Masses 2.02a, which is
- Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
- Agreement for Encryption for the Masses'. Modifications and additions to
- the original source code (contained in this file) and all other portions
- of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
- and are governed by the TrueCrypt License 3.0 the full text of which is
- contained in the file License.txt included in TrueCrypt binary and source
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
 
 #include "Tcdefs.h"
@@ -21,6 +23,10 @@
 #include "Dlgcode.h"
 #include "Language.h"
 #include <Strsafe.h>
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 /* Except in response to the WM_INITDIALOG message, the dialog box procedure
    should return nonzero if it processes the message, and zero if it does
@@ -45,7 +51,17 @@ BOOL CALLBACK CommandHelpDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
 
 		*tmp = 0;
 
-		StringCbCopyA (tmp, 8192, "Command line options:\n\n");
+		StringCbCopyA (tmp, 8192, "VeraCrypt " VERSION_STRING);
+#ifdef _WIN64
+		StringCbCatA (tmp, 8192, "  (64-bit)");
+#else
+		StringCbCatA (tmp, 8192, "  (32-bit)");
+#endif
+#if (defined(_DEBUG) || defined(DEBUG))
+		StringCbCatA (tmp, 8192, "  (debug)");
+#endif
+
+		StringCbCatA (tmp, 8192, "\n\nCommand line options:\n\n");
 		for (i = 0; i < as->arg_cnt; i ++)
 		{
 			if (!as->args[i].Internal)
@@ -54,6 +70,8 @@ BOOL CALLBACK CommandHelpDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM 
 				StringCchCat(tmp, 8192, tmp2);
 			}
 		}
+
+		StringCbCatA (tmp, 8192, "\nExamples:\n\nMount a volume as X:\tveracrypt.exe /q /v volume.hc /l X\nDismount a volume X:\tveracrypt.exe /q /d X");
 
 		SetWindowText (GetDlgItem (hwndDlg, IDC_COMMANDHELP_TEXT), (char*) tmp);
 		
@@ -80,7 +98,7 @@ int Win32CommandLine (char *lpszCommandLine, char ***lpszArgs)
 	LPWSTR *arguments = CommandLineToArgvW (GetCommandLineW(), &argumentCount);
 	if (!arguments)
 	{
-		handleWin32Error (NULL);
+		handleWin32Error (NULL, SRC_POS);
 		return 0;
 	}
 
@@ -105,10 +123,10 @@ int Win32CommandLine (char *lpszCommandLine, char ***lpszArgs)
 
 		if (argLen > 0)
 		{
-			int len = WideCharToMultiByte (CP_ACP, 0, arguments[i + 1], -1, arg, argLen + 1, NULL, NULL);
+			int len = WideCharToMultiByte (CP_ACP, 0, arguments[i + 1], -1, arg, (int) argLen + 1, NULL, NULL);
 			if (len == 0)
 			{
-				handleWin32Error (NULL);
+				handleWin32Error (NULL, SRC_POS);
 				AbortProcessSilent();
 			}
 		}
@@ -130,81 +148,26 @@ int GetArgSepPosOffset (char *lpszArgument)
 	return 0;
 }
 
-int GetArgumentID (argumentspec *as, char *lpszArgument, int *nArgPos)
+int GetArgumentID (argumentspec *as, char *lpszArgument)
 {
-	char szTmp[MAX_PATH * 2];
 	int i;
-
-	i = strlen (lpszArgument);
-	szTmp[i] = 0;
-	while (--i >= 0)
-	{
-		szTmp[i] = (char) tolower (lpszArgument[i]);
-	}
 
 	for (i = 0; i < as->arg_cnt; i++)
 	{
-		size_t k;
-
-		k = strlen (as->args[i].long_name);
-		if (memcmp (as->args[i].long_name, szTmp, k * sizeof (char)) == 0)
+		if (_stricmp (as->args[i].long_name, lpszArgument) == 0)
 		{
-			int x;
-			for (x = i + 1; x < as->arg_cnt; x++)
-			{
-				size_t m;
-
-				m = strlen (as->args[x].long_name);
-				if (memcmp (as->args[x].long_name, szTmp, m * sizeof (char)) == 0)
-				{
-					break;
-				}
-			}
-
-			if (x == as->arg_cnt)
-			{
-				if (strlen (lpszArgument) != k)
-					*nArgPos = k;
-				else
-					*nArgPos = 0;
-				return as->args[i].Id;
-			}
+			return as->args[i].Id;
 		}
 	}
 
 	for (i = 0; i < as->arg_cnt; i++)
 	{
-		size_t k;
-
 		if (as->args[i].short_name[0] == 0)
 			continue;
 
-		k = strlen (as->args[i].short_name);
-		if (memcmp (as->args[i].short_name, szTmp, k * sizeof (char)) == 0)
+		if (_stricmp (as->args[i].short_name, lpszArgument) == 0)
 		{
-			int x;
-			for (x = i + 1; x < as->arg_cnt; x++)
-			{
-				size_t m;
-
-				if (as->args[x].short_name[0] == 0)
-					continue;
-
-				m = strlen (as->args[x].short_name);
-				if (memcmp (as->args[x].short_name, szTmp, m * sizeof (char)) == 0)
-				{
-					break;
-				}
-			}
-
-			if (x == as->arg_cnt)
-			{
-				if (strlen (lpszArgument) != k)
-					*nArgPos = k;
-				else
-					*nArgPos = 0;
-				return as->args[i].Id;
-			}
+			return as->args[i].Id;
 		}
 	}
 
@@ -212,27 +175,19 @@ int GetArgumentID (argumentspec *as, char *lpszArgument, int *nArgPos)
 	return -1;
 }
 
-int GetArgumentValue (char **lpszCommandLineArgs, int nArgPos, int *nArgIdx,
+int GetArgumentValue (char **lpszCommandLineArgs, int *nArgIdx,
 		  int nNoCommandLineArgs, char *lpszValue, int nValueSize)
 {
 	*lpszValue = 0;
 
-	if (nArgPos)
-	{
-		/* Handles the case of no space between parameter code and
-		   value */
-		StringCbCopyA (lpszValue, nValueSize, &lpszCommandLineArgs[*nArgIdx][nArgPos]);
-		lpszValue[nValueSize - 1] = 0;
-		return HAS_ARGUMENT;
-	}
-	else if (*nArgIdx + 1 < nNoCommandLineArgs)
+	if (*nArgIdx + 1 < nNoCommandLineArgs)
 	{
 		int x = GetArgSepPosOffset (lpszCommandLineArgs[*nArgIdx + 1]);
 		if (x == 0)
 		{
 			/* Handles the case of space between parameter code
 			   and value */
-			StringCbCopyA (lpszValue, nValueSize, &lpszCommandLineArgs[*nArgIdx + 1][x]);
+			StringCbCopyA (lpszValue, nValueSize, lpszCommandLineArgs[*nArgIdx + 1]);
 			lpszValue[nValueSize - 1] = 0;
 			(*nArgIdx)++;
 			return HAS_ARGUMENT;

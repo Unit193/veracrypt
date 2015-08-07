@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2005 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include <windows.h>
@@ -14,6 +18,10 @@
 #include "Resource.h"
 
 #include <Strsafe.h>
+
+#ifndef SRC_POS
+#define SRC_POS (__FUNCTION__ ":" TC_TO_STRING(__LINE__))
+#endif
 
 #define MAX_KEY_COMB_NAME_LEN	260
 
@@ -422,13 +430,13 @@ BOOL CALLBACK HotkeysDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
 				if (!bOwnActiveShortcut
 					&& !RegisterHotKey (hwndDlg, nSelectedHotkeyId, modifiers, currentVKeyCode))
 				{
-					handleWin32Error(hwndDlg);
+					handleWin32Error(hwndDlg, SRC_POS);
 					return 1;
 				}
 				else
 				{
 					if (!bOwnActiveShortcut && !UnregisterHotKey (hwndDlg, nSelectedHotkeyId))
-						handleWin32Error(hwndDlg);
+						handleWin32Error(hwndDlg, SRC_POS);
 
 					tmpHotkeys[nSelectedHotkeyId].vKeyCode = currentVKeyCode;
 					tmpHotkeys[nSelectedHotkeyId].vKeyModifiers = modifiers;

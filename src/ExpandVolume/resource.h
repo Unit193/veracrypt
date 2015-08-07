@@ -63,9 +63,12 @@
 #define IDC_SIZEDLG_TITLE               1111
 #define IDC_INIT_NEWSPACE               1112
 #define IDC_INFOEXPAND                  1113
-#define IDC_EDIT1                       1114
 #define IDC_BOX_STATUS                  1114
 #define IDC_TRUECRYPT_MODE              1140
+#define IDC_PREF_TEMP_CACHE_ON_MULTIPLE_MOUNT 1141
+#define IDT_OLD_PIM                     1142
+#define IDC_OLD_PIM                     1143
+#define IDC_OLD_PIM_HELP                1144
 #define IDM_HELP                        40001
 #define IDM_ABOUT                       40002
 #define IDM_UNMOUNT_VOLUME              40003
@@ -137,7 +140,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40064
-#define _APS_NEXT_CONTROL_VALUE         1116
+#define _APS_NEXT_CONTROL_VALUE         1145
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

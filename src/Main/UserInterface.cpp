@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008-2010 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #include "System.h"
@@ -898,6 +902,7 @@ namespace VeraCrypt
 				cmdLine.ArgMountOptions.Path = cmdLine.ArgVolumePath;
 				cmdLine.ArgMountOptions.MountPoint = cmdLine.ArgMountPoint;
 				cmdLine.ArgMountOptions.Password = cmdLine.ArgPassword;
+				cmdLine.ArgMountOptions.Pim = cmdLine.ArgPim;
 				cmdLine.ArgMountOptions.Keyfiles = cmdLine.ArgKeyfiles;
 				cmdLine.ArgMountOptions.SharedAccessAllowed = cmdLine.ArgForce;
 				cmdLine.ArgMountOptions.TrueCryptMode = cmdLine.ArgTrueCryptMode;
@@ -988,7 +993,7 @@ namespace VeraCrypt
 			return true;
 
 		case CommandId::ChangePassword:
-			ChangePassword (cmdLine.ArgVolumePath, cmdLine.ArgPassword, cmdLine.ArgCurrentHash, cmdLine.ArgTrueCryptMode, cmdLine.ArgKeyfiles, cmdLine.ArgNewPassword, cmdLine.ArgNewKeyfiles, cmdLine.ArgHash);
+			ChangePassword (cmdLine.ArgVolumePath, cmdLine.ArgPassword, cmdLine.ArgPim, cmdLine.ArgHash, cmdLine.ArgTrueCryptMode, cmdLine.ArgKeyfiles, cmdLine.ArgNewPassword, cmdLine.ArgNewPim, cmdLine.ArgNewKeyfiles, cmdLine.ArgNewHash);
 			return true;
 
 		case CommandId::CreateKeyfile:
@@ -1009,6 +1014,7 @@ namespace VeraCrypt
 				options->Filesystem = cmdLine.ArgFilesystem;
 				options->Keyfiles = cmdLine.ArgKeyfiles;
 				options->Password = cmdLine.ArgPassword;
+				options->Pim = cmdLine.ArgPim;
 				options->Quick = cmdLine.ArgQuick;
 				options->Size = cmdLine.ArgSize;
 				options->Type = cmdLine.ArgVolumeType;

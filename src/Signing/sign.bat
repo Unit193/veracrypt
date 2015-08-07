@@ -7,6 +7,10 @@ signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.ve
 signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCrypt Format.exe"
 signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCryptExpander.exe"
 
+signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCrypt-x64.exe"
+signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCrypt Format-x64.exe"
+signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCryptExpander-x64.exe"
+
 cd "..\Release\Setup Files\"
 
 copy /V /Y ..\..\..\Translations\*.xml .
@@ -17,6 +21,6 @@ del *.xml
 
 cd "..\..\Signing"
 
-signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCrypt Setup 1.0f-2.exe"
+signtool sign /v /a /n IDRIX /ac Thawt_CodeSigning_CA.crt /t http://timestamp.verisign.com/scripts/timestamp.dll "..\Release\Setup Files\VeraCrypt Setup 1.12.exe"
 
 pause

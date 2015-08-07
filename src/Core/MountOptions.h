@@ -1,9 +1,13 @@
 /*
- Copyright (c) 2008 TrueCrypt Developers Association. All rights reserved.
+ Derived from source code of TrueCrypt 7.1a, which is
+ Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+ by the TrueCrypt License 3.0.
 
- Governed by the TrueCrypt License 3.0 the full text of which is contained in
- the file License.txt included in TrueCrypt binary and source code distribution
- packages.
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages.
 */
 
 #ifndef TC_HEADER_Core_MountOptions
@@ -25,9 +29,11 @@ namespace VeraCrypt
 			NoFilesystem (false),
 			NoHardwareCrypto (false),
 			NoKernelCrypto (false),
+			Pim (-1),
 			PartitionInSystemEncryptionScope (false),
 			PreserveTimestamps (true),
 			Protection (VolumeProtection::None),
+			ProtectionPim (-1),
 			Removable (false),
 			SharedAccessAllowed (false),
 			SlotNumber (0),
@@ -52,12 +58,14 @@ namespace VeraCrypt
 		bool NoHardwareCrypto;
 		bool NoKernelCrypto;
 		shared_ptr <VolumePassword> Password;
+		int Pim;
 		shared_ptr <Pkcs5Kdf> Kdf;
 		bool PartitionInSystemEncryptionScope;
 		shared_ptr <VolumePath> Path;
 		bool PreserveTimestamps;
 		VolumeProtection::Enum Protection;
 		shared_ptr <VolumePassword> ProtectionPassword;
+		int ProtectionPim;
 		shared_ptr <Pkcs5Kdf> ProtectionKdf;
 		shared_ptr <KeyfileList> ProtectionKeyfiles;
 		bool Removable;

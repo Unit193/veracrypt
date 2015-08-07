@@ -1,36 +1,18 @@
 /*
+ Legal Notice: Some portions of the source code contained in this file were
+ derived from the source code of TrueCrypt 7.1a, which is 
+ Copyright (c) 2003-2012 TrueCrypt Developers Association and which is 
+ governed by the TrueCrypt License 3.0, also from the source code of
+ Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
+ and which is governed by the 'License Agreement for Encryption for the Masses' 
+ and also from the source code of extcv, which is Copyright (c) 2009-2010 Kih-Oskh
+ or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
-Some portions of the source code contained in this file were derived from the
-source code of TrueCrypt 7.0a, which is governed by the TrueCrypt License 3.0
-that can be found in the file 'License.txt' in the folder 'TrueCrypt-License'.
-
-Modifications and additions to the original source code (contained in this file)
-and all other portions of this file are Copyright (c) 2009-2010 by Kih-Oskh or
-Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
-
-TrueCrypt source files used to derive some portions of the source code in this
-file are:
-
-    - 'Mount\Mount.c'
-    - 'Common\Format.c'
-	- 'Common\Password.c'
-    - 'Format\Tcformat.c'
-
--------------------------------------------------------------------------------
-
-Original legal notice of the TrueCrypt source files:
-
-	 Legal Notice: Some portions of the source code contained in this file were
-	 derived from the source code of Encryption for the Masses 2.02a, which is
-	 Copyright (c) 1998-2000 Paul Le Roux and which is governed by the 'License
-	 Agreement for Encryption for the Masses'. Modifications and additions to
-	 the original source code (contained in this file) and all other portions
-	 of this file are Copyright (c) 2003-2009 TrueCrypt Developers Association
-	 and are governed by the TrueCrypt License 3.0 the full text of which is
-	 contained in the file License.txt included in TrueCrypt binary and source
-	 code distribution packages.
-
-*/
+ Modifications and additions to the original source code (contained in this file) 
+ and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and are governed by the Apache License 2.0 the full text of which is
+ contained in the file License.txt included in VeraCrypt binary and source
+ code distribution packages. */
 
 #ifndef TC_HEADER_ExpandVolume
 #define TC_HEADER_ExpandVolume
@@ -59,6 +41,7 @@ typedef struct
 	BOOL bInitFreeSpace;
 	Password *pVolumePassword;
 	int VolumePkcs5;
+	int VolumePim;
 	HWND hwndDlg;
 } EXPAND_VOL_THREAD_PARAMS;
 
@@ -74,7 +57,7 @@ extern volatile BOOL bVolTransformThreadCancel; /* TRUE if the user cancels/paus
 uint64 GetVolumeDataAreaSize (uint64 volumeSize, BOOL legacyVolume);
 uint64 GetVolumeSizeByDataAreaSize (uint64 dataSize, BOOL legacyVolume);
 int QueryVolumeInfo (HWND hwndDlg, const char *lpszVolume, uint64 * pHostSizeFree, uint64 * pSizeLimitFS );
-int MountVolTemp (HWND hwndDlg, char *volumePath, int *driveNo, Password *password, int pkcs5);
+int MountVolTemp (HWND hwndDlg, char *volumePath, int *driveNo, Password *password, int pkcs5, int pim);
 BOOL GetFileSystemType(const char *szFileName, enum EV_FileSystem *pFS);
 BOOL GetNtfsNumberOfSectors(char *rootPath, uint64 *pNumberOfSectors, DWORD *pBytesPerSector);
 void __cdecl volTransformThreadFunction (void *hwndDlgArg);
