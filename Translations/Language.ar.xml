@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="ar" name="العربية" en-name="Arabic" version="0.1.0" translators="Ahmad Gharbeia, Khaled Hosny" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="ar" key="IDC_QUICKFORMAT">‮تهيئة سريعة</control>
     <control lang="ar" key="IDC_SHOW_PASSWORD">‮أ&amp;ظهر كلمة السر</control>
     <control lang="ar" key="IDC_SHOW_PASSWORD_SINGLE">‮أ&amp;ظهر كلمة السر</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="ar" key="IDC_SINGLE_BOOT">‮إقلاع أحادي</control>
     <control lang="ar" key="IDC_STD_VOL">‮مجلد تروكربت عادي</control>
     <control lang="ar" key="IDC_SYSENC_HIDDEN">‮م&amp;خفيّ</control>
@@ -98,6 +99,7 @@
     <control lang="ar" key="IDT_SYSENC_KEYS_GEN_INFO">‮المفاتيح و البذرة و بيانات أخرى تم توليدها جميعا بنجاح. إن أردت توليد مفاتيح جديدة فانقر 'ارجع' ثم 'اللاحق'. و إلا فانقر 'اللاحق' للمواصلة.</control>
     <control lang="ar" key="IDT_SYS_DEVICE">‮يعمّي القسم\\السواقة المنصّب فيها ويندوز. من يريد تشغيل النظام و النفاذ إلى الملفات سيكون عليه إدخال كلمة السر في كل مرة قبل إقلاع ويندوز، كما يمكن اختياريا إنشاء نظام مخفي.</control>
     <control lang="en" key="IDT_SYS_PARTITION">Select this option to encrypt the partition where the currently running Windows operating system is installed.</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="ar" key="IDT_WIPE_MODE">‮طور المحو:</control>
     <control lang="ar" key="IDCLOSE">‮أغلق</control>
     <control lang="ar" key="IDC_ALLOW_ESC_PBA_BYPASS">‮اسمح بتجاوز الاستيثاق عند الاستيثاق بضغط مفتاح Esc (هذا يفعّل مدير الإقلاع)</control>
@@ -111,6 +113,7 @@
     <control lang="ar" key="IDC_CACHE">‮خزِّن كلمات السر و الم&amp;لفات المفاتيح مؤقتا في الذاكرة</control>
     <control lang="ar" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">‮اخرج عندما لا توجد مجلدات موصولة</control>
     <control lang="ar" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">‮أ&amp;نهِ جلسة الأمارة (اخرج) بعد وصل مجلد بنجاح</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="ar" key="IDC_COPY_WIZARD">‮اشمل مُساعد تروكرِبت لإنشاء المجلدات</control>
     <control lang="ar" key="IDC_CREATE">‮أنشئ</control>
     <control lang="ar" key="IDC_CREATE_VOLUME">‮أ&amp;نشئ مجلدا</control>
@@ -254,7 +257,7 @@
     <control lang="ar" key="IDM_UNMOUNT_VOLUME">‮افصل المجلد</control>
     <control lang="ar" key="IDM_VERIFY_RESCUE_DISK">‮اختبر قرص الإنقاذ</control>
     <control lang="ar" key="IDM_VERSION_HISTORY">‮تأريخ الإصدارات</control>
-    <control lang="en" key="IDM_VOLUME_EXPANDER">توسعة المجلد</control>
+    <control lang="ar" key="IDM_VOLUME_EXPANDER">توسعة المجلد</control>
     <control lang="ar" key="IDM_VOLUME_PROPERTIES">‮خصائص المجلد</control>
     <control lang="ar" key="IDM_VOLUME_WIZARD">‮مرشد إنشاء المجلدات</control>
     <control lang="ar" key="IDM_WEBSITE">‮موقع تروكرِبت على الوب</control>
@@ -271,6 +274,8 @@
     <control lang="ar" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">‮اعرض هذه الرسالة في شاشة استيثاق ما قبل الإقلاع (بحد أقصى 24 حرفا):</control>
     <control lang="ar" key="IDT_DEFAULT_MOUNT_OPTIONS">‮خيارات الوصل المبدئية</control>
     <control lang="ar" key="IDT_DISMOUNT_ACTION">‮خيارات أزرار الاختصار</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="en" key="IDT_FAVORITE_LABEL">Label of selected favorite volume:</control>
     <control lang="ar" key="IDT_FILE_SETTINGS">‮تضبيطات الملف</control>
     <control lang="ar" key="IDT_HOTKEY_KEY">‮الزر المخصص:</control>
@@ -537,6 +542,15 @@
     <string lang="ar" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">‮ملاحظة: إن أردت نقل ملفات بأمان من نظام التشغيل التمويهي إلى النظام المخفي فاتبع هذه الخطوات: ‮1) أقلع النظام التمويه. ‮2) احفظ المفات في مجلد غير معمى أو مجلد تروكربت خارجي\\عادي. ‮3) أقلع النظام المخفي. ‮4) إن كنت حفظت الملفات في مجلد تروكربت فأوصله (و سيوصل للقراءة فقط). ‮5) انسخ الملفات إلى قسم النظام المخفي أو إلى مجلد مخفي غيره.</string>
     <string lang="ar" key="CONFIRM_RESTART">‮تنبغي إعادة بدء حاسوبك. ‮ ‮أتود فعل ذلك الآن؟</string>
     <string lang="ar" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">‮طرأ عطل أثناء جلب حالة تعمية النظام.</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="ar" key="INIT_SYS_ENC">‮تعذّر استبداء مكونات التطبيق لتعمية النظام.</string>
     <string lang="ar" key="INIT_RAND">‮فشل استبداء مُولِّد الأرقام العشوائيّة!</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -647,6 +661,7 @@
     <string lang="ar" key="SELECT_KEYFILE">‮اختر الملف المفتاح</string>
     <string lang="ar" key="SELECT_KEYFILE_PATH">‮اختر مسار البحث عن الملفات المفتاح. تنبيه: لاحظ المسار و حسب هو ما سيُحفظ و ليس أسماء الملفات.</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="ar" key="SERPENT_HELP">‮صممها رُس أندرسُن و إلي بيهام و لارس نودسٍن، و نشرت في ‪1998‬. مفتاح بطول ‪256‬ بتة؛ كتلة ‪128‬ بتة؛ تعمل في طور ‪XTS‬. كان ‪Serpent‬ أحد الواصلين لنهائيات ‪AES‬.</string>
     <string lang="en" key="SIZE_HELP">Please specify the size of the container you want to create.\n\nIf you create a dynamic (sparse-file) container, this parameter will specify its maximum possible size.\n\nNote that the minimum possible size of a FAT volume is 292 KB. The minimum possible size of an NTFS volume is 3792 KB.</string>
     <string lang="en" key="SIZE_HELP_HIDDEN_HOST_VOL">Please specify the size of the outer volume to be created (you will first create the outer volume and then a hidden volume within it). The minimum possible size of a volume within which a hidden volume is intended to be created is 340 KB.</string>
@@ -1033,7 +1048,6 @@
     <string lang="ar" key="INCONSISTENCY_RESOLVED">‮تم حل عدم الاتساق. ‮ ‮ ‮(إن أبلغت عن علة بهذا الشأن فرجاءً ضمِّن البيانات التقنية التالية في البلاغ: ‪%hs‬)</string>
     <string lang="ar" key="UNEXPECTED_STATE">‮عطل: حالة غير متوقعة. ‮ ‮ ‮(إن أبلغت عن علة ذات علاقة بهذا فرجاء ضمِّن التقرير البيانات التقنية التالية: ‮‪%hs‬)</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="ar" key="NOTHING_TO_RESUME">‮لا توجد صيرورة/مهمة لمعاودتها.</string>
     <string lang="ar" key="HIDVOL_PROT_BKG_TASK_WARNING">‮تحذير: عُطِّلت مهمة تروكرِبت الخلفية. بعد أن تغلق تروكرِبت لن تُبلغ إن أحيل دون تلف في مجلد مخفي ‮ ‮ملاحظة: يمكنك إغلاق المهمة الخلفية في أي وقت بالنقر باليمين على أيقونة تروكرِبت في اللوحة و اختيار 'اخرج'. ‮ ‮أأفعِّل مهمة تروكرِبت الخلفية؟</string>
     <string lang="ar" key="LANG_PACK_VERSION">‮إصدارة حزمة اللغة:	‪%s‬</string>
     <string lang="ar" key="CHECKING_FS">‮يجري فحص نظام الملفات في مجلد تروكرِبت الموصول معرفا بالحرف ‪%hs‬…</string>
@@ -1086,14 +1100,13 @@
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
     <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="ar" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">‮لا يمكن حاليا استخدام الملفات المفاتيح عند تعمية النظام.</string>
     <string lang="ar" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">تنبيه: تعذَّر على تروكربت استعادة النسق الأصلي للوحة المفاتيح مما قد يؤدي إلى أن تُدخلَ كلمة السر على نحو غير صحيح.</string>
     <string lang="ar" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">‮عطل: تعذّر ضبط هيئة لوحة المفاتيح لتروكربت إلى التوزيع القياسي للولايات المتحدة. ‮ ‮لاحظ أن كلمة السر يجب أن تدخل في بيئة ما قبل الإقلاع (قبل أن يبدأ ويندوز) حيث لا يتاح سوى لوحات مفاتيح ويندوز الولايات المتحدة. لذا يجب أن تدخل كلمة السر دوما باستخدام هيئة لوحة مفاتيح الولايات المتحدة القياسية.</string>
     <string lang="ar" key="ALT_KEY_CHARS_NOT_FOR_SYS_ENCRYPTION">‮حيث أن تروكربت قد غير هيئة لوحة المفاتيح إلى الهيئة القياسية في الولايات المتحدة فليس ممكنا إدخل محارف بطريق ضغط الأزرار مع زر ‪Alt‬. مع هذا يمكنك إدخال معظم تلك المحارف بطريق ضغط المفتاح المناسب مع مفتاح ‪Shift‬.</string>
     <string lang="ar" key="KEYB_LAYOUT_CHANGE_PREVENTED">‮حال تروكربت دون تغيير هيئة لوجة المفاتيح.</string>
     <string lang="ar" key="KEYB_LAYOUT_SYS_ENC_EXPLANATION">‮ملاحظة: ستحتاج إلى أن تدخل كلمة السر في بيئة ما قبل الإقلاع (قبل أن يبدأ ويندوز) حيث لا يتاح سوى لوحات مفاتيح ويندوز الولايات المتحدة. لذا يجب أن تدخل كلمة السر دوما باستخدام هيئة لوحة مفاتيح الولايات المتحدة القياسية. لكن لاحظ أنك لا تحتاج إلى لوحة مفاتيح حقيقية على هيئة الولايات المتحدة إذا أن تروكربت يتحقق من أن كلمة السر يمكن إدخالها كما ينبغي (الآن و في بيئة قبل الإقلاع) حتى لو لم تكن لديك لوحة مفاتيح حقيقية على هيئة الولايات المتحدة.</string>
-    <string lang="en" key="RESCUE_DISK_INFO">Before you can encrypt the partition/drive, you must create a VeraCrypt Rescue Disk (TRD), which serves the following purposes:\n\n- If the VeraCrypt Boot Loader, master key, or other critical data gets damaged, the TRD allows you to restore it (note, however, that you will still have to enter the correct password then).\n\n- If Windows gets damaged and cannot start, the TRD allows you to permanently decrypt the partition/drive before Windows starts.\n\n- The TRD will contain a backup of the present content of the first drive track (which typically contains a system loader or boot manager) and will allow you to restore it if necessary.\n\nThe VeraCrypt Rescue Disk ISO image will be created in the location specified below.</string>
+    <string lang="en" key="RESCUE_DISK_INFO">Before you can encrypt the partition/drive, you must create a VeraCrypt Rescue Disk (VRD), which serves the following purposes:\n\n- If the VeraCrypt Boot Loader, master key, or other critical data gets damaged, the VRD allows you to restore it (note, however, that you will still have to enter the correct password then).\n\n- If Windows gets damaged and cannot start, the VRD allows you to permanently decrypt the partition/drive before Windows starts.\n\n- The VRD will contain a backup of the present content of the first drive track (which typically contains a system loader or boot manager) and will allow you to restore it if necessary.\n\nThe VeraCrypt Rescue Disk ISO image will be created in the location specified below.</string>
     <string lang="en" key="RESCUE_DISK_WIN_ISOBURN_PRELAUNCH_NOTE">After you click OK, Microsoft Windows Disc Image Burner will be launched. Please use it to burn the VeraCrypt Rescue Disk ISO image to a CD or DVD.\n\nAfter you do so, return to the VeraCrypt Volume Creation Wizard and follow its instructions.</string>
     <string lang="en" key="RESCUE_DISK_BURN_INFO">The Rescue Disk image has been created and stored in this file:\n%hs\n\nNow you need to burn it to a CD or DVD.\n\n%lsAfter you burn the Rescue Disk, click Next to verify that it has been correctly burned.</string>
     <string lang="en" key="RESCUE_DISK_BURN_INFO_NO_CHECK">The Rescue Disk image has been created and stored in this file:\n%hs\n\nNow you should either burn the image to a CD/DVD or move it to a safe location for later use.\n\n%lsClick Next to continue.</string>
@@ -1290,6 +1303,7 @@
     <string lang="en" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">WARNING: This setting may degrade performance.\n\nAre you sure you want to use this setting?</string>
     <string lang="en" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">Warning: VeraCrypt volume auto-dismounted</string>
     <string lang="en" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">Before you physically remove or turn off a device containing a mounted volume, you should always dismount the volume in VeraCrypt first.\n\nUnexpected spontaneous dismount is usually caused by an intermittently failing cable, drive (enclosure), etc.</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="ar" key="TEST">‮اختبر</string>
     <string lang="ar" key="KEYFILE">‮ملف مفتاح</string>
     <string lang="ar" key="VKEY_08">Backspace</string>

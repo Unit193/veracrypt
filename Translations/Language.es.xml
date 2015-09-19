@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="es" name="Español" en-name="Spanish" version="1.0.0" translators="Juan Antonio Auñón Ochando" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="es" key="IDC_QUICKFORMAT">Formato Rápido</control>
     <control lang="es" key="IDC_SHOW_PASSWORD">&amp;Mostrar contraseña </control>
     <control lang="es" key="IDC_SHOW_PASSWORD_SINGLE">&amp;Mostrar contraseña</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="es" key="IDC_SINGLE_BOOT">Arranque simple</control>
     <control lang="es" key="IDC_STD_VOL">Volumen VeraCrypt común</control>
     <control lang="es" key="IDC_SYSENC_HIDDEN">&amp;Oculto</control>
@@ -98,6 +99,7 @@
     <control lang="es" key="IDT_SYSENC_KEYS_GEN_INFO">Las claves, sal y otros datos han sido generados con éxito. Si quiere generar nuevas claves, presione Volver y luego Siguiente. Si no, presione Siguiente para continuar.</control>
     <control lang="es" key="IDT_SYS_DEVICE">Cifra la partición/unidad donde Windows está instalado. Cualquiera que quiera acceder al sistema, leer y escribir archivos, etc. tendrá que introducir la contraseña antes de arrancar Windows. Opcionalmente, crea un sistema oculto.</control>
     <control lang="es" key="IDT_SYS_PARTITION">Seleccione esta opción para cifrar la partición donde está instalado el sistema operativo Windows que hay ahora mismo en ejecución.</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="es" key="IDT_WIPE_MODE">Modo de borrado seguro:</control>
     <control lang="es" key="IDCLOSE">Cerrar</control>
     <control lang="es" key="IDC_ALLOW_ESC_PBA_BYPASS">Permitir esquivar &amp;autenticación de pre-arranque pulsando Esc (habilita el administrador de arranque)</control>
@@ -111,6 +113,7 @@
     <control lang="es" key="IDC_CACHE">Guardar contras&amp;eñas y archivos en caché</control>
     <control lang="es" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">Salir cuando no haya volúmenes montados</control>
     <control lang="es" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">&amp;Cerrar sesión de token (log out) después de montar un volumen con éxito</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="es" key="IDC_COPY_WIZARD">Incluir el Asistente de Creación de Volúmenes VeraCrypt</control>
     <control lang="es" key="IDC_CREATE">Crear</control>
     <control lang="es" key="IDC_CREATE_VOLUME">&amp;Crear Volumen</control>
@@ -271,6 +274,8 @@
     <control lang="es" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">Mostrar este mensaje personalizado en la pantalla de pre-arranque (24 caracteres max.):</control>
     <control lang="es" key="IDT_DEFAULT_MOUNT_OPTIONS">Opciones de Montaje Predeterminadas</control>
     <control lang="es" key="IDT_DISMOUNT_ACTION">Opciones de Atajos de Teclado</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="es" key="IDT_FAVORITE_LABEL">Etiqueta del volumen favorito seleccionado:</control>
     <control lang="es" key="IDT_FILE_SETTINGS">Opciones del Archivo</control>
     <control lang="es" key="IDT_HOTKEY_KEY">Tecla a asignar:</control>
@@ -537,6 +542,15 @@
     <string lang="es" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">Nota: Si necesita transferir archivos con seguridad desde el sistema señuelo al sistema oculto, siga estos pasos:\n1) Inicie el sistema señuelo.\n2) Guarde los archivos a un volumen no cifrado o a un volumen VeraCrypt externo/normal.\n3) Inicie el sistema oculto.\n4) Si guardó los acrhivos a un volumen VeraCrypt, móntelo (será automáticamente montado como sólo lectura).\n5) Copie los archivos a la partición del sistema oculto o a otro volumen oculto.</string>
     <string lang="es" key="CONFIRM_RESTART">Su ordenador debe ser reiniciado.\n\n¿Desea reiniciarlo ahora?</string>
     <string lang="es" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">Ha ocurrido un error al obtener el estado del cifrado del sistema.</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="es" key="INIT_SYS_ENC">No se pueden inicializar componentes de la aplicación para el cifrado del sistema.</string>
     <string lang="es" key="INIT_RAND">¡Fallo al inicializar el generador de números aleatorios!</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -647,6 +661,7 @@
     <string lang="es" key="SELECT_KEYFILE">Seleccione Archivo-llave</string>
     <string lang="es" key="SELECT_KEYFILE_PATH">Seleccione ruta de búsqueda de archivos-llave. AVISO: ¡Sólo se recordará la ruta, no el nombre de los archivos!</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="es" key="SERPENT_HELP">Diseñado por Ross Anderson, Eli Biham, y Lars Knudsen. Publicado en 1998. Clave de 256-bit, bloque de 128-bit. Modo de operación XTS. Serpent fue uno de los finalistas AES.</string>
     <string lang="es" key="SIZE_HELP">Especifique el tamaño del contenedor que desea crear.\n\nSi crea un contenedor dinámico (archivo disperso), este parámetro especificará su máximo tamaño posible.\n\nTenga en cuenta que el mínimo tamaño posible de un volumen FAT es 292 KB. De un volumen NTFS, el mínimo es 3792 KB.</string>
     <string lang="es" key="SIZE_HELP_HIDDEN_HOST_VOL">Especifique el tamaño del volumen externo (primero creará un volumen externo y luego un volumen oculto en su interior). El mínimo tamaño posible para un volumen en el que se pretenda crear un volumen oculto es 340 KB.</string>
@@ -1033,7 +1048,6 @@
     <string lang="es" key="INCONSISTENCY_RESOLVED">Inconsistencia resuelta.\n\n\n(Si reporta un error relacionado con esto, incluya en el reporte la siguiente información técnica:\n%hs)</string>
     <string lang="es" key="UNEXPECTED_STATE">Error: Estado inesperado.\n\n\n(Si reporta un error relacionado con esto, incluya en el reporte la siguiente información técnica:\n%hs)</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="es" key="NOTHING_TO_RESUME">No hay ningún proceso/tarea por retomar.</string>
     <string lang="es" key="HIDVOL_PROT_BKG_TASK_WARNING">AVISO: VeraCrypt en Segundo Plano está deshabilitado. Tras cerrar VeraCrypt, no será notificado si se impiden daños en el volumen oculto.\n\nNota: Puede cerrar el Segundo Plano en cualquier momento haciendo click derecho en el icono de VeraCrypt en el área de notificación y seleccionando 'Salir'.\n\n¿Habilitar VeraCrypt en Segundo Plano?</string>
     <string lang="es" key="LANG_PACK_VERSION">Versión del paquete: %s</string>
     <string lang="es" key="CHECKING_FS">Comprobando el sistema de archivos del volumen VeraCrypt montado como %hs...</string>
@@ -1085,8 +1099,7 @@
     <string lang="en" key="ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">This algorithm is not supported for TrueCrypt mode.</string>
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
-    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
+    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>    
     <string lang="es" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">Los archivos-llave no están soportados actualmente para el cifrado del sistema.</string>
     <string lang="es" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">Aviso: VeraCrypt no pudo restaurar la disposición de teclado original. Esto puede hacer que ud. introduzca incorrectamente la contraseña.</string>
     <string lang="es" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">Error: No se puede establecer la disposición del teclado para VeraCrypt al estándar de EEUU.\n\nRecuerde que la contraseña necesita ser escrita en el entorno de pre-arranque (antes de que Windows se inicie) donde no están disponibles disposiciones de teclado distintas a la de EEUU. Por tanto, la contraseña debe ser escrita siempre usando la disposición de teclado EEUU estándar.</string>
@@ -1290,6 +1303,7 @@
     <string lang="es" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">AVISO: Esta configuración puede perjudicar el rendimiento.\n\n¿Seguro que desea aplicarla?</string>
     <string lang="es" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">Aviso: volumen VeraCrypt auto-desmontado</string>
     <string lang="es" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">Antes de eliminar o desactivar un dispositivo que contenga un volumen montado, debería desmontar el volumen en VeraCrypt primero.\n\nLos desmontajes espontáneos inesperados a menudo son causados por cables que fallan intermitentemente, carcasas defectuosas, etc.</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="es" key="TEST">Probar</string>
     <string lang="es" key="KEYFILE">Archivo-llave</string>
     <string lang="es" key="VKEY_08">Retroceso</string>

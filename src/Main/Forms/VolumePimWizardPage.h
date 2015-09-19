@@ -32,10 +32,12 @@ namespace VeraCrypt
 		bool IsValid ();
 		void SetMaxStaticTextWidth (int width) { InfoStaticText->Wrap (width); }
 		void SetPageText (const wxString &text) { InfoStaticText->SetLabel (text); }
+		void OnDisplayPimCheckBoxClick( wxCommandEvent& event );
 		
 	protected:
+		void SetPimValidator ();
 		void OnPimChanged  (wxCommandEvent& event);
-		void OnPimChanged  (int pim);
+		void OnPimValueChanged  (int pim);
 	};
 }
 

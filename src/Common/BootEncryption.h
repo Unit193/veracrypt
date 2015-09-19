@@ -174,7 +174,7 @@ namespace VeraCrypt
 		void InstallBootLoader (bool preserveUserConfig = false, bool hiddenOSCreation = false);
 		bool CheckBootloaderFingerprint (bool bSilent = false);
 		void InvalidateCachedSysDriveProperties ();
-		bool IsCDDrivePresent ();
+		bool IsCDRecorderPresent ();
 		bool IsHiddenSystemRunning ();
 		bool IsPagingFileActive (BOOL checkNonWindowsPartitionsOnly);
 		void PrepareHiddenOSCreation (int ea, int mode, int pkcs5);
@@ -186,6 +186,7 @@ namespace VeraCrypt
 		void RegisterFilterDriver (bool registerDriver, FilterType filterType);
 		void RegisterSystemFavoritesService (BOOL registerService);
 		void RegisterSystemFavoritesService (BOOL registerService, BOOL noFileHandling);
+		void UpdateSystemFavoritesService ();
 		void RenameDeprecatedSystemLoaderBackup ();
 		bool RestartComputer (void);
 		void InitialSecurityChecksForHiddenOS ();
@@ -202,6 +203,7 @@ namespace VeraCrypt
 		bool SystemPartitionCoversWholeDrive ();
 		bool SystemDriveIsDynamic ();
 		bool VerifyRescueDisk ();
+		bool VerifyRescueDiskIsoImage (const char* imageFile);
 		void WipeHiddenOSCreationConfig ();
 		void WriteBootDriveSector (uint64 offset, byte *data);
 		void WriteBootSectorConfig (const byte newConfig[]);

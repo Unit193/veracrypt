@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="ko" name="한국어" en-name="Korean" version="0.1.0" translators="Kim Young" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="ko" key="IDC_QUICKFORMAT">빠른 포맷</control>
     <control lang="ko" key="IDC_SHOW_PASSWORD">비밀번호 표시(&amp;D)</control>
     <control lang="ko" key="IDC_SHOW_PASSWORD_SINGLE">비밀번호 표시(&amp;D)</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="ko" key="IDC_SINGLE_BOOT">싱글-부트</control>
     <control lang="ko" key="IDC_STD_VOL">표준 VeraCrypt 볼륨</control>
     <control lang="ko" key="IDC_SYSENC_HIDDEN">숨김(&amp;D)</control>
@@ -98,6 +99,7 @@
     <control lang="ko" key="IDT_SYSENC_KEYS_GEN_INFO">키, 소금(→ 패스워드 보호에서 패스워드 해시를 변환하는 데 사용되는 무작위 문자열) 및 기타 데이터를 성공적으로 생성했습니다. 새로운 키를 생성하려면 “뒤로”를 클릭한 후 “다음”을 누르세요. 계속하려면 “다음”을 클릭하세요.</control>
     <control lang="ko" key="IDT_SYS_DEVICE">윈도우가 설치되어 있는 파티션/드라이브를 암호화합니다. 시스템에 접근해서 사용하고, 파일을 읽고 쓰는 등의 작업을 하려는 사람은 윈도우가 부팅할 때마다 올바른 비밀번호를 입력해야 합니다. 숨긴 시스템을 선택적으로 만들 수 있습니다.</control>
     <control lang="ko" key="IDT_SYS_PARTITION">현재 실행 중인 윈도우 운영체제가 설치된 파티션을 암호화하려면 이 옵션을 선택합니다.</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="ko" key="IDT_WIPE_MODE">지움 방식:</control>
     <control lang="ko" key="IDCLOSE">닫기</control>
     <control lang="ko" key="IDC_ALLOW_ESC_PBA_BYPASS">Esc 키를 눌러 부팅-전 인증을 건너뛸 수 있습니다(* 부트 관리자 사용)(&amp;A)</control>
@@ -111,6 +113,7 @@
     <control lang="ko" key="IDC_CACHE">메모리에 비밀번호 및 키파일 보관</control>
     <control lang="ko" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">삽입된 볼륨이 없을 때 종료</control>
     <control lang="ko" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">볼륨이 성공적으로 삽입된 후 토큰 세션 닫기(* 로그 아웃)(&amp;C)</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="ko" key="IDC_COPY_WIZARD">VeraCrypt 볼륨 만들기 마법사 포함</control>
     <control lang="ko" key="IDC_CREATE">만들기</control>
     <control lang="ko" key="IDC_CREATE_VOLUME">볼륨 만들기(&amp;C)</control>
@@ -271,6 +274,8 @@
     <control lang="ko" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">부팅-전 인증 화면에 사용자 메시지 표시(* 최대 문자수는 24개):</control>
     <control lang="ko" key="IDT_DEFAULT_MOUNT_OPTIONS">기본 삽입 옵션</control>
     <control lang="ko" key="IDT_DISMOUNT_ACTION">단축키 옵션</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="en" key="IDT_FAVORITE_LABEL">Label of selected favorite volume:</control>
     <control lang="ko" key="IDT_FILE_SETTINGS">파일 설정</control>
     <control lang="ko" key="IDT_HOTKEY_KEY">할당할 키:</control>
@@ -537,6 +542,15 @@
     <string lang="ko" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">참고: 미끼용 시스템에서 숨긴 시스템으로 파일을 안전하게 전송할 필요가 있는 경우에는 다음 단계를 따릅니다. 1) 미끼용 시스템을 시작합니다. 2) 암호화되지 않은 볼륨 또는 외부/표준 VeraCrypt 볼륨에 파일을 저장합니다. 3) 숨긴 시스템을 시작합니다. 4) VeraCrypt 볼륨에 파일을 저장한 경우, 이 볼륨을 삽입합니다(→ 읽기-전용으로 자동으로 삽입됩니다). 5) 파일을 ① 숨긴 시스템 파티션 또는 ② 다른 숨긴 볼륨에 복사합니다.</string>
     <string lang="ko" key="CONFIRM_RESTART">컴퓨터를 다시 시작해야 합니다.\n\n지금 다시 시작하시겠습니까?</string>
     <string lang="ko" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">시스템 암호 상태를 얻는 동안 오류가 발생했습니다.</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="ko" key="INIT_SYS_ENC">시스템 암호화를 위한 프로그램 구성요소를 초기화하지 못했습니다.</string>
     <string lang="ko" key="INIT_RAND">무작위 숫자 생성기를 초기화하는데 실패했습니다!</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -647,6 +661,7 @@
     <string lang="ko" key="SELECT_KEYFILE">키파일 선택</string>
     <string lang="ko" key="SELECT_KEYFILE_PATH">키파일 찾기 경로를 선택하세요. 주의: 경로만 기억되고, 파일 이름은 기억되지 않습니다!</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="ko" key="SERPENT_HELP">Ross Anderson, Eli Biham, 및 Lars Knudsen에 의해 디자인됨. 1998년 발표됨. 256-비트 키, 128-비트 블록. 작업 모드는 XTS입니다. Serpent는 AES 결선작 중의 하나였습니다.</string>
     <string lang="en" key="SIZE_HELP">Please specify the size of the container you want to create.\n\nIf you create a dynamic (sparse-file) container, this parameter will specify its maximum possible size.\n\nNote that the minimum possible size of a FAT volume is 292 KB. The minimum possible size of an NTFS volume is 3792 KB.</string>
     <string lang="en" key="SIZE_HELP_HIDDEN_HOST_VOL">Please specify the size of the outer volume to be created (you will first create the outer volume and then a hidden volume within it). The minimum possible size of a volume within which a hidden volume is intended to be created is 340 KB.</string>
@@ -1033,7 +1048,6 @@
     <string lang="ko" key="INCONSISTENCY_RESOLVED">불일치가 해결되었습니다.\n\n\n이와 관련된 버그를 보고하려면, 버그 보고서에 다음과 같은 기술 정보를 포함해 주세요: %hs</string>
     <string lang="ko" key="UNEXPECTED_STATE">오류: 예기치 않은 상태.\n\n\n(이와 관련된 버그를 보고하려면, 버그 보고서에 다음과 같은 기술 정보를 포함해 주세요: %hs)</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="ko" key="NOTHING_TO_RESUME">다시 시작할 진행/작업이 없습니다.</string>
     <string lang="ko" key="HIDVOL_PROT_BKG_TASK_WARNING">주의: VeraCrypt 백그라운드 작업의 사용이 해제되었습니다. 프로그램을 종료하면, 숨긴 볼륨의 손상이 방지된 경우에도 그 알림을 통보받지 못합니다.\n\n참고: 언제라도 VeraCrypt 트레이 아이콘을 오른쪽 클릭하고 “종료”를 선택해서 백그라운드 작업을 종료할 수 있습니다.\n\nVeraCrypt 백그라운드 작업을 지금 사용가능하게 할까요?</string>
     <string lang="ko" key="LANG_PACK_VERSION">언어팩 버전:  %s</string>
     <string lang="ko" key="CHECKING_FS">%hs로 삽입된 VeraCrypt 볼륨에 대한 파일 시스템을 체크하는 중...</string>
@@ -1085,15 +1099,14 @@
     <string lang="en" key="ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">This algorithm is not supported for TrueCrypt mode.</string>
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
-    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
+    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>    
     <string lang="ko" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">키파일이 현재 시스템 암호화에서 지원되지 않습니다.</string>
     <string lang="ko" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">주의: VeraCrypt가 원래의 키보드 레이아웃을 복구할 수 없습니다. 이 경우 비밀번호를 올바르게 입력할 수 없을지도 모릅니다.</string>
     <string lang="ko" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">오류: VeraCrypt 키보드 레이아웃을 표준 US 키보드 레이아웃에 설정할 수 없습니다.\n\n(윈도우 시작 전에) US가 아닌 윈도우 키보드 레이아웃을 사용할 수 없는 부팅-전 환경에서 비밀번호를 입력할 필요가 있다는 것을 참고하세요. 그래서 표준 US 키보드 레이아웃을 사용해서 항상 비밀번호를 입력해야 합니다.</string>
     <string lang="ko" key="ALT_KEY_CHARS_NOT_FOR_SYS_ENCRYPTION">VeraCrypt가 키보드 레이아웃을 표준 US 키보드 레이아웃으로 잠시 변경했기 때문에, 오른쪽 Alt 키가 눌러진 상태에서 키를 눌러 문자를 입력할 수 없습니다. 그러나 Shift 키가 눌러진 상태에서는 적당한 키를 눌러 대부분의 문자를 입력할 수 있습니다.</string>
     <string lang="ko" key="KEYB_LAYOUT_CHANGE_PREVENTED">VeraCrypt가 키보드 레이아웃의 변경을 방지했습니다.</string>
     <string lang="ko" key="KEYB_LAYOUT_SYS_ENC_EXPLANATION">참고: (윈도우 시작 전에) US가 아닌 윈도우 키보드 레이아웃을 사용할 수 없는 부팅-전 환경에서 비밀번호를 입력할 필요가 있다는 것을 참고하세요. 그래서 표준 US 키보드 레이아웃을 사용해서 항상 비밀번호를 입력해야 합니다. 그러나 실제 US 키보드가 필요하지 않다는 사실을 명심하세요. 실제 US 키보드가 없는 경우일지라도, VeraCrypt는 (현재 및 부팅-전 환경에서) 사용자가 안전하게 비밀번호를 입력했는지를 자동으로 확인합니다.</string>
-    <string lang="ko" key="RESCUE_DISK_INFO">사용자가 파티션/드라이브를 암호화하기 전에, VeraCrypt 응급복구 디스크(TRD)를 먼저 만들어야 합니다. 그 목적은 다음과 같습니다:\n\n- 만약 VeraCrypt 부트 로더, 마스터 키 또는 다른 중요한 데이터가 손상된 경우, TRD를 이용해서 복구할 수 있습니다(그러나 여전히 올바른 비밀번호를 입력해야 합니다).\n\n- 만약 윈도우가 손상되어 시작이 되지 않는다면, TRD를 이용해서 윈도우의 시작 전에 파티션/드라이브를 영구적으로 암호해제할 수 있습니다.\n\n- TRD는 첫번째 드라이브 트랙(* 보통 시스템 로더나 부트 관리자를 포함하고 있음)의 내용에 대한 백업을 포함하고 있으므로 이를 이용해서 필요한 경우 복구할 수 있습니다.\n\nVeraCrypt 응급복구 디스크 ISO 이미지는 아래의 지정된 위치에서 생성됩니다.</string>
+    <string lang="ko" key="RESCUE_DISK_INFO">사용자가 파티션/드라이브를 암호화하기 전에, VeraCrypt 응급복구 디스크(VRD)를 먼저 만들어야 합니다. 그 목적은 다음과 같습니다:\n\n- 만약 VeraCrypt 부트 로더, 마스터 키 또는 다른 중요한 데이터가 손상된 경우, VRD를 이용해서 복구할 수 있습니다(그러나 여전히 올바른 비밀번호를 입력해야 합니다).\n\n- 만약 윈도우가 손상되어 시작이 되지 않는다면, VRD를 이용해서 윈도우의 시작 전에 파티션/드라이브를 영구적으로 암호해제할 수 있습니다.\n\n- VRD는 첫번째 드라이브 트랙(* 보통 시스템 로더나 부트 관리자를 포함하고 있음)의 내용에 대한 백업을 포함하고 있으므로 이를 이용해서 필요한 경우 복구할 수 있습니다.\n\nVeraCrypt 응급복구 디스크 ISO 이미지는 아래의 지정된 위치에서 생성됩니다.</string>
     <string lang="ko" key="RESCUE_DISK_WIN_ISOBURN_PRELAUNCH_NOTE">“확인”을 클릭하면 Microsoft Windows Disc Image Burner가 실행됩니다. 이를 이용해서 VeraCrypt 응급복구 디스크 ISO 이미지를 CD 또는 DVD에 굽습니다.\n\n이 작업을 마친 후에 VeraCrypt 볼륨 만들기 마법사로 돌아가서 그 지침을 따릅니다.</string>
     <string lang="ko" key="RESCUE_DISK_BURN_INFO">응급복구 디스크 이미지가 생성되어 다음 파일에 저장되었습니다: %hs\n\n이제 이미지를 CD 또는 DVD에 구울 필요가 있습니다.\n\n%ls응급복구 디스크를 구운 후, “다음”을 클릭해서 응급복구 디스크가 올바르게 구워졌는지를 확인합니다.</string>
     <string lang="ko" key="RESCUE_DISK_BURN_INFO_NO_CHECK">응급복구 디스크 이미지가 생성되어 다음 파일에 저장되었습니다: %hs\n\n이제 응급복구 디스크를 CD/DVD에 굽거나 나중에 사용하기 위해 안전한 위치에 ISO 이미지를 이동해야 합니다.\n\n%ls계속하려면 “다음”을 클릭합니다.</string>
@@ -1290,6 +1303,7 @@
     <string lang="en" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">WARNING: This setting may degrade performance.\n\nAre you sure you want to use this setting?</string>
     <string lang="en" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">Warning: VeraCrypt volume auto-dismounted</string>
     <string lang="en" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">Before you physically remove or turn off a device containing a mounted volume, you should always dismount the volume in VeraCrypt first.\n\nUnexpected spontaneous dismount is usually caused by an intermittently failing cable, drive (enclosure), etc.</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="ko" key="TEST">테스트</string>
     <string lang="ko" key="KEYFILE">키파일</string>
     <string lang="ko" key="VKEY_08">Backspace</string>

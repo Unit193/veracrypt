@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="eu" name="Euskara" en-name="Basque" version="1.0.0" translators="Ander Genua" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="eu" key="IDC_QUICKFORMAT">Formatu Azkarra</control>
     <control lang="eu" key="IDC_SHOW_PASSWORD">&amp;Pasahitza erakutsi</control>
     <control lang="eu" key="IDC_SHOW_PASSWORD_SINGLE">&amp;Pasahitza erakutsi</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="eu" key="IDC_SINGLE_BOOT">Hasieraketa-bakarra</control>
     <control lang="eu" key="IDC_STD_VOL">VeraCrypt-en ohiko liburukia</control>
     <control lang="eu" key="IDC_SYSENC_HIDDEN">&amp;Izkutukoa</control>
@@ -98,6 +99,7 @@
     <control lang="eu" key="IDT_SYSENC_KEYS_GEN_INFO">Gakoak eta beste datuak ondo sortu dira. Gako berriak sortu nahi badituzu, Atzera eta gero Hurrengoa sakatu itzazu. Bestela Hurrengoa sakatu jarraitzeko.</control>
     <control lang="eu" key="IDT_SYS_DEVICE">Windows instalatuta dagoen partizio edo unitatea zifratzen du. Sisteman sartu eta erabili nahi duen edonork; fitxategiak irakurri, idatzi, e.a.; pasahitz zuzena sartu beharko du Windows hasieratzen den bakoitzean. Aukeran, ezkutuko sistema ere sortzen du.</control>
     <control lang="eu" key="IDT_SYS_PARTITION">Aukera hau hautatu orain martxan dagoen Windows sistema eragilea instalatuta dagoen partizioa zifratzeko.</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="eu" key="IDT_WIPE_MODE">Garbiketa modua:</control>
     <control lang="eu" key="IDCLOSE">Itxi</control>
     <control lang="eu" key="IDC_ALLOW_ESC_PBA_BYPASS">Hasieraketa aurreko kautotzea alde batera utzi Esc tekla sakatuz (hasieraketa kudeatzailea gaitzen du)</control>
@@ -111,6 +113,7 @@
     <control lang="eu" key="IDC_CACHE">Pasahitzak eta gako-fitxategiak memorian &amp;Katxeatu</control>
     <control lang="eu" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">Muntatutako bolumenik ez dagoenean irten</control>
     <control lang="eu" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">&amp;Agiri sesioa itxi (irten) bolumena ondo muntatu eta gero</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="eu" key="IDC_COPY_WIZARD">VeraCrypt-en bolumenak sortzeko laguntzailea erantsi</control>
     <control lang="eu" key="IDC_CREATE">Sortu</control>
     <control lang="eu" key="IDC_CREATE_VOLUME">&amp;Bolumena Sortu</control>
@@ -271,6 +274,8 @@
     <control lang="eu" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">Mezu hau hasieraketa aurreko kautotze pantailan erakutsi (24 karaktere gehienez):</control>
     <control lang="eu" key="IDT_DEFAULT_MOUNT_OPTIONS">Lehenetsitako muntaketa aukerak</control>
     <control lang="eu" key="IDT_DISMOUNT_ACTION">Tekla berezien aukerak</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="eu" key="IDT_FAVORITE_LABEL">Aukeratutako gogoko bolumenaren etiketa:</control>
     <control lang="eu" key="IDT_FILE_SETTINGS">Fitxategien aukerak</control>
     <control lang="eu" key="IDT_HOTKEY_KEY">Esleitzeko Gakoa:</control>
@@ -539,6 +544,15 @@
     <string lang="eu" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">Oharra: Amu sistematik ezkutuko sistemara fitxategiak sekurtasunez mugitu behar badituzu, hurrengo pausoak jarraitu itzazu:\n1) Amu sistema abiatu.\n2) Fitxategiak zifratu gabeko bolumen batera edo kanpoko/ohiko VeraCrypt bolumen batera kopiatu itzazu.\n3) Ezkutuko sistema abiatu.\n4)Fitxategiak TrueCryp bolumen batera kopiatu badituzu, muntatu ezazu (automatikoki irakurtzeko bakarrik muntatuko da).\n5) Fitxategiak ezkutuko sistemaren partiziora edo beste ezkutuko bolumen batera kopiatu itzazu.</string>
     <string lang="eu" key="CONFIRM_RESTART">Zure ordenagailua berpiztu behar da.\n\nOrain berpiztu nahi al duzu?</string>
     <string lang="eu" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">Errore bat jazo da sistemaren enkripzio egoera irakurtzen ari zenean.</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="eu" key="INIT_SYS_ENC">Ezin izan dira aplikazioaren osagaiak hasieratu sistema zifratzeko.</string>
     <string lang="eu" key="INIT_RAND">Ausazko zenbakien sortzailea hasieratzerakoan hutse egin du!</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -649,6 +663,7 @@
     <string lang="eu" key="SELECT_KEYFILE">Gako-fitxategia Aukeratu</string>
     <string lang="eu" key="SELECT_KEYFILE_PATH">Gako-fitxategiak bilatzeko helbidea aukeratu. KONTUZ: Ohartu zaitez bakarrik helbidea gogoratuko dela, ez fitxategien izenak!</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="eu" key="SERPENT_HELP">Ross Anderson, Eli Biham eta Lars Knudsen diseinatuta. 1998an argitaratuta. 256 biteko blokea. XTS eragiketa modua. Serpent AES-eko finalista bat izan zen.</string>
     <string lang="eu" key="SIZE_HELP">Mesedez, sortuko den edukiontziaren tamaina aukeratu ezazu.\n\nEdukiontzi dinamiko bat (fitxategi mehatza) sortzen ari bazara, balio honek gehienezko tamaina adieraziko du.\n\nOhartu zaitez FAT moduan formatatuta badago bolumenaren gutxienezko tamaina 292 KB dela. NTFS moduan formatatuta badago, bolumenaren gutxienezko tamaina 3792 KB da.</string>
     <string lang="eu" key="SIZE_HELP_HIDDEN_HOST_VOL">Mesedez, sortuko den kanpoko bolumenaren tamaina aukeratu ezazu (lehendabizi kanpoko bolumena sortuko duzu eta, gero, bertan ezkutuko bolumena sortuko duzu). Ezkutuko bolumen bat ostatuko duen kanpoko bolumen baten gutxienezko tamaina 340 KB da.</string>
@@ -1035,7 +1050,6 @@
     <string lang="eu" key="INCONSISTENCY_RESOLVED">Datuen hutsala konpondu da.\n\n\n(Akats honen berri ematen baduzu, mesedez hurrengo informazioa gehitu ezazu akatsaren txostenean:\n%hs)</string>
     <string lang="eu" key="UNEXPECTED_STATE">Errorea: ustekabeko egoera.\n\n\n(Akats honi buruz txosten bat bidaltzen baduzu, mesedez, hurrengo informazio teknikoa erantsi iezaiozu akatsaren txostenari:\n%hs)</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="eu" key="NOTHING_TO_RESUME">Ez dago jarraitzeko prozesu edo lanik.</string>
     <string lang="eu" key="HIDVOL_PROT_BKG_TASK_WARNING">KONTUZ: TruekCrypt-en Ezkutuko Ataza ezgaituta dago.VeraCrypt-etik atera eta gero informatuko zaizu ezkutuko bolumenaren kaltea eragotzi den.\n\nOharra: VeraCrypt-en Ezkutuko Ataza edozein momentutan gelditu dezakezu VeraCrypt erreteiluko ikonoan eskubiko klik eginez eta 'Irten' aukeratuz.\n\n VeraCrypt-en Ezkutuko Ataza gaitu?</string>
     <string lang="eu" key="LANG_PACK_VERSION">Hizkuntza paketearen bertsioa: %s</string>
     <string lang="eu" key="CHECKING_FS">%hs bezala muntatutako VeraCrypt bolumenaren fitxategi sistema egiaztatzen...</string>
@@ -1087,8 +1101,7 @@
     <string lang="en" key="ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">This algorithm is not supported for TrueCrypt mode.</string>
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
-    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
+    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>    
     <string lang="eu" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">Momentuz ezin dira gako-fitxategiak erabili sistema zifratzeko.</string>
     <string lang="eu" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">Kontuz: VeraCrypt-ek ezin izan du teklatua diseinu originaera leheneratu. Honek pasahitza gaizki sartzea ekar dezake.</string>
     <string lang="eu" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">Errorea: Ezin da VeraCrypt-entzat teklatuaren diseinua aldatu EB teklatu estandar diseinura.\n\nOhartu zaitez pasahitza hasieraketa aurreko ingurunean (Windows hasi aurretik) sartu behar dela eta bertan EB-etako teklatu diseinuak ez daudela eskuragarri. Horregatik, pasahitza beti sartu behar da EB-etako teklatu estandarraren diseinuarekin.</string>
@@ -1292,6 +1305,7 @@
     <string lang="eu" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">KONTUZ: Ezarpen honek errendimenduari kalte egin diezaioke.\n\nZiur zaude ezarpen hau erabili nahi duzula?</string>
     <string lang="eu" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">Kontuz: VeraCrypt bolumena auto-desmuntatuta</string>
     <string lang="eu" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">Bolumena daukan gailua fisikoki kendu edo itzali bahino lehen, VeraCrypt bolumena beti desmuntatu beharko zenuke.\n\nOrokorrean, ustekabeko desmuntaketak normalean noizbehinka huts egiten duten kabletan, kontrolatzaileatan, e.a. izaten daukate jatorria.</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="eu" key="TEST">Frogatu</string>
     <string lang="eu" key="KEYFILE">Gako-fitxategia</string>
     <string lang="eu" key="VKEY_08">Ezabatu</string>
