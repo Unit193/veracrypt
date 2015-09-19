@@ -1,3 +1,9 @@
+veracrypt (1.14-0vanir1) unstable; urgency=medium
+
+  * Imported Upstream version 1.14.
+
+ -- Unit 193 <unit193@ubuntu.com>  Sat, 19 Sep 2015 16:53:59 -0400
+
 veracrypt (1.12-0vanir1) unstable; urgency=medium
 
   * Imported Upstream version 1.12.
