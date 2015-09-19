@@ -326,8 +326,10 @@ void LocalizeDialog ( HWND hwnd, char *stringId );
 void OpenVolumeExplorerWindow (int driveNo);
 static BOOL CALLBACK CloseVolumeExplorerWindowsEnum( HWND hwnd, LPARAM driveNo);
 BOOL CloseVolumeExplorerWindows (HWND hwnd, int driveNo);
+BOOL UpdateDriveCustomLabel (int driveNo, wchar_t* effectiveLabel, BOOL bSetValue);
 BOOL CheckCapsLock (HWND hwnd, BOOL quiet);
 BOOL CheckFileExtension (char *fileName);
+void CorrectFileName (char* fileName);
 void IncreaseWrongPwdRetryCount (int count);
 void ResetWrongPwdRetryCount (void);
 BOOL WrongPwdRetryCountOverLimit (void);
@@ -356,6 +358,7 @@ int64 FindString (const char *buf, const char *str, int64 bufLen, int64 strLen, 
 BOOL FileExists (const char *filePathPtr);
 __int64 FindStringInFile (const char *filePath, const char *str, int strLen);
 BOOL TCCopyFile (char *sourceFileName, char *destinationFile);
+BOOL TCCopyFileW (wchar_t *sourceFileName, wchar_t *destinationFile);
 BOOL SaveBufferToFile (const char *inputBuffer, const char *destinationFile, DWORD inputLength, BOOL bAppend, BOOL bRenameIfFailed);
 BOOL TCFlushFile (FILE *f);
 BOOL PrintHardCopyTextUTF16 (wchar_t *text, char *title, size_t byteLen);
@@ -425,6 +428,8 @@ BOOL ConfigWriteString (char *configKey, char *configValue);
 BOOL ConfigWriteInt (char *configKey, int configValue);
 int ConfigReadInt (char *configKey, int defaultValue);
 char *ConfigReadString (char *configKey, char *defaultValue, char *str, int maxLen);
+void ConfigReadCompareInt(char *configKey, int defaultValue, int* pOutputValue, BOOL bOnlyCheckModified, BOOL* pbModified);
+void ConfigReadCompareString (char *configKey, char *defaultValue, char *str, int maxLen, BOOL bOnlyCheckModified, BOOL *pbModified);
 void RestoreDefaultKeyFilesParam (void);
 BOOL LoadDefaultKeyFilesParam (void);
 void Debug (char *format, ...);
@@ -488,6 +493,7 @@ BOOL LaunchWindowsIsoBurner (HWND hwnd, const char *isoPath);
 BOOL IsApplicationInstalled (const char *appName);
 int GetPim (HWND hwndDlg, UINT ctrlId);
 void SetPim (HWND hwndDlg, UINT ctrlId, int pim);
+void HandleShowPasswordFieldAction (HWND hwndDlg, UINT checkBoxId, UINT edit1Id, UINT edit2Id);
 
 #ifdef __cplusplus
 }

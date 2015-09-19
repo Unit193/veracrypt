@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="ja" name="日本語" en-name="Japanese" version="1.0.0" translators="OGOSHI Masayuki" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="ja" key="IDC_QUICKFORMAT">クイックフォーマット</control>
     <control lang="ja" key="IDC_SHOW_PASSWORD">パスワード表示(&amp;D)</control>
     <control lang="ja" key="IDC_SHOW_PASSWORD_SINGLE">パスワードを表示(&amp;D)</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="ja" key="IDC_SINGLE_BOOT">シングルブート</control>
     <control lang="ja" key="IDC_STD_VOL">VeraCrypt標準ボリューム</control>
     <control lang="ja" key="IDC_SYSENC_HIDDEN">隠し(&amp;d)</control>
@@ -98,6 +99,7 @@
     <control lang="ja" key="IDT_SYSENC_KEYS_GEN_INFO">暗号鍵、ソルト、その他のデータの生成に成功しました。新しい暗号鍵を生成したい場合は「戻る」をクリックして「次へ」をクリックしてください。それ以外は「次へ」をクリックしてください。</control>
     <control lang="ja" key="IDT_SYS_DEVICE">Windowsがインストールされているパーティションあるいはドライブを暗号化します。このシステム上のファイルを読み書きするためには、Windowsを起動するたびに正しいパスワードを入力しなければならなくなります。隠しシステムを作ることもできます。</control>
     <control lang="ja" key="IDT_SYS_PARTITION">現在起動中のWindowsがインストールされているパーティションを暗号化する場合はこのオプションを選択してください。</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="ja" key="IDT_WIPE_MODE">ワイプモード:</control>
     <control lang="ja" key="IDCLOSE">閉じる</control>
     <control lang="ja" key="IDC_ALLOW_ESC_PBA_BYPASS">Escキーによる起動前認証のスキップを許可(ブートマネージャを有効化)(&amp;a)</control>
@@ -111,6 +113,7 @@
     <control lang="ja" key="IDC_CACHE">パスワードやキーファイルをメモリに記憶する(&amp;E)</control>
     <control lang="ja" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">全てアンマウントされると常駐終了</control>
     <control lang="ja" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">ボリュームのマウントに成功したときにトークンセッションを閉じる(&amp;C)</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="ja" key="IDC_COPY_WIZARD">VeraCryptボリューム作成ウィザードを含める</control>
     <control lang="ja" key="IDC_CREATE">作成</control>
     <control lang="ja" key="IDC_CREATE_VOLUME">ボリュームの作成(&amp;C)</control>
@@ -271,6 +274,8 @@
     <control lang="ja" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">起動前認証画面で次のメッセージを表示する(最大24文字)：</control>
     <control lang="ja" key="IDT_DEFAULT_MOUNT_OPTIONS">デフォルトのマウントオプション</control>
     <control lang="ja" key="IDT_DISMOUNT_ACTION">ホットキーオプション</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="ja" key="IDT_FAVORITE_LABEL">選択したお気に入りボリュームのラベル：</control>
     <control lang="ja" key="IDT_FILE_SETTINGS">ファイルの設定</control>
     <control lang="ja" key="IDT_HOTKEY_KEY">割り当てるキー：</control>
@@ -537,6 +542,15 @@
     <string lang="ja" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">注：囮用のシステムから隠しシステムへ安全にファイルを転送したい場合は、以下の手順で行ってください。 1) 囮用OSで起動する。 2) 暗号化されていないボリューム、あるいは標準か外殻のVeraCryptボリュームにファイルを保存する。 3) 隠しOSで起動する。 4) もしそのファイルをVeraCryptボリュームに保存したのならそれをマウントする（自動的に読み取り専用になります）。 5) そのファイルを隠しシステムパーティションあるいはその他の隠しボリュームに保存する。</string>
     <string lang="ja" key="CONFIRM_RESTART">このマシンは再起動する必要があります。\n\nすぐに再起動しますか？</string>
     <string lang="ja" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">システムの暗号ステータスの取得中にエラーが見つかりました。</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="ja" key="INIT_SYS_ENC">システムを暗号化するアプリケーションコンポーネントを初期化できませんでした。</string>
     <string lang="ja" key="INIT_RAND">乱数生成機構の初期化に失敗しました！</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -647,6 +661,7 @@
     <string lang="ja" key="SELECT_KEYFILE">キーファイルの選択</string>
     <string lang="ja" key="SELECT_KEYFILE_PATH">キーファイルを探すフォルダを選択してください。 警告：記憶されるのはフォルダであり、ファイル名ではありません！</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="ja" key="SERPENT_HELP">Ross Anderson、Eli Biham、Lars Knudsenによって開発され1998年に公開されました。256ビットキー、128ビットブロックを使用します。動作モードはXTSです。SerpentはAES制定時の最終候補の一つでした。</string>
     <string lang="ja" key="SIZE_HELP">作成するコンテナのサイズを指定してください。\n\nもしダイナミック（スパースファイル）コンテナを作成するのであれば、このパラメータは上限サイズの指定になります。\n\n下限サイズはFATボリュームの場合で292KB、NTFSボリュームの場合で3792KB となります。</string>
     <string lang="ja" key="SIZE_HELP_HIDDEN_HOST_VOL">新しい外殻ボリュームのサイズを指定してください（中に入れる隠しボリュームは後で作成します）。中に隠しボリュームを作成できる下限サイズは340KBです。</string>
@@ -1033,7 +1048,6 @@
     <string lang="ja" key="INCONSISTENCY_RESOLVED">不整合状態を解決しました。\n\n\n（もしこの問題についてバグ報告をしてくださるなら、以下の技術的情報を付け加えてくださるようお願いします： %hs）</string>
     <string lang="ja" key="UNEXPECTED_STATE">エラー：予期しない状態です。\n\n\n（この状態をバグ報告する場合、次の情報も報告に含めるようお願いいたします。: %hs）</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="ja" key="NOTHING_TO_RESUME">再開される処理/タスクはありません。</string>
     <string lang="ja" key="HIDVOL_PROT_BKG_TASK_WARNING">警告：VeraCryptの常駐は無効になっています。VeraCryptの終了後は、隠しボリュームの保護機能が働いても告知されません。\n\n注：VeraCryptのトレイアイコンを右クリックして終了を選べば、いつでも常駐を終了できます。\n\nVeraCryptの常駐を有効にしますか？</string>
     <string lang="ja" key="LANG_PACK_VERSION">言語パックのバージョン： %s</string>
     <string lang="ja" key="CHECKING_FS">%hs ドライブとしてマウントされた VeraCryptボリュームのファイルシステムをチェック中です...</string>
@@ -1085,15 +1099,14 @@
     <string lang="en" key="ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">This algorithm is not supported for TrueCrypt mode.</string>
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
-    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
+    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>    
     <string lang="ja" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">現在、システムの暗号化でのキーファイル使用には対応していません。</string>
     <string lang="ja" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">警告：VeraCryptは元のキーボードレイアウトを復元できませんでした。そのためパスワードを正確に入力できないおそれがあります。</string>
     <string lang="ja" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">エラー：キーボードのレイアウトを標準USキーボードとして設定できません。\n\nシステム起動前に必要なパスワードがUS Windowsレイアウト以外のキーボードで入力されても無効となります。したがってパスワードは常に標準USレイアウトのキーボードで入力される必要があります。</string>
     <string lang="ja" key="ALT_KEY_CHARS_NOT_FOR_SYS_ENCRYPTION">VeraCryptはキーボードのレイアウトを一時的に標準USキーボードに変更するため、右ALTキーの押下が必要な文字を入力できません。ただしそのような文字の大部分はシフトキーを押下することで入力できます。</string>
     <string lang="ja" key="KEYB_LAYOUT_CHANGE_PREVENTED">VeraCryptはキーボードレイアウトの変更を阻止しました。</string>
     <string lang="ja" key="KEYB_LAYOUT_SYS_ENC_EXPLANATION">注：起動前の環境下（Windowsの起動前）では、US-Windows以外のキーボードレイアウトが必要なパスワードは無効です。そのため、パスワードは常に標準USキーボードレイアウトで入力される必要があります。ただし、これは物理的にUSキーボードが必要という意味では*ありません*。VeraCryptはたとえ物理的にUSキーボードではない環境であっても、今現在でも起動前環境下でも、自動的に正しくパスワードが入力できるようにします。</string>
-    <string lang="ja" key="RESCUE_DISK_INFO">このパーティション/ドライブを暗号化する前にVeraCryptレスキューディスク(TRD)を作成する必要があります。TRDには以下の目的があります。：\n\n- VeraCryptブートローダーやマスターキー、その他重要なデータが破損した場合、TRDで復旧できます（ただし正しいパスワードの入力が必要なことには変わりありません）。\n\n- Windowsが破損して起動不能になった場合、Windowsの起動前にTRDでシステムドライブ/パーティションの暗号化を解除できます。\n\n- TRDは最初のドライブトラックに記録されていた情報をバックアップし、必要であればリストアできます。通常この部分にはシステムローダーあるいはブートマネージャーが含まれています。\n\nVeraCryptレスキューディスクのISOイメージは下記に示された場所に作成されます。</string>
+    <string lang="ja" key="RESCUE_DISK_INFO">このパーティション/ドライブを暗号化する前にVeraCryptレスキューディスク(VRD)を作成する必要があります。VRDには以下の目的があります。：\n\n- VeraCryptブートローダーやマスターキー、その他重要なデータが破損した場合、VRDで復旧できます（ただし正しいパスワードの入力が必要なことには変わりありません）。\n\n- Windowsが破損して起動不能になった場合、Windowsの起動前にVRDでシステムドライブ/パーティションの暗号化を解除できます。\n\n- VRDは最初のドライブトラックに記録されていた情報をバックアップし、必要であればリストアできます。通常この部分にはシステムローダーあるいはブートマネージャーが含まれています。\n\nVeraCryptレスキューディスクのISOイメージは下記に示された場所に作成されます。</string>
     <string lang="ja" key="RESCUE_DISK_WIN_ISOBURN_PRELAUNCH_NOTE">OKをクリックすると、Windowsディスクイメージ書き込みツールが起動します。このツールでVeraCryptレスキューディスクのISOイメージをCDやDVDに書き込んでください。\n\n書き込み後、VeraCryptボリューム作成ウィザードに戻って、以下の手順に従ってください。</string>
     <string lang="ja" key="RESCUE_DISK_BURN_INFO">レスキューディスクのイメージファイルが次の場所に作成されました: %hs\n\nこれをCDやDVDに書き込んでください。\n\n%ls レスキューディスクの作成後、「次へ」をクリックして正しく作成されたかを確認してください。</string>
     <string lang="ja" key="RESCUE_DISK_BURN_INFO_NO_CHECK">レスキューディスクのイメージファイルが次の場所に作成されました: %hs\n\nこのディスクイメージをCDやDVDに書き込むか、後で利用するために安全な場所に移動してください。\n\n%ls「次へ」で処理を続けます。</string>
@@ -1290,6 +1303,7 @@
     <string lang="ja" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">警告：この設定はパフォーマンスを低下させます。\n\n本当にこの設定を使用しますか？</string>
     <string lang="ja" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">警告：VeraCryptボリュームの自動的アンマウント</string>
     <string lang="ja" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">マウント中のボリュームが存在するデバイスを物理的に取り外したり電源を切ったりする先に、常にまずVeraCryptボリュームをアンマウントすべきです。\n\n想定外に勝手にアンマウントされるのは、ケーブルやドライブ等が断続的につながらなくなっているのが大抵の原因です。</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="ja" key="TEST">テスト</string>
     <string lang="ja" key="KEYFILE">キーファイル</string>
     <string lang="ja" key="VKEY_08">Backspace</string>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="zh-cn" name="简体中文" en-name="Chinese (Simplified)" version="1.0.0" translators="Barney Li" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="zh-cn" key="IDC_QUICKFORMAT">快速格式化</control>
     <control lang="zh-cn" key="IDC_SHOW_PASSWORD">显示密码(&amp;D)</control>
     <control lang="zh-cn" key="IDC_SHOW_PASSWORD_SINGLE">显示密码(&amp;D)</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="zh-cn" key="IDC_SINGLE_BOOT">单系统</control>
     <control lang="zh-cn" key="IDC_STD_VOL">标准 VeraCrypt 加密卷</control>
     <control lang="zh-cn" key="IDC_SYSENC_HIDDEN">隐藏(&amp;D)</control>
@@ -98,6 +99,7 @@
     <control lang="zh-cn" key="IDT_SYSENC_KEYS_GEN_INFO">已成功生成密钥、要素、以及其它数据。如果您希望生成新的密钥，请点击〖后退〗然后点击〖下一步〗按钮。否则点击〖下一步〗按钮继续。</control>
     <control lang="zh-cn" key="IDT_SYS_DEVICE">加密 Windows 系统所在的 分区/驱动器。加密后，任何人想要访问和使用此加密系统、读写此系统盘下的文件等，都需每次在 Windows 启动前输入正确的密码。也可以选择创建一个隐形的操作系统。</control>
     <control lang="zh-cn" key="IDT_SYS_PARTITION">选择此选项，以加密您当前 Windows 操作系统所安装的分区。</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="zh-cn" key="IDT_WIPE_MODE">擦除模式：</control>
     <control lang="zh-cn" key="IDCLOSE">关闭</control>
     <control lang="zh-cn" key="IDC_ALLOW_ESC_PBA_BYPASS">允许按下 Esc 按键跳过启动验证（启用启动管理器）(&amp;A)</control>
@@ -111,6 +113,7 @@
     <control lang="zh-cn" key="IDC_CACHE">在内存中缓存密码和密钥文件(&amp;A)</control>
     <control lang="zh-cn" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">没有加密卷被加载时退出</control>
     <control lang="zh-cn" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">在有加密卷成功加载后关闭口令牌会话（登出）(&amp;C)</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="zh-cn" key="IDC_COPY_WIZARD">包含 VeraCrypt 加密卷创建向导</control>
     <control lang="zh-cn" key="IDC_CREATE">创建</control>
     <control lang="zh-cn" key="IDC_CREATE_VOLUME">创建加密卷(&amp;C)</control>
@@ -271,6 +274,8 @@
     <control lang="zh-cn" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">在启动验证屏幕显示下面自定义信息（最多 24 个字符）：</control>
     <control lang="zh-cn" key="IDT_DEFAULT_MOUNT_OPTIONS">默认加载选项</control>
     <control lang="zh-cn" key="IDT_DISMOUNT_ACTION">热键设置</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="zh-cn" key="IDT_FAVORITE_LABEL">所选收藏加密卷的卷标:</control>
     <control lang="zh-cn" key="IDT_FILE_SETTINGS">文件选项</control>
     <control lang="zh-cn" key="IDT_HOTKEY_KEY">要分配的热键：</control>
@@ -537,6 +542,15 @@
     <string lang="zh-cn" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">注意：如果您要安全的从迷惑操作系统向隐形操作系统中传送文件，请遵循以下步骤： 1）启动迷惑操作系统。 2）保存这些文件到未加密的卷或者是 VeraCrypt 外层/常规加密卷。 3）启动隐形操作系统。 4）如果是把文件保存到 VeraCrypt 加密卷，则加载这个加密卷（该加密卷会自动以只读模式加载）。 5）复制这些文件到隐形操作系统的分区或者是其它隐藏加密卷。</string>
     <string lang="zh-cn" key="CONFIRM_RESTART">您的计算机必须重启。\n\n您希望现在重启计算机吗？</string>
     <string lang="zh-cn" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">获取系统加密状态时出错。</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="zh-cn" key="INIT_SYS_ENC">不能初始化用于系统加密的程序组件。</string>
     <string lang="zh-cn" key="INIT_RAND">初始化随机数据生成器失败！</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -647,6 +661,7 @@
     <string lang="zh-cn" key="SELECT_KEYFILE">选择密钥文件</string>
     <string lang="zh-cn" key="SELECT_KEYFILE_PATH">选择密钥文件的搜索路径。警告：注意，记忆的只是路径，而不会记忆文件名！</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="zh-cn" key="SERPENT_HELP">Serpent 为与 AES 竞争算法中的一种。设计者为 Ross Anderson、Eli Biham、和 Lars Knudsen。发表于 1998 年。256 位密钥，128 位数据块，操作模式为 XTS。</string>
     <string lang="zh-cn" key="SIZE_HELP">请指定要创建的加密卷的大小。\n\n如果您打算创建一个动态的（稀疏文件）容器，该参数对应于该容器的最大尺寸。\n\n注意：最小的 FAT 加密卷大小为 292 KB。最小的 NTFS 加密卷大小为 3792 KB。</string>
     <string lang="zh-cn" key="SIZE_HELP_HIDDEN_HOST_VOL">请指定要创建的外层加密卷的大小（随后将在其内创建隐藏加密卷）。包含隐藏卷的外层加密卷最小可能大小为 340 KB。</string>
@@ -1033,7 +1048,6 @@
     <string lang="zh-cn" key="INCONSISTENCY_RESOLVED">发现不一致性。\n\n\n（如果您使用此链接报告这个错误，请在报告中包含下面信息： %hs）</string>
     <string lang="zh-cn" key="UNEXPECTED_STATE">错误：未知状态。\n\n\n（如果您报告与之相关的 BUG，请在错误报告里面包含下面的技术信息： %hs）</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="zh-cn" key="NOTHING_TO_RESUME">没有可以继续的进程/任务。</string>
     <string lang="zh-cn" key="HIDVOL_PROT_BKG_TASK_WARNING">警告： VeraCrypt 后台任务已禁用。在您退出 VeraCrypt 后，如果设置了阻止损坏隐藏加密卷，您也将无法得到提示。\n\n注意：您可以随时在通过右键单击 VeraCrypt 通知栏图标并 选择〖退出〗来停止后台任务。\n\n\n您要启用 VeraCrypt 后台任务吗？</string>
     <string lang="zh-cn" key="LANG_PACK_VERSION">语言包版本： %s</string>
     <string lang="zh-cn" key="CHECKING_FS">正在检测加载为 %hs 的 VeraCrypt 加密卷的文件系统...</string>
@@ -1085,8 +1099,7 @@
     <string lang="en" key="ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">This algorithm is not supported for TrueCrypt mode.</string>
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
-    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
+    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>    
     <string lang="zh-cn" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">密钥文件当前不支持用在系统加密中。</string>
     <string lang="zh-cn" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">警告：VeraCrypt 不能存储原始键盘布局。这可能导致您无法正确输入密码。</string>
     <string lang="zh-cn" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">错误：不能设置 VeraCrypt 键盘布局为标准的美国键盘布局。\n\n说明：在 Windows 启动前的启动验证里需要输入密码，此时非美国标准键盘布局不可用。因此，密码必须使用标准的美国键盘布局输入。</string>
@@ -1290,6 +1303,7 @@
     <string lang="zh-cn" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">警告：此设置可能会降低性能。\n\n您确认要使用该设置吗？</string>
     <string lang="zh-cn" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">警告：VeraCrypt 加密卷已自动卸载</string>
     <string lang="zh-cn" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">在您物理卸载或关闭连接到已加载的加密卷前，您应当总是先在 VeraCrypt 中卸载它。\n\n意外发生的卸载通常是由于线缆、驱动器（附件）等导致的。</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="zh-cn" key="TEST">测试</string>
     <string lang="zh-cn" key="KEYFILE">密钥文件</string>
     <string lang="zh-cn" key="VKEY_08">Backspace</string>

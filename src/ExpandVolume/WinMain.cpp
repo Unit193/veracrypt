@@ -367,7 +367,7 @@ GetItemLong (HWND hTree, int itemNo)
 		return item.lParam;
 }
 
-static char PasswordDlgVolume[MAX_PATH + 1];
+static char PasswordDlgVolume[MAX_PATH + 1] = {0};
 static BOOL PasswordDialogDisableMountOptions;
 static char *PasswordDialogTitleStringId;
 
@@ -534,10 +534,13 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				return 1;
 			}
 
-			SetCheckBox (hwndDlg, IDC_SHOW_PASSWORD, FALSE);
+			if (GetCheckBox (hwndDlg, IDC_SHOW_PASSWORD))
+			{
+				// simulate hiding password
+				SetCheckBox (hwndDlg, IDC_SHOW_PASSWORD, FALSE);
 
-			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD), EM_SETPASSWORDCHAR, '*', 0);
-			InvalidateRect (GetDlgItem (hwndDlg, IDC_PASSWORD), NULL, TRUE);
+				HandleShowPasswordFieldAction (hwndDlg, IDC_SHOW_PASSWORD, IDC_PASSWORD, IDC_PIM);
+			}
 
 			SetCheckBox (hwndDlg, IDC_KEYFILES_ENABLE, FALSE);
 			EnableWindow (GetDlgItem (hwndDlg, IDC_KEYFILES_ENABLE), FALSE);
@@ -614,11 +617,7 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 		if (lw == IDC_SHOW_PASSWORD)
 		{
-			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD),
-						EM_SETPASSWORDCHAR,
-						GetCheckBox (hwndDlg, IDC_SHOW_PASSWORD) ? 0 : '*',
-						0);
-			InvalidateRect (GetDlgItem (hwndDlg, IDC_PASSWORD), NULL, TRUE);
+			HandleShowPasswordFieldAction (hwndDlg, IDC_SHOW_PASSWORD, IDC_PASSWORD, IDC_PIM);
 			return 1;
 		}
 
@@ -655,7 +654,7 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			if (lw == IDOK)
 			{
 				if (mountOptions.ProtectHiddenVolume && hidVolProtKeyFilesParam.EnableKeyFiles)
-					KeyFilesApply (hwndDlg, &mountOptions.ProtectedHidVolPassword, hidVolProtKeyFilesParam.FirstKeyFile);
+					KeyFilesApply (hwndDlg, &mountOptions.ProtectedHidVolPassword, hidVolProtKeyFilesParam.FirstKeyFile, PasswordDlgVolume);
 
 				GetWindowText (GetDlgItem (hwndDlg, IDC_PASSWORD), (LPSTR) szXPwd->Text, MAX_PASSWORD + 1);
 				szXPwd->Length = strlen ((char *) szXPwd->Text);
@@ -780,7 +779,7 @@ int RestoreVolumeHeader (HWND hwndDlg, char *lpszVolume)
 	return 0;
 }
 
-int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions)
+int ExtcvAskVolumePassword (HWND hwndDlg, const char* fileName, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions)
 {
 	int result;
 	PasswordDlgParam dlgParam;
@@ -792,6 +791,8 @@ int ExtcvAskVolumePassword (HWND hwndDlg, Password *password, int *pkcs5, int *p
 	dlgParam.pkcs5 = pkcs5;
 	dlgParam.pim = pim;
 	dlgParam.truecryptMode = truecryptMode;
+
+	StringCbCopyA (PasswordDlgVolume, sizeof(PasswordDlgVolume), fileName);
 
 	result = DialogBoxParamW (hInst, 
 		MAKEINTRESOURCEW (IDD_PASSWORD_DLG), hwndDlg,

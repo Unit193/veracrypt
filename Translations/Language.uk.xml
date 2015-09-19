@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.12">
+  <localization prog-version="1.14">
     <!-- Languages -->
     <language langid="uk" name="Українська" en-name="Ukrainian" version="1.0.0" translators="Kravchuk Olexandr, Babchuk Volodymyr" />
     <!-- Fonts -->
@@ -62,6 +62,7 @@
     <control lang="uk" key="IDC_QUICKFORMAT">Швидке форматування.</control>
     <control lang="uk" key="IDC_SHOW_PASSWORD">&amp;Показ пароля</control>
     <control lang="uk" key="IDC_SHOW_PASSWORD_SINGLE">&amp;Показ пароля</control>
+    <control lang="en" key="IDC_SHOW_PIM">&amp;Display PIM</control>
     <control lang="uk" key="IDC_SINGLE_BOOT">Одиночна загрузка</control>
     <control lang="uk" key="IDC_STD_VOL">Звичайний том VeraCrypt</control>
     <control lang="uk" key="IDC_SYSENC_HIDDEN">Пр&amp;ихований</control>
@@ -98,6 +99,7 @@
     <control lang="uk" key="IDT_SYSENC_KEYS_GEN_INFO">Ключі, 'соль' і інші дані успішно згенеровані. Якщо ви хчете згенерувати новіе ключі, натисніть 'Назад', а потім 'Далі'. Якщо ж ні, то натисніть 'Далі' для продовження.</control>
     <control lang="uk" key="IDT_SYS_DEVICE">Зашифрувати розділ/диск, де встановлена Windows. Перед кожним завантаженням Windows потрібно буде вводити пароль для доступа до ОС, зчтитування і записи файлів і т.д. Додатково - створення прихоапної ОС.</control>
     <control lang="uk" key="IDT_SYS_PARTITION">Виберіть цю опцію, щоб зашифрувати розділ, де встановлена Windows і з якого вона завантажується.</control>
+    <control lang="en" key="IDT_VOLUME_LABEL">Volume Label in Windows:</control>
     <control lang="uk" key="IDT_WIPE_MODE">Режим очищення:</control>
     <control lang="uk" key="IDCLOSE">Закрити</control>
     <control lang="uk" key="IDC_ALLOW_ESC_PBA_BYPASS">Доз&amp;волити відміну предзагрузочної аутентифікації по Esc (включити диспетчер завантаженння)</control>
@@ -111,6 +113,7 @@
     <control lang="uk" key="IDC_CACHE">К&amp;ешувати паролі і ключеві файли</control>
     <control lang="uk" key="IDC_CLOSE_BKG_TASK_WHEN_NOVOL">Вхід, якщо нема змонтованих томів</control>
     <control lang="uk" key="IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT">Закр&amp;ити токен-сесію (вийти) після успішного монтування тома</control>
+    <control lang="en" key="IDC_COPY_EXPANDER">Include VeraCrypt Volume Expander</control>
     <control lang="uk" key="IDC_COPY_WIZARD">З майстром створення томів VeraCrypt</control>
     <control lang="uk" key="IDC_CREATE">Створити</control>
     <control lang="uk" key="IDC_CREATE_VOLUME">&amp;Створити том</control>
@@ -271,6 +274,8 @@
     <control lang="uk" key="IDT_CUSTOM_BOOT_LOADER_MESSAGE">Показувати цей текст на екрані предзавантажувальної аутентифікації (не більше 24 символів):</control>
     <control lang="uk" key="IDT_DEFAULT_MOUNT_OPTIONS">Опції типове монтування томів</control>
     <control lang="uk" key="IDT_DISMOUNT_ACTION">Додаткові параметри</control>
+    <control lang="en" key="IDT_DRIVER_OPTIONS">Driver Configuration</control>
+    <control lang="en" key="IDC_ENABLE_EXTENDED_IOCTL_SUPPORT">Enable extended disk control codes support</control>
     <control lang="uk" key="IDT_FAVORITE_LABEL">Мітка обраного тому:</control>
     <control lang="uk" key="IDT_FILE_SETTINGS">Файлові параметри</control>
     <control lang="uk" key="IDT_HOTKEY_KEY">Клавіша:</control>
@@ -537,6 +542,15 @@
     <string lang="uk" key="DECOY_TO_HIDDEN_OS_DATA_TRANSFER_HOWTO">Примітка: якщо потрібно безпечно перенести файли із підставної системи в приховану, виконайте наступне: 1) Загрузіть підставну систему. 2) Збережіть потрібні вам файли на незашифрованому томі або на зовнішньому/звичайному томі VeraCrypt. 3) Завантажте приховану систему. 4) Якщо ви зберегли файли на томі VeraCrypt, змонтуйте його (вон буде автоматично змонтована як 'тільки для читання'). 5) Скопіюйте файли в прихований системний розділ або в інший прихований том.</string>
     <string lang="uk" key="CONFIRM_RESTART">Комп'ютер потрібно перезавантажити.\n\nПерезавантажити зараз?</string>
     <string lang="uk" key="ERR_GETTING_SYSTEM_ENCRYPTION_STATUS">При отриманні статусу системного шифрування виникла помилка.</string>
+    <string lang="en" key="ERR_PASSWORD_MISSING">No password specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_SIZE_MISSING">No volume size specified in the command line. The volume can't be created.</string>
+    <string lang="en" key="ERR_NTFS_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected NTFS filesystem.</string>
+    <string lang="en" key="ERR_FAT_INVALID_VOLUME_SIZE">The volume file size specified in the command line is incompatible with selected FAT32 filesystem.</string>
+    <string lang="en" key="ERR_DYNAMIC_NOT_SUPPORTED">The filesystem on the target drive doesn't support creating sparse files which is required for dynamic volumes.</string>
+    <string lang="en" key="ERR_DEVICE_CLI_CREATE_NOT_SUPPORTED">Only container files can be created through the command line.</string>
+    <string lang="en" key="ERR_CONTAINER_SIZE_TOO_BIG">The container file size specified in the command line is greater than the available disk free space. Volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_SMALL">The volume size specified in the command line is too small. The volume can't be created.</string>
+    <string lang="en" key="ERR_VOLUME_SIZE_TOO_BIG">The volume size specified in the command line is too big. The volume can't be created.</string>
     <string lang="uk" key="INIT_SYS_ENC">Неможливо ініціалізувати компонент застосунку для системного шифрування.</string>
     <string lang="uk" key="INIT_RAND">Невдала ініціалізація генератора випадкових чисел!</string>
     <string lang="en" key="CAPI_RAND">Windows Crypto API failed!\n\n\n(If you report a bug in connection with this, please include the following technical information in the bug report:\n%hs, Last Error = 0x%.8X)</string>
@@ -647,6 +661,7 @@
     <string lang="uk" key="SELECT_KEYFILE">Оберіть файл-ключ</string>
     <string lang="uk" key="SELECT_KEYFILE_PATH">Оберіть шлях пошуку файл-ключів. УВАГА: запам'ятовується лише шлях, але не імена файлів!</string>
     <string lang="en" key="SELECT_KEYFILE_GENERATION_DIRECTORY">Select a directory where to store the keyfiles.</string>
+    <string lang="en" key="SELECTED_KEYFILE_IS_CONTAINER_FILE">The current container file was selected as a keyfile. It will be skipped.</string>
     <string lang="uk" key="SERPENT_HELP">Автори: Ross Anderson, Eli Biham та Lars Knudsen. Опублікований у 1998 р. 256-біт ключ, 128-біт блок. Режим роботи - XTS. Алгоритм Serpent - один з фіналістів AES.</string>
     <string lang="uk" key="SIZE_HELP">Вкажіть розмір контейнера.\n\nПри створені динамічного ('розтягуючого' по мірі заповнення) контейнера, цей приклад визначає його максимальний розмір.\n\nМнімальний обєм для тома FAT рівний 275 Кб, для тому NTFS -- 2829 Кб.</string>
     <string lang="uk" key="SIZE_HELP_HIDDEN_HOST_VOL">Вкажіть розмір нового зовнішнього тому (спочатку створюється зовнішній том, а потім всередині нього -- прихований). Мінімально можливий розмір тому, призначеного для створення прихованого тому, складає 305 Кб.</string>
@@ -1033,7 +1048,6 @@
     <string lang="uk" key="INCONSISTENCY_RESOLVED">Несумісність рішення.\n\n\n(якщо ви повідомляєте про помилку, будь ласка, додайте наступну технічну інформацію до повідомлення про помилку: %hs)</string>
     <string lang="uk" key="UNEXPECTED_STATE">Помилка! Невідомий стан.\n\n\n(Якщо ви повідомите про помилку, будь ласка, додайте наступну технічну інформацію до повідомлення про помилку: %hs)</string>
     <string lang="en" key="NO_SYS_ENC_PROCESS_TO_RESUME">There is no interrupted process of encryption/decryption of the system partition/drive to resume.\n\nNote: If you want to resume an interrupted process of encryption/decryption of a non-system partition/volume, select 'Volumes' &gt; 'Resume Interrupted Process'.</string>
-    <string lang="uk" key="NOTHING_TO_RESUME">Немає призупинених процесів/завдань.</string>
     <string lang="uk" key="HIDVOL_PROT_BKG_TASK_WARNING">УВАГА: фоновий процес VeraCrypt вимкнений. При виході з VeraCrypt ви не будете попереджені про запобігання пошкодження прихованого тому.\n\nПам'ятайте: фоновий процес можна завершити у будь-який момент, натиснувши правою кнопкою миші на значок VeraCrypt у системному треї й обравши пункт 'Вихід'.\n\nВвімкнути фоновий процес VeraCrypt?</string>
     <string lang="uk" key="LANG_PACK_VERSION">Версія мовного модулю: %s</string>
     <string lang="uk" key="CHECKING_FS">Перевірка файлової системи тому VeraCrypt, змонтованого як %hs...</string>
@@ -1085,15 +1099,14 @@
     <string lang="en" key="ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">This algorithm is not supported for TrueCrypt mode.</string>
     <string lang="en" key="PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE">PIM (Personal Iterations Multiplier) not supported for TrueCrypt mode.</string>	  
     <string lang="en" key="PIM_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 485 or greater.</string>
-    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>
-    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
+    <string lang="en" key="BOOT_PIM_REQUIRE_LONG_PASSWORD">Pre-boot authentication Password must contain 20 or more characters in order to use the specified PIM.\nShorter passwords can only be used if the PIM is 98 or greater.</string>    
     <string lang="uk" key="KEYFILES_NOT_SUPPORTED_FOR_SYS_ENCRYPTION">В даний момент ключові файли для шифрування системи не підтримуються.</string>
     <string lang="uk" key="CANNOT_RESTORE_KEYBOARD_LAYOUT">Увага! VeraCrypt не може відновити первісну розкладку клавіатури. Це може призвести до неправильного введення пароля.</string>
     <string lang="uk" key="CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION">Помилка! Неможливо встановити розкладку клавіатури для VeraCrypt в стандартну американську (US).\n\nЗверніть увагу, що пароль вводиться ДО завантаження Windows, коли будь-які розкладки клавіатури, що відрізняються від американської, ще недоступні. Тому пароль завжди повинен вводиться при стандартній американської розкладці.</string>
     <string lang="uk" key="ALT_KEY_CHARS_NOT_FOR_SYS_ENCRYPTION">Оскільки VeraCrypt тимчасово змінив розкладку клавіатури на стандартну американську, введення символів при натиснутій правій клавіші Alt неможливий. Тим не менше, більшість таких символів можна ввести відповідними клавішами при натиснутій клавіші Shift.</string>
     <string lang="uk" key="KEYB_LAYOUT_CHANGE_PREVENTED">Зміна розкладки клавіатури заблоковано VeraCrypt.</string>
     <string lang="uk" key="KEYB_LAYOUT_SYS_ENC_EXPLANATION">Примітка: пароль вводиться ДО завантаження Windows, коли будь-які розкладки клавіатури, що відрізняються від американської, ще недоступні. Тому пароль завжди повинен вводиться при стандартній американської розкладці. Важливо, однак, мати на увазі, що вам не потрібно мати справжню американську клавіатуру. VeraCrypt автоматично забезпечує вам безпечний введення пароля (прямо зараз і на стадії перед завантаженням ОС), навіть якщо у вас НЕ справжня американська клавіатура.</string>
-    <string lang="uk" key="RESCUE_DISK_INFO">Перш ніж приступити до шифруванню розділу / диска, ви повинні створити диск відновлення VeraCrypt Rescue Disk (TRD), що забезпечує наступне:\n\n-У випадку пошкодження завантажувача VeraCrypt, майстер-ключа або інших критичних даних, TRD дозволяє їх відновити (майте на увазі, що вам все одно буде потрібно ввести правильний пароль).\n\n-Если завантажувач VeraCrypt виявиться пошкодженим або інфікованим вірусом, ви зможете уникнути його запуску, завантажившись прямо з TRD.\n\n-У випадку пошкодження Windows і неможливості її завантаження, TRD дозволяє перманентно розшифрувати розділ/диск перед стартом Windows.\n\n-TRD буде містити резервну копію поточного вмісту першого циліндра диска (в якому зазвичай знаходиться системний завантажувач або менеджер завантаження), і у разі необхідності дозволить відновити його.</string>
+    <string lang="uk" key="RESCUE_DISK_INFO">Перш ніж приступити до шифруванню розділу / диска, ви повинні створити диск відновлення VeraCrypt Rescue Disk (VRD), що забезпечує наступне:\n\n-У випадку пошкодження завантажувача VeraCrypt, майстер-ключа або інших критичних даних, VRD дозволяє їх відновити (майте на увазі, що вам все одно буде потрібно ввести правильний пароль).\n\n-Если завантажувач VeraCrypt виявиться пошкодженим або інфікованим вірусом, ви зможете уникнути його запуску, завантажившись прямо з VRD.\n\n-У випадку пошкодження Windows і неможливості її завантаження, VRD дозволяє перманентно розшифрувати розділ/диск перед стартом Windows.\n\n-VRD буде містити резервну копію поточного вмісту першого циліндра диска (в якому зазвичай знаходиться системний завантажувач або менеджер завантаження), і у разі необхідності дозволить відновити його.</string>
     <string lang="uk" key="RESCUE_DISK_WIN_ISOBURN_PRELAUNCH_NOTE">Після натискання ГАРАЗД буде запущено засіб запису образів дисків Windows. Запишіть з його допомогою ISO-образ диска відновлення VeraCrypt на CD або DVD.\n\nПотім поверніться у вікно майстра створення томів VeraCrypt і дотримуйтесь інструкцій.</string>
     <string lang="uk" key="RESCUE_DISK_BURN_INFO">Образ диска відновлення створений та збережений у файлі:%hs\n\nЗараз вам потрібно записати цей образ на CD або DVD.\n\nВАЖНО: Файл-образ має бути записаний на CD/DVD як ISO-образ диска (а не як окремий файл). Про те, як це зробити, див документацію на ваше ПЗ для запису CD/DVD. Якщо у вас немає програми, здатної записати ISO-образ на CD/DVD, клацніть за посиланням нижче, щоб отримати таке безкоштовне ПЗ.\n\nПісля запису диска відновлення натисніть 'Далі', щоб перевірити, чи коректно він був записаний.</string>
     <string lang="uk" key="RESCUE_DISK_BURN_INFO_NO_CHECK">Диск відновлення створено та збережено в цьому файлі:%hs\n\nЗараз вам слід або записати (пропалити) диск відновлення на CD/DVD, або перемістити його ISO-образ в безпечне місце для використання в подальшому.\n\nЯкщо у вас немає програми, здатної записати ISO-образ на CD/DVD, клацніть на посилання нижче, щоб отримати таке безкоштовне ПЗ.\n\nНатисніть кнопку 'Далі' для продовження.</string>
@@ -1290,6 +1303,7 @@
     <string lang="uk" key="CONFIRM_SETTING_DEGRADES_PERFORMANCE">УВАГА: Цей параметр може знизити продуктивність.\n\nвикористовувати цей параметр?</string>
     <string lang="uk" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN_TITLE">Увага: VeraCrypt авто-розмонтував пристрої</string>
     <string lang="uk" key="HOST_DEVICE_REMOVAL_DISMOUNT_WARN">Перед тим, як фізично видалити або відключити пристрій, що містить встановлений обсяг, ви повинні демонтувати спершу том VeraCrypt.\n\nUnexpected spontaneous dismount is usually caused by an intermittently failing cable, drive (enclosure), etc.</string>
+    <string lang="en" key="UNSUPPORTED_TRUECRYPT_FORMAT">This volume was created with TrueCrypt %x.%x but VeraCrypt supports only TrueCrypt volumes created with TrueCrypt 6.x/7.x series</string>
     <string lang="uk" key="TEST">Тест</string>
     <string lang="uk" key="KEYFILE">Файл-ключ</string>
     <string lang="uk" key="VKEY_08">Backspace</string>

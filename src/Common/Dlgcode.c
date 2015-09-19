@@ -88,6 +88,8 @@ HFONT hUserUnderlineBoldFont = NULL;
 
 HFONT WindowTitleBarFont;
 
+WCHAR EditPasswordChar = 0;
+
 int ScreenDPI = USER_DEFAULT_SCREEN_DPI;
 double DPIScaleFactorX = 1;
 double DPIScaleFactorY = 1;
@@ -131,6 +133,8 @@ BOOL LastMountedVolumeDirty;
 BOOL MountVolumesAsSystemFavorite = FALSE;
 BOOL FavoriteMountOnArrivalInProgress = FALSE;
 BOOL MultipleMountOperationInProgress = FALSE;
+
+BOOL WaitDialogDisplaying = FALSE;
 
 /* Handle to the device driver */
 HANDLE hDriver = INVALID_HANDLE_VALUE;
@@ -873,7 +877,7 @@ static LRESULT CALLBACK BootPwdFieldProc (HWND hwnd, UINT message, WPARAM wParam
 		return 1;
 	}
 
-	return CallWindowProc (wp, hwnd, message, wParam, lParam);
+	return CallWindowProcW (wp, hwnd, message, wParam, lParam);
 }
 
 
@@ -884,8 +888,8 @@ void ToBootPwdField (HWND hwndDlg, UINT ctrlId)
 {
 	HWND hwndCtrl = GetDlgItem (hwndDlg, ctrlId);
 
-	SetWindowLongPtr (hwndCtrl, GWLP_USERDATA, (LONG_PTR) GetWindowLongPtr (hwndCtrl, GWLP_WNDPROC));
-	SetWindowLongPtr (hwndCtrl, GWLP_WNDPROC, (LONG_PTR) BootPwdFieldProc);
+	SetWindowLongPtrW (hwndCtrl, GWLP_USERDATA, (LONG_PTR) GetWindowLongPtrW (hwndCtrl, GWLP_WNDPROC));
+	SetWindowLongPtrW (hwndCtrl, GWLP_WNDPROC, (LONG_PTR) BootPwdFieldProc);
 }
 
 
@@ -2419,8 +2423,21 @@ void InitApp (HINSTANCE hInstance, char *lpszCommandLine)
 	SetPreferredLangId (ConfigReadString ("Language", "", langId, sizeof (langId)));
 	
 	if (langId[0] == 0)
-		DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_LANGUAGE), NULL,
-			(DLGPROC) LanguageDlgProc, (LPARAM) 1);
+	{
+		if (IsNonInstallMode ())
+		{
+			// only support automatic use of a language file in portable mode
+			// this is achieved by placing a unique language XML file in the same
+			// place as portable VeraCrypt binaries.
+			DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_LANGUAGE), NULL,
+				(DLGPROC) LanguageDlgProc, (LPARAM) 1);
+		}
+		else
+		{
+			// when installed, force using English as default language
+			SetPreferredLangId ("en");
+		}
+	}
 
 	LoadLanguageFile ();
 
@@ -3214,7 +3231,8 @@ BOOL CALLBACK RawDevicesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM l
 #ifdef TCMOUNT
 				else
 				{
-					wstring favoriteLabel = GetFavoriteVolumeLabel (device.Path);
+					bool useInExplorer = false;
+					wstring favoriteLabel = GetFavoriteVolumeLabel (device.Path, useInExplorer);
 					if (!favoriteLabel.empty())
 						ListSubItemSetW (hList, item.iItem, 3, (wchar_t *) favoriteLabel.c_str());
 				}
@@ -3222,6 +3240,11 @@ BOOL CALLBACK RawDevicesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM l
 
 				item.iItem = line++;   
 			}
+
+			SendMessageW(hList, LVM_SETCOLUMNWIDTH, 0, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
+			SendMessageW(hList, LVM_SETCOLUMNWIDTH, 1, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
+			SendMessageW(hList, LVM_SETCOLUMNWIDTH, 2, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
+			SendMessageW(hList, LVM_SETCOLUMNWIDTH, 3, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
 
 			lpszFileName = pDlgParam->pszFileName;
 
@@ -4342,6 +4365,58 @@ BOOL CloseVolumeExplorerWindows (HWND hwnd, int driveNo)
 	return explorerCloseSent;
 }
 
+BOOL UpdateDriveCustomLabel (int driveNo, wchar_t* effectiveLabel, BOOL bSetValue)
+{
+	wchar_t wszRegPath[MAX_PATH];
+	wchar_t driveStr[] = {L'A' + (wchar_t) driveNo, 0};
+	HKEY hKey;
+	LSTATUS lStatus;
+	DWORD cbLabelLen = (DWORD) ((wcslen (effectiveLabel) + 1) * sizeof (wchar_t));
+	BOOL bToBeDeleted = FALSE;
+
+	StringCbPrintfW (wszRegPath, sizeof (wszRegPath), L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\%s\\DefaultLabel", driveStr);	
+	
+	if (bSetValue)
+		lStatus = RegCreateKeyExW (HKEY_CURRENT_USER, wszRegPath, NULL, NULL, 0, 
+			KEY_READ | KEY_WRITE | KEY_SET_VALUE, NULL, &hKey, NULL);
+	else
+		lStatus = RegOpenKeyExW (HKEY_CURRENT_USER, wszRegPath, 0, KEY_READ | KEY_WRITE | KEY_SET_VALUE, &hKey);
+	if (ERROR_SUCCESS == lStatus)
+	{
+		if (bSetValue)
+			lStatus = RegSetValueExW (hKey, NULL, NULL, REG_SZ, (LPCBYTE) effectiveLabel, cbLabelLen);
+		else
+		{
+			wchar_t storedLabel[34] = {0};
+			DWORD cbStoredLen = sizeof (storedLabel) - 1, dwType;
+			lStatus = RegQueryValueExW (hKey, NULL, NULL, &dwType, (LPBYTE) storedLabel, &cbStoredLen);
+			if ((ERROR_SUCCESS == lStatus) && (REG_SZ == dwType) && (0 == wcscmp(storedLabel, effectiveLabel)))
+			{
+				// same label stored. mark key for deletion
+				bToBeDeleted = TRUE;
+			}
+		}
+		RegCloseKey (hKey);
+	}
+
+	if (bToBeDeleted)
+	{
+		StringCbPrintfW (wszRegPath, sizeof (wszRegPath), L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons\\%s", driveStr);	
+		lStatus = RegOpenKeyExW (HKEY_CURRENT_USER, wszRegPath, 0, KEY_READ | KEY_WRITE | KEY_SET_VALUE, &hKey);
+		if (ERROR_SUCCESS == lStatus)
+		{
+			lStatus = RegDeleteKeyW (hKey, L"DefaultLabel");
+			RegCloseKey (hKey);
+		}
+
+		// delete drive letter of nothing else is present under it
+		RegDeleteKeyW (HKEY_CURRENT_USER, wszRegPath);
+
+	}
+
+	return (ERROR_SUCCESS == lStatus)? TRUE : FALSE;
+}
+
 string GetUserFriendlyVersionString (int version)
 {
 	char szTmp [64];
@@ -4547,6 +4622,9 @@ static void DisplayBenchmarkResults (HWND hwndDlg)
 	}
 
 	SendMessageW(hList, LVM_SETCOLUMNWIDTH, 0, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
+	SendMessageW(hList, LVM_SETCOLUMNWIDTH, 1, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
+	SendMessageW(hList, LVM_SETCOLUMNWIDTH, 2, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
+	SendMessageW(hList, LVM_SETCOLUMNWIDTH, 3, MAKELPARAM(LVSCW_AUTOSIZE_USEHEADER, 0));
 }
 
 // specific implementation for support of benchmark operation in wait dialog mechanism
@@ -6184,6 +6262,16 @@ BOOL CheckFileExtension (char *fileName)
 	return FALSE;
 }
 
+void CorrectFileName (char* fileName)
+{
+	/* replace '/' by '\' */
+	size_t i, len = strlen (fileName);
+	for (i = 0; i < len; i++)
+	{
+		if (fileName [i] == '/')
+			fileName [i] = '\\';
+	}
+}
 
 void IncreaseWrongPwdRetryCount (int count)
 {
@@ -6264,26 +6352,42 @@ int DriverUnmountVolume (HWND hwndDlg, int nDosDriveNo, BOOL forced)
 {
 	UNMOUNT_STRUCT unmount;
 	DWORD dwResult;
-
+	VOLUME_PROPERTIES_STRUCT prop;
 	BOOL bResult;
+	WCHAR wszLabel[33] = {0};
+	BOOL bDriverSetLabel = FALSE;
+
+	memset (&prop, 0, sizeof(prop));
+	prop.driveNo = nDosDriveNo;
+
+	if (	DeviceIoControl (hDriver, TC_IOCTL_GET_VOLUME_PROPERTIES, &prop, sizeof (prop), &prop, sizeof (prop), &dwResult, NULL)
+		&&	prop.driveNo == nDosDriveNo
+		)
+	{
+		memcpy (wszLabel, prop.wszLabel, sizeof (wszLabel));
+		bDriverSetLabel = prop.bDriverSetLabel;
+	}
 	
 	unmount.nDosDriveNo = nDosDriveNo;
 	unmount.ignoreOpenFiles = forced;
 
 	bResult = DeviceIoControl (hDriver, TC_IOCTL_DISMOUNT_VOLUME, &unmount,
-		sizeof (unmount), &unmount, sizeof (unmount), &dwResult, NULL);
+			sizeof (unmount), &unmount, sizeof (unmount), &dwResult, NULL);
 
 	if (bResult == FALSE)
 	{
 		handleWin32Error (hwndDlg, SRC_POS);
 		return 1;
 	}
+	else if ((unmount.nReturnCode == ERR_SUCCESS) && bDriverSetLabel && wszLabel[0])
+		UpdateDriveCustomLabel (nDosDriveNo, wszLabel, FALSE);
 
 #ifdef TCMOUNT
 
 	if (unmount.nReturnCode == ERR_SUCCESS
 		&& unmount.HiddenVolumeProtectionTriggered
-		&& !VolumeNotificationsList.bHidVolDamagePrevReported [nDosDriveNo])
+		&& !VolumeNotificationsList.bHidVolDamagePrevReported [nDosDriveNo]
+		&& !Silent)
 	{
 		wchar_t msg[4096];
 
@@ -6494,15 +6598,31 @@ void ShowWaitDialog(HWND hwnd, BOOL bUseHwndAsParent, WaitThreadProc callback, v
 	WaitThreadParam threadParam;
 	threadParam.callback = callback;
 	threadParam.pArg = pArg;
-	
-	DialogBoxParamW (hInst,
-				MAKEINTRESOURCEW (IDD_STATIC_MODAL_WAIT_DLG), hParent,
-				(DLGPROC) WaitDlgProc, (LPARAM) &threadParam);
 
-	if (hwnd && IsWindowVisible(hwnd) && !bUseHwndAsParent)
+	if (WaitDialogDisplaying)
 	{
-		SetForegroundWindow(hwnd);
-		BringWindowToTop(hwnd);
+		callback (pArg, hwnd);
+	}
+	else
+	{
+		WaitDialogDisplaying = TRUE;
+		if (hwnd)
+			EnableWindow (hwnd, FALSE);
+		else
+			EnableWindow (MainDlg, FALSE);
+		finally_do_arg (HWND, hwnd, { if (finally_arg) EnableWindow(finally_arg, TRUE); else EnableWindow (MainDlg, TRUE);});
+
+		DialogBoxParamW (hInst,
+					MAKEINTRESOURCEW (IDD_STATIC_MODAL_WAIT_DLG), hParent,
+					(DLGPROC) WaitDlgProc, (LPARAM) &threadParam);
+
+		WaitDialogDisplaying = FALSE;
+
+		if (hwnd && IsWindowVisible(hwnd) && !bUseHwndAsParent)
+		{
+			SetForegroundWindow(hwnd);
+			BringWindowToTop(hwnd);
+		}
 	}
 }
 
@@ -6593,6 +6713,7 @@ int MountVolume (HWND hwndDlg,
 	mount.SystemFavorite = MountVolumesAsSystemFavorite;
 	mount.UseBackupHeader =  mountOptions->UseBackupHeader;
 	mount.RecoveryMode = mountOptions->RecoveryMode;
+	StringCbCopyW (mount.wszLabel, sizeof (mount.wszLabel), mountOptions->Label);
 
 retry:
 	mount.nDosDriveNo = driveNo;
@@ -6899,6 +7020,12 @@ retry:
 		}
 	}
 
+	if (mount.wszLabel[0] && !mount.bDriverSetLabel)
+	{
+		// try setting the drive label on user-mode using registry
+		UpdateDriveCustomLabel (driveNo, mount.wszLabel, TRUE);
+	}
+
 	ResetWrongPwdRetryCount ();
 
 	BroadcastDeviceChange (DBT_DEVICEARRIVAL, driveNo, 0);
@@ -6909,26 +7036,63 @@ retry:
 	return 1;
 }
 
+typedef struct
+{
+	int nDosDriveNo;
+	BOOL forced;
+	int dismountMaxRetries;
+	DWORD retryDelay;
+	int* presult;
+	DWORD dwLastError;
+} UnmountThreadParam;
+
+void CALLBACK UnmountWaitThreadProc(void* pArg, HWND hwnd)
+{
+	UnmountThreadParam* pThreadParam = (UnmountThreadParam*) pArg;
+	int dismountMaxRetries = pThreadParam->dismountMaxRetries;
+	DWORD retryDelay = pThreadParam->retryDelay;
+
+	do
+	{
+		*pThreadParam->presult = DriverUnmountVolume (hwnd, pThreadParam->nDosDriveNo, pThreadParam->forced);
+
+		if (*pThreadParam->presult == ERR_FILES_OPEN)
+			Sleep (retryDelay);
+		else
+			break;
+
+	} while (--dismountMaxRetries > 0);
+
+	pThreadParam->dwLastError = GetLastError ();
+}
+
 static BOOL UnmountVolumeBase (HWND hwndDlg, int nDosDriveNo, BOOL forceUnmount, BOOL ntfsFormatCase)
 {
 	int result;
 	BOOL forced = forceUnmount;
 	int dismountMaxRetries = ntfsFormatCase? 5 : UNMOUNT_MAX_AUTO_RETRIES;
 	DWORD retryDelay = ntfsFormatCase? 2000: UNMOUNT_AUTO_RETRY_DELAY;
+	UnmountThreadParam param;
 
 retry:
 	BroadcastDeviceChange (DBT_DEVICEREMOVEPENDING, nDosDriveNo, 0);
 
-	do
+	param.nDosDriveNo = nDosDriveNo;
+	param.forced = forced;
+	param.dismountMaxRetries = dismountMaxRetries;
+	param.retryDelay = retryDelay;
+	param.presult = &result;
+
+	if (Silent)
 	{
-		result = DriverUnmountVolume (hwndDlg, nDosDriveNo, forced);
+		UnmountWaitThreadProc (&param, hwndDlg);
+	}
+	else
+	{
+		ShowWaitDialog (hwndDlg, FALSE, UnmountWaitThreadProc, &param);		
+	}
 
-		if (result == ERR_FILES_OPEN)
-			Sleep (retryDelay);
-		else
-			break;
-
-	} while (--dismountMaxRetries > 0);
+	SetLastError (param.dwLastError);
 
 	if (result != 0)
 	{
@@ -7463,30 +7627,12 @@ fsif_end:
 
 // System CopyFile() copies source file attributes (like FILE_ATTRIBUTE_ENCRYPTED)
 // so we need to use our own copy function
-BOOL TCCopyFile (char *sourceFileName, char *destinationFile)
+BOOL TCCopyFileBase (HANDLE src, HANDLE dst)
 {
 	__int8 *buffer;
-	HANDLE src, dst;
 	FILETIME fileTime;
 	DWORD bytesRead, bytesWritten;
 	BOOL res;
-
-	src = CreateFile (sourceFileName,
-		GENERIC_READ,
-		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-
-	if (src == INVALID_HANDLE_VALUE)
-		return FALSE;
-
-	dst = CreateFile (destinationFile,
-		GENERIC_WRITE,
-		0, NULL, CREATE_ALWAYS, 0, NULL);
-
-	if (dst == INVALID_HANDLE_VALUE)
-	{
-		CloseHandle (src);
-		return FALSE;
-	}
 
 	buffer = (char *) malloc (64 * 1024);
 	if (!buffer)
@@ -7520,6 +7666,54 @@ BOOL TCCopyFile (char *sourceFileName, char *destinationFile)
 
 	free (buffer);
 	return res != 0;
+}
+
+BOOL TCCopyFile (char *sourceFileName, char *destinationFile)
+{
+	HANDLE src, dst;
+
+	src = CreateFile (sourceFileName,
+		GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+
+	if (src == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	dst = CreateFile (destinationFile,
+		GENERIC_WRITE,
+		0, NULL, CREATE_ALWAYS, 0, NULL);
+
+	if (dst == INVALID_HANDLE_VALUE)
+	{
+		CloseHandle (src);
+		return FALSE;
+	}
+
+	return TCCopyFileBase (src, dst);
+}
+
+BOOL TCCopyFileW (wchar_t *sourceFileName, wchar_t *destinationFile)
+{
+	HANDLE src, dst;
+
+	src = CreateFileW (sourceFileName,
+		GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+
+	if (src == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	dst = CreateFileW (destinationFile,
+		GENERIC_WRITE,
+		0, NULL, CREATE_ALWAYS, 0, NULL);
+
+	if (dst == INVALID_HANDLE_VALUE)
+	{
+		CloseHandle (src);
+		return FALSE;
+	}
+
+	return TCCopyFileBase (src, dst);
 }
 
 // If bAppend is TRUE, the buffer is appended to an existing file. If bAppend is FALSE, any existing file 
@@ -8713,9 +8907,50 @@ char *ConfigReadString (char *configKey, char *defaultValue, char *str, int maxL
 	if (ConfigRead (configKey, str, maxLen))
 		return str;
 	else
+	{
+		StringCbCopyA (str, maxLen, defaultValue);
 		return defaultValue;
+	}
 }
 
+void ConfigReadCompareInt(char *configKey, int defaultValue, int* pOutputValue, BOOL bOnlyCheckModified, BOOL* pbModified)
+{
+	int intValue = ConfigReadInt (configKey, defaultValue);
+	if (pOutputValue)
+	{
+		if (pbModified && (*pOutputValue != intValue))
+			*pbModified = TRUE;
+		if (!bOnlyCheckModified)
+			*pOutputValue = intValue;
+	}
+}
+
+void ConfigReadCompareString (char *configKey, char *defaultValue, char *str, int maxLen, BOOL bOnlyCheckModified, BOOL *pbModified)
+{
+	char *strValue = (char*) malloc (maxLen);
+	if (strValue)
+	{
+		memcpy (strValue, str, maxLen);
+
+		ConfigReadString (configKey, defaultValue, strValue, maxLen);
+
+		if (pbModified && strcmp (str, strValue))
+			*pbModified = TRUE;
+		if (!bOnlyCheckModified)
+			memcpy(str, strValue, maxLen);
+
+		free (strValue);
+	}
+	else
+	{
+		/* allocation failed. Suppose that value changed */
+		if (pbModified)
+			*pbModified = TRUE;
+		if (!bOnlyCheckModified)
+			ConfigReadString (configKey, defaultValue, str, maxLen);
+		
+	}
+}
 
 void OpenPageHelp (HWND hwndDlg, int nPage)
 {
@@ -10800,3 +11035,25 @@ void SetPim (HWND hwndDlg, UINT ctrlId, int pim)
 		SetDlgItemText (hwndDlg, ctrlId, "");
 }
 
+void HandleShowPasswordFieldAction (HWND hwndDlg, UINT checkBoxId, UINT edit1Id, UINT edit2Id)
+{
+	if ((EditPasswordChar == 0) && GetCheckBox (hwndDlg, checkBoxId))
+	{
+		EditPasswordChar = (WCHAR) SendMessageW (GetDlgItem (hwndDlg, edit1Id), EM_GETPASSWORDCHAR, 0, 0);
+	}
+
+	SendMessageW (GetDlgItem (hwndDlg, edit1Id),
+		EM_SETPASSWORDCHAR,
+		GetCheckBox (hwndDlg, checkBoxId) ? 0 : EditPasswordChar,
+		0);
+	InvalidateRect (GetDlgItem (hwndDlg, edit1Id), NULL, TRUE);
+
+	if (edit2Id)
+	{
+		SendMessageW (GetDlgItem (hwndDlg, edit2Id),
+			EM_SETPASSWORDCHAR,
+			GetCheckBox (hwndDlg, checkBoxId) ? 0 : EditPasswordChar,
+			0);
+		InvalidateRect (GetDlgItem (hwndDlg, edit2Id), NULL, TRUE);
+	}
+}

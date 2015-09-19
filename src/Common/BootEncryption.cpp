@@ -1742,18 +1742,20 @@ namespace VeraCrypt
 #endif
 
 
-	bool BootEncryption::IsCDDrivePresent ()
+	bool BootEncryption::IsCDRecorderPresent ()
 	{
-		for (char drive = 'Z'; drive >= 'C'; --drive)
+		ICDBurn* pICDBurn;
+		BOOL bHasRecorder = FALSE;
+
+		if (SUCCEEDED( CoCreateInstance (CLSID_CDBurn, NULL,CLSCTX_INPROC_SERVER,IID_ICDBurn,(LPVOID*)&pICDBurn)))
 		{
-			string path = "X:\\";
-			path[0] = drive;
-
-			if (GetDriveType (path.c_str()) == DRIVE_CDROM)
-				return true;
+			if (pICDBurn->HasRecordableDrive (&bHasRecorder) != S_OK)
+			{
+				bHasRecorder = FALSE;
+			}
+			pICDBurn->Release();
 		}
-
-		return false;
+		return bHasRecorder? true : false;
 	}
 
 
@@ -1766,23 +1768,54 @@ namespace VeraCrypt
 		{
 			try
 			{
-				string path = "X:";
-				path[0] = drive;
+				char rootPath[4] = { drive, ':', '\\', 0};
+				UINT driveType = GetDriveTypeA (rootPath);
+				// check that it is a CD/DVD drive or a removable media in case a bootable
+				// USB key was created from the rescue disk ISO file
+				if ((DRIVE_CDROM == driveType) || (DRIVE_REMOVABLE == driveType)) 
+				{
+					rootPath[2] = 0; // remove trailing backslash
 
-				Device driveDevice (path, true);
-				driveDevice.CheckOpened (SRC_POS);
-				size_t verifiedSectorCount = (TC_CD_BOOTSECTOR_OFFSET + TC_ORIG_BOOT_LOADER_BACKUP_SECTOR_OFFSET + TC_BOOT_LOADER_AREA_SIZE) / 2048;
-				Buffer buffer ((verifiedSectorCount + 1) * 2048);
+					Device driveDevice (rootPath, true);
+					driveDevice.CheckOpened (SRC_POS);
+					size_t verifiedSectorCount = (TC_CD_BOOTSECTOR_OFFSET + TC_ORIG_BOOT_LOADER_BACKUP_SECTOR_OFFSET + TC_BOOT_LOADER_AREA_SIZE) / 2048;
+					Buffer buffer ((verifiedSectorCount + 1) * 2048);
 
-				DWORD bytesRead = driveDevice.Read (buffer.Ptr(), (DWORD) buffer.Size());
-				if (bytesRead != buffer.Size())
-					continue;
+					DWORD bytesRead = driveDevice.Read (buffer.Ptr(), (DWORD) buffer.Size());
+					if (bytesRead != buffer.Size())
+						continue;
 
-				if (memcmp (buffer.Ptr(), RescueIsoImage, buffer.Size()) == 0)
-					return true;
+					if (memcmp (buffer.Ptr(), RescueIsoImage, buffer.Size()) == 0)
+						return true;
+				}
 			}
 			catch (...) { }
 		}
+
+		return false;
+	}
+
+	bool BootEncryption::VerifyRescueDiskIsoImage (const char* imageFile)
+	{
+		if (!RescueIsoImage)
+			throw ParameterIncorrect (SRC_POS);
+
+		try
+		{
+			File isoFile (imageFile, true);
+			isoFile.CheckOpened (SRC_POS);
+			size_t verifiedSectorCount = (TC_CD_BOOTSECTOR_OFFSET + TC_ORIG_BOOT_LOADER_BACKUP_SECTOR_OFFSET + TC_BOOT_LOADER_AREA_SIZE) / 2048;
+			Buffer buffer ((verifiedSectorCount + 1) * 2048);
+
+			DWORD bytesRead = isoFile.Read (buffer.Ptr(), (DWORD) buffer.Size());
+			if (	(bytesRead == buffer.Size()) 
+				&& (memcmp (buffer.Ptr(), RescueIsoImage, buffer.Size()) == 0)
+				)
+			{
+				return true;
+			}
+		}
+		catch (...) { }
 
 		return false;
 	}
@@ -2017,6 +2050,7 @@ namespace VeraCrypt
 	{
 		SC_HANDLE scm = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
 		throw_sys_if (!scm);
+		finally_do_arg (SC_HANDLE, scm, { CloseServiceHandle (finally_arg); });
 
 		string servicePath = GetServiceConfigPath (TC_APP_NAME ".exe", false);
 		string serviceLegacyPath = GetServiceConfigPath (TC_APP_NAME ".exe", true);
@@ -2096,6 +2130,39 @@ namespace VeraCrypt
 				if (serviceLegacyPath != servicePath)
 					DeleteFile (serviceLegacyPath.c_str());
 			}
+		}
+	}
+
+	void BootEncryption::UpdateSystemFavoritesService ()
+	{
+		SC_HANDLE scm = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
+		throw_sys_if (!scm);
+
+		finally_do_arg (SC_HANDLE, scm, { CloseServiceHandle (finally_arg); });
+
+		string servicePath = GetServiceConfigPath (TC_APP_NAME ".exe", false);
+
+		// check if service exists
+		SC_HANDLE service = OpenService (scm, TC_SYSTEM_FAVORITES_SERVICE_NAME, SERVICE_ALL_ACCESS);
+		if (service)
+		{
+			// ensure that its parameters are correct
+			throw_sys_if (!ChangeServiceConfig (service,
+				SERVICE_WIN32_OWN_PROCESS,
+				SERVICE_AUTO_START,
+				SERVICE_ERROR_NORMAL,
+				(string ("\"") + servicePath + "\" " TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION).c_str(),
+				TC_SYSTEM_FAVORITES_SERVICE_LOAD_ORDER_GROUP,
+				NULL,
+				NULL,
+				NULL,
+				NULL,
+				TC_APP_NAME " System Favorites"));
+
+		}
+		else
+		{
+			RegisterSystemFavoritesService (TRUE, TRUE);
 		}
 	}
 
