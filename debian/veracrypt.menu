@@ -1,7 +1,0 @@
-?package(veracrypt):\
-  needs="X11"\
-  section="Applications/System/Security"\
-  title="VeraCrypt"\
-  longtitle="Create and mount VeraCrypt encrypted volumes"\
-  command="/usr/bin/veracrypt"\
-  icon="/usr/share/pixmaps/veracrypt.xpm"
