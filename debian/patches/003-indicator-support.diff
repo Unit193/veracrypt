@@ -6,7 +6,7 @@ This patch replaces the system tray icon with an application indicator applet.
 
 Forwarded: no
 
-Signed-off-by: Unit 193 <unit193@ninthfloor.org>
+Signed-off-by: Unit 193 <unit193@ubuntu.com>
 
 Index: veracrypt/src/Main/Main.make
 ===================================================================

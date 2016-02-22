@@ -1,7 +1,7 @@
 Source: veracrypt
 Section: non-free/utils
 Priority: optional
-Maintainer: Unit 193 <unit193@ninthfloor.org>
+Maintainer: Unit 193 <unit193@ubuntu.com>
 Build-Depends: debhelper (>= 9),
                imagemagick,
                libappindicator-dev,
