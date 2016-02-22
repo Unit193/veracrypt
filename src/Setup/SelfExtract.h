@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -19,7 +19,7 @@ extern "C" {
 typedef struct
 {
 	// WARNING: file name is NOT null-terminated (use fileNameLength).
-	unsigned char *fileName;
+	wchar_t *fileName;
 	int fileNameLength;
 	uint32 crc;
 	__int32 fileLength;
@@ -29,14 +29,14 @@ typedef struct
 extern DECOMPRESSED_FILE	Decompressed_Files [NBR_COMPRESSED_FILES];
 
 void SelfExtractStartupInit (void);
-BOOL SelfExtractInMemory (char *path);
+BOOL SelfExtractInMemory (wchar_t *path);
 void __cdecl ExtractAllFilesThread (void *hwndDlg);
-BOOL MakeSelfExtractingPackage (HWND hwndDlg, char *szDestDir);
+BOOL MakeSelfExtractingPackage (HWND hwndDlg, wchar_t *szDestDir);
 BOOL VerifyPackageIntegrity (void);
 BOOL IsSelfExtractingPackage (void);
 static void DeobfuscateMagEndMarker (void);
 
-extern char DestExtractPath [TC_MAX_PATH];
+extern wchar_t DestExtractPath [TC_MAX_PATH];
 
 #ifdef __cplusplus
 }

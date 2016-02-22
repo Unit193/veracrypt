@@ -14,11 +14,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// German (Germany) resources
+// English (U.S.) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_DEU)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
-LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
 #endif //_WIN32
 
@@ -35,7 +35,8 @@ BEGIN
     EDITTEXT        IDC_SIZEBOX,30,102,109,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "&KB",IDC_KB,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,169,105,38,10
     CONTROL         "&MB",IDC_MB,"Button",BS_AUTORADIOBUTTON,209,105,38,10
-    CONTROL         "&GB",IDC_GB,"Button",BS_AUTORADIOBUTTON,247,105,38,10
+    CONTROL         "&GB",IDC_GB,"Button",BS_AUTORADIOBUTTON,248,105,38,10
+    CONTROL         "&TB",IDC_TB,"Button",BS_AUTORADIOBUTTON,288,105,38,10
     CONTROL         "Fill new space with random data",IDC_INIT_NEWSPACE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,127,118,10
     DEFPUSHBUTTON   "Continue",IDOK,15,238,84,18
@@ -52,44 +53,6 @@ BEGIN
     RTEXT           "File system: ",IDT_FILE_SYS,31,30,42,8
     CONTROL         "",IDC_EXPAND_FILE_SYSTEM,"Static",SS_SIMPLE | WS_GROUP,80,30,275,8,WS_EX_TRANSPARENT
 END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
-BEGIN
-    IDD_SIZE_DIALOG, DIALOG
-    BEGIN
-        LEFTMARGIN, 15
-        RIGHTMARGIN, 361
-        VERTGUIDE, 30
-        TOPMARGIN, 14
-        BOTTOMMARGIN, 256
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-#endif    // German (Germany) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
-#endif //_WIN32
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
 
 IDD_MOUNT_DLG DIALOGEX 0, 0, 376, 271
 STYLE DS_SETFONT | DS_SETFOREGROUND | DS_3DLOOK | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
@@ -121,8 +84,8 @@ BEGIN
     EDITTEXT        IDC_PASSWORD,69,8,166,14,ES_PASSWORD | ES_AUTOHSCROLL
     COMBOBOX        IDC_PKCS5_PRF_ID,69,26,86,90,CBS_DROPDOWNLIST | WS_TABSTOP
     CONTROL         "TrueCrypt Mode",IDC_TRUECRYPT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,28,76,10
-    EDITTEXT        IDC_PIM,69,43,42,14,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER | NOT WS_VISIBLE
-    CONTROL         "Use PIM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,70,49,97,10
+    EDITTEXT        IDC_PIM,69,43,42,14,ES_RIGHT | ES_PASSWORD | ES_AUTOHSCROLL | ES_NUMBER | NOT WS_VISIBLE
+    CONTROL         "Use P&IM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,70,49,97,10
     CONTROL         "Cache passwords and keyfil&es in memory",IDC_CACHE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,70,62,153,10
     CONTROL         "&Display password",IDC_SHOW_PASSWORD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,70,75,83,10
@@ -137,7 +100,7 @@ BEGIN
     LTEXT           "(Empty or 0 for default iterations)",IDC_PIM_HELP,115,46,189,8,NOT WS_VISIBLE
 END
 
-IDD_EXPAND_PROGRESS_DLG DIALOGEX 0, 0, 376, 271
+IDD_EXPAND_PROGRESS_DLG DIALOGEX 0, 0, 376, 283
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt Expander"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
@@ -157,16 +120,18 @@ BEGIN
     RTEXT           "Volume: ",IDT_VOL_NAME,31,16,42,8
     GROUPBOX        "",IDC_STATIC,15,7,346,72
     CONTROL         "",IDC_EXPAND_VOLUME_NAME,"Static",SS_SIMPLE | WS_GROUP,80,16,275,8,WS_EX_TRANSPARENT
-    DEFPUSHBUTTON   "Continue",IDOK,15,238,84,18
-    PUSHBUTTON      "Cancel",IDCANCEL,277,238,84,18
-    EDITTEXT        IDC_BOX_STATUS,15,162,346,66,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
+    DEFPUSHBUTTON   "Continue",IDOK,15,247,84,18
+    PUSHBUTTON      "Cancel",IDCANCEL,277,247,84,18
+    EDITTEXT        IDC_BOX_STATUS,15,176,346,66,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
     CONTROL         "",IDC_EXPAND_VOLUME_INITSPACE,"Static",SS_SIMPLE | WS_GROUP,80,64,275,8,WS_EX_TRANSPARENT
     RTEXT           "Fill new space: ",IDT_INIT_SPACE,20,64,53,8
     RTEXT           "File system: ",IDT_FILE_SYS,31,28,42,8
     CONTROL         "",IDC_EXPAND_FILE_SYSTEM,"Static",SS_SIMPLE | WS_GROUP,80,28,275,8,WS_EX_TRANSPARENT
     RTEXT           "Random Pool: ",IDT_RANDOM_POOL2,20,144,53,8
     CONTROL         "",IDC_RANDOM_BYTES,"Static",SS_SIMPLE | WS_GROUP,80,144,149,8,WS_EX_TRANSPARENT
-    CONTROL         "",IDC_DISPLAY_POOL_CONTENTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,236,142,14,12
+    CONTROL         "Display pool content",IDC_DISPLAY_POOL_CONTENTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,236,142,125,12
+    GROUPBOX        "Randomness Collected From Mouse Movements",IDT_ENTROPY_BAR,20,156,214,18
+    CONTROL         "",IDC_ENTROPY_BAR,"msctls_progress32",WS_BORDER,31,165,193,6
 END
 
 
@@ -178,6 +143,15 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO 
 BEGIN
+    IDD_SIZE_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 15
+        RIGHTMARGIN, 361
+        VERTGUIDE, 30
+        TOPMARGIN, 14
+        BOTTOMMARGIN, 256
+    END
+
     IDD_MOUNT_DLG, DIALOG
     BEGIN
         RIGHTMARGIN, 369
@@ -198,8 +172,8 @@ BEGIN
         VERTGUIDE, 80
         VERTGUIDE, 355
         TOPMARGIN, 9
-        BOTTOMMARGIN, 256
-        HORZGUIDE, 162
+        BOTTOMMARGIN, 268
+        HORZGUIDE, 176
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -218,8 +192,8 @@ IDR_MOUNT_RSRC_HEADER   HEADER                  "resource.h"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,14,15,0
- PRODUCTVERSION 1,14,15,0
+ FILEVERSION 1,17,22,0
+ PRODUCTVERSION 1,17,22,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -236,11 +210,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "IDRIX"
             VALUE "FileDescription", "VeraCrypt Expander"
-            VALUE "FileVersion", "1.14"
+            VALUE "FileVersion", "1.17"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCryptExpander.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.14"
+            VALUE "ProductVersion", "1.17"
         END
     END
     BLOCK "VarFileInfo"

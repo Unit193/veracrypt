@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -112,6 +112,7 @@ typedef struct
 	wchar_t wszLabel[33]; // maximum label length is 32 for NTFS and 11 for FAT32
 	BOOL bIsNTFS; // output only
 	BOOL bDriverSetLabel;
+	BOOL bCachePim;
 } MOUNT_STRUCT;
 
 typedef struct
@@ -311,18 +312,15 @@ typedef struct
 
 #pragma pack (pop)
 
-#ifdef TC_WINDOWS_DRIVER
 #define DRIVER_STR WIDE
-#else
-#define DRIVER_STR
-#endif
 
 #define TC_UNIQUE_ID_PREFIX "VeraCryptVolume"
 #define TC_MOUNT_PREFIX L"\\Device\\VeraCryptVolume"
 
 #define NT_MOUNT_PREFIX DRIVER_STR("\\Device\\VeraCryptVolume")
 #define NT_ROOT_PREFIX DRIVER_STR("\\Device\\VeraCrypt")
-#define DOS_MOUNT_PREFIX DRIVER_STR("\\DosDevices\\")
+#define DOS_MOUNT_PREFIX_DEFAULT DRIVER_STR("\\DosDevices\\")
+#define DOS_MOUNT_PREFIX_GLOBAL DRIVER_STR("\\GLOBAL??\\") // Use Global MS-DOS device names for sanity checks on drive letters
 #define DOS_ROOT_PREFIX DRIVER_STR("\\DosDevices\\VeraCrypt")
 #define WIN32_ROOT_PREFIX DRIVER_STR("\\\\.\\VeraCrypt")
 
@@ -335,5 +333,7 @@ typedef struct
 #define TC_DRIVER_CONFIG_DISABLE_NONADMIN_SYS_FAVORITES_ACCESS		0x4
 #define TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION				0x8
 #define TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL						0x10
+#define TC_DRIVER_CONFIG_DISABLE_EVIL_MAID_ATTACK_DETECTION			0x20
+#define TC_DRIVER_CONFIG_CACHE_BOOT_PIM								0x40
 
 #endif		/* _WIN32 */

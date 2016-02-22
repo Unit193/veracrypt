@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -74,6 +74,7 @@ void RandAddInt64 (unsigned __int64 x)
 
 HHOOK hMouse = NULL;		/* Mouse hook for the random number generator */
 HHOOK hKeyboard = NULL;		/* Keyboard hook for the random number generator */
+DWORD ProcessedMouseEventsCounter = 0;
 
 /* Variables for thread control, the thread is used to gather up info about
    the system in in the background */
@@ -103,6 +104,7 @@ int Randinit ()
 
 	bRandDidInit = TRUE;
 	CryptoAPILastError = ERROR_SUCCESS;
+	ProcessedMouseEventsCounter = 0;
 
 	if (pRandPool == NULL)
 	{
@@ -351,7 +353,7 @@ void RandaddBuf (void *buf, int len)
 	}
 }
 
-BOOL RandpeekBytes (void* hwndDlg, unsigned char *buf, int len)
+BOOL RandpeekBytes (void* hwndDlg, unsigned char *buf, int len, DWORD* mouseCounter)
 {
 	if (!bRandDidInit)
 		return FALSE;
@@ -363,6 +365,7 @@ BOOL RandpeekBytes (void* hwndDlg, unsigned char *buf, int len)
 	}
 
 	EnterCriticalSection (&critRandProt);
+	*mouseCounter = ProcessedMouseEventsCounter;
 	memcpy (buf, pRandPool, len);
 	LeaveCriticalSection (&critRandProt);
 
@@ -476,6 +479,7 @@ LRESULT CALLBACK MouseProc (int nCode, WPARAM wParam, LPARAM lParam)
 {
 	static DWORD dwLastTimer;
 	static unsigned __int32 lastCrc, lastCrc2;
+	static POINT lastPoint;
 	MOUSEHOOKSTRUCT *lpMouse = (MOUSEHOOKSTRUCT *) lParam;
 
 	if (nCode < 0)
@@ -486,6 +490,7 @@ LRESULT CALLBACK MouseProc (int nCode, WPARAM wParam, LPARAM lParam)
 		DWORD j = dwLastTimer - dwTimer;
 		unsigned __int32 crc = 0L;
 		int i;
+		POINT pt = lpMouse->pt;
 
 		dwLastTimer = dwTimer;
 
@@ -509,6 +514,13 @@ LRESULT CALLBACK MouseProc (int nCode, WPARAM wParam, LPARAM lParam)
 			}
 
 			EnterCriticalSection (&critRandProt);
+			/* only count real mouse messages in entropy estimation */
+			if (	(nCode == HC_ACTION) && (wParam == WM_MOUSEMOVE) 
+				&& ((pt.x != lastPoint.x) || (pt.y != lastPoint.y)))
+			{
+				ProcessedMouseEventsCounter++;
+				lastPoint = pt;
+			}
 			RandaddInt32 ((unsigned __int32) (crc + timeCrc));
 			LeaveCriticalSection (&critRandProt);
 		}
@@ -631,17 +643,17 @@ BOOL SlowPoll (void)
 		HKEY hKey;
 
 		if (RegOpenKeyEx (HKEY_LOCAL_MACHINE,
-		       "SYSTEM\\CurrentControlSet\\Control\\ProductOptions",
+		       L"SYSTEM\\CurrentControlSet\\Control\\ProductOptions",
 				  0, KEY_READ, &hKey) == ERROR_SUCCESS)
 		{
-			unsigned char szValue[32];
+			wchar_t szValue[32];
 			dwSize = sizeof (szValue);
 
 			isWorkstation = TRUE;
-			status = RegQueryValueEx (hKey, "ProductType", 0, NULL,
-						  szValue, &dwSize);
+			status = RegQueryValueEx (hKey, L"ProductType", 0, NULL,
+						  (LPBYTE) szValue, &dwSize);
 
-			if (status == ERROR_SUCCESS && _stricmp ((char *) szValue, "WinNT"))
+			if (status == ERROR_SUCCESS && _wcsicmp (szValue, L"WinNT"))
 				/* Note: There are (at least) three cases for
 				   ProductType: WinNT = NT Workstation,
 				   ServerNT = NT Server, LanmanNT = NT Server
@@ -656,13 +668,13 @@ BOOL SlowPoll (void)
 	{
 		/* Obtain a handle to the module containing the Lan Manager
 		   functions */
-		char dllPath[MAX_PATH];
+		wchar_t dllPath[MAX_PATH];
 		if (GetSystemDirectory (dllPath, MAX_PATH))
 		{
-			StringCbCatA(dllPath, sizeof(dllPath), "\\NETAPI32.DLL");
+			StringCchCatW(dllPath, ARRAYSIZE(dllPath), L"\\NETAPI32.DLL");
 		}
 		else
-			StringCbCopyA(dllPath, sizeof(dllPath), "C:\\Windows\\System32\\NETAPI32.DLL");
+			StringCchCopyW(dllPath, ARRAYSIZE(dllPath), L"C:\\Windows\\System32\\NETAPI32.DLL");
 
 		hNetAPI32 = LoadLibrary (dllPath);
 		if (hNetAPI32 != NULL)
@@ -710,10 +722,10 @@ BOOL SlowPoll (void)
 	for (nDrive = 0;; nDrive++)
 	{
 		DISK_PERFORMANCE diskPerformance;
-		char szDevice[24];
+		wchar_t szDevice[24];
 
 		/* Check whether we can access this device */
-		StringCbPrintfA (szDevice, sizeof(szDevice), "\\\\.\\PhysicalDrive%d", nDrive);
+		StringCchPrintfW (szDevice, ARRAYSIZE(szDevice), L"\\\\.\\PhysicalDrive%d", nDrive);
 		hDevice = CreateFile (szDevice, 0, FILE_SHARE_READ | FILE_SHARE_WRITE,
 				      NULL, OPEN_EXISTING, 0, NULL);
 		if (hDevice == INVALID_HANDLE_VALUE)

@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2015 Mounir IDRASSI for the VeraCrypt project.
+ Copyright (c) 2015-2016 Mounir IDRASSI for the VeraCrypt project.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -38,7 +38,8 @@ namespace VeraCrypt
 			long pim = 0;
 			if (pimStr.IsEmpty())
 				return 0;
-			if (pimStr.ToLong (&pim))
+			if (((size_t) wxNOT_FOUND == pimStr.find_first_not_of (wxT("0123456789"))) 
+				&& pimStr.ToLong (&pim))
 				return (int) pim;
 			else
 				return -1;

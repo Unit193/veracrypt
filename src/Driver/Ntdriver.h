@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -101,6 +101,11 @@ typedef enum
 	ValidateInputOutput
 } ValidateIOBufferSizeType;
 
+typedef enum
+{
+	DeviceNamespaceDefault,
+	DeviceNamespaceGlobal,
+} DeviceNamespaceType;
 
 extern PDRIVER_OBJECT TCDriverObject;
 extern PDEVICE_OBJECT RootDeviceObject;
@@ -109,6 +114,7 @@ extern ULONG OsMajorVersion;
 extern ULONG OsMinorVersion;
 extern BOOL VolumeClassFilterRegistered;
 extern BOOL CacheBootPassword;
+extern BOOL CacheBootPim;
 
 /* Helper macro returning x seconds in units of 100 nanoseconds */
 #define WAIT_SECONDS(x) ((x)*10000000)
@@ -133,7 +139,7 @@ void TCStopVolumeThread (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension);
 VOID VolumeThreadProc (PVOID Context);
 void TCSleep (int milliSeconds);
 void TCGetNTNameFromNumber (LPWSTR ntname, int cbNtName, int nDriveNo);
-void TCGetDosNameFromNumber (LPWSTR dosname, int cbDosName, int nDriveNo);
+void TCGetDosNameFromNumber (LPWSTR dosname, int cbDosName, int nDriveNo, DeviceNamespaceType namespaceType);
 LPWSTR TCTranslateCode (ULONG ulCode);
 void TCDeleteDeviceObject (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension);
 VOID TCUnloadDriver (PDRIVER_OBJECT DriverObject);
@@ -161,7 +167,7 @@ BOOL UserCanAccessDriveDevice ();
 size_t GetCpuCount ();
 void EnsureNullTerminatedString (wchar_t *str, size_t maxSizeInBytes);
 void *AllocateMemoryWithTimeout (size_t size, int retryDelay, int timeout);
-BOOL IsDriveLetterAvailable (int nDosDriveNo);
+BOOL IsDriveLetterAvailable (int nDosDriveNo, DeviceNamespaceType namespaceType);
 NTSTATUS TCReadRegistryKey (PUNICODE_STRING keyPath, wchar_t *keyValueName, PKEY_VALUE_PARTIAL_INFORMATION *keyData);
 NTSTATUS TCWriteRegistryKey (PUNICODE_STRING keyPath, wchar_t *keyValueName, ULONG keyValueType, void *valueData, ULONG valueSize);
 BOOL IsVolumeClassFilterRegistered ();

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -132,6 +132,11 @@ public:
 		return BaseCom::WriteLocalMachineRegistryDwordValue (keyPath, valueName, value);
 	}
 
+	virtual BOOL STDMETHODCALLTYPE FormatFs (int driveNo, int clusterSize, int fsType)
+	{
+		return ::FormatFs (driveNo, clusterSize, fsType);
+	}
+
 protected:
 	DWORD MessageThreadId;
 	LONG RefCount;
@@ -154,13 +159,13 @@ extern "C" BOOL ComServerFormat ()
 		return FALSE;
 
 	MSG msg;
-	while (int r = GetMessage (&msg, NULL, 0, 0))
+	while (int r = GetMessageW (&msg, NULL, 0, 0))
 	{
 		if (r == -1)
 			return FALSE;
 
 		TranslateMessage (&msg);
-		DispatchMessage (&msg);
+		DispatchMessageW (&msg);
 
 		if (msg.message == WM_APP
 			&& ObjectCount < 1
@@ -199,6 +204,23 @@ extern "C" int UacFormatNtfs (HWND hWnd, int driveNo, int clusterSize)
 
 	if (ComGetInstance (hWnd, &tc))
 		r = tc->FormatNtfs (driveNo, clusterSize);
+	else
+		r = 0;
+
+	CoUninitialize ();
+
+	return r;
+}
+
+extern "C" int UacFormatFs (HWND hWnd, int driveNo, int clusterSize, int fsType)
+{
+	CComPtr<ITrueCryptFormatCom> tc;
+	int r;
+
+	CoInitialize (NULL);
+
+	if (ComGetInstance (hWnd, &tc))
+		r = tc->FormatFs (driveNo, clusterSize, fsType);
 	else
 		r = 0;
 

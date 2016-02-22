@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,14,15,0
- PRODUCTVERSION 1,14,15,0
+ FILEVERSION 1,17,22,0
+ PRODUCTVERSION 1,17,22,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -46,11 +46,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "IDRIX"
             VALUE "FileDescription", "VeraCrypt Format"
-            VALUE "FileVersion", "1.14"
+            VALUE "FileVersion", "1.17"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCrypt Format.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.14"
+            VALUE "ProductVersion", "1.17"
         END
     END
     BLOCK "VarFileInfo"
@@ -119,7 +119,7 @@ BEGIN
     CONTROL         "U&se keyfiles",IDC_KEYFILES_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,53,35,95,10
     PUSHBUTTON      "&Keyfiles...",IDC_KEY_FILES,152,36,64,14,WS_DISABLED
     CONTROL         "&Display password",IDC_SHOW_PASSWORD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,53,45,95,11,WS_EX_TRANSPARENT
-    CONTROL         "Use PIM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,53,56,97,10
+    CONTROL         "Use P&IM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,53,56,97,10
     RTEXT           "Password:",IDT_PASSWORD,1,6,50,8
     RTEXT           "&Confirm:",IDT_CONFIRM,1,23,50,8
     LTEXT           "",IDC_BOX_HELP,0,71,225,97
@@ -130,11 +130,12 @@ STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     EDITTEXT        IDC_SIZEBOX,0,22,71,14,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "&KB",IDC_KB,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,80,25,38,10
-    CONTROL         "&MB",IDC_MB,"Button",BS_AUTORADIOBUTTON,119,25,38,10
-    CONTROL         "&GB",IDC_GB,"Button",BS_AUTORADIOBUTTON,158,25,38,10
+    CONTROL         "&KB",IDC_KB,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,80,25,27,10
+    CONTROL         "&MB",IDC_MB,"Button",BS_AUTORADIOBUTTON,115,25,27,10
+    CONTROL         "&GB",IDC_GB,"Button",BS_AUTORADIOBUTTON,150,25,27,10
     LTEXT           "",IDC_BOX_HELP,0,75,214,64
     LTEXT           "",IDC_SPACE_LEFT,0,44,214,21
+    CONTROL         "&TB",IDC_TB,"Button",BS_AUTORADIOBUTTON,185,25,27,10
 END
 
 IDD_VOLUME_LOCATION_PAGE_DLG DIALOGEX 0, 0, 226, 172
@@ -175,6 +176,8 @@ BEGIN
     RTEXT           "Random Pool: ",IDT_RANDOM_POOL,2,39,54,8
     GROUPBOX        "",IDC_STATIC,0,32,225,35
     CONTROL         "",IDC_RANDOM_BYTES,"Static",SS_SIMPLE | WS_GROUP,57,38,155,8,WS_EX_TRANSPARENT
+    GROUPBOX        "Randomness Collected From Mouse Movements",IDT_ENTROPY_BAR,0,153,224,18
+    CONTROL         "",IDC_ENTROPY_BAR,"msctls_progress32",WS_BORDER,11,162,202,6
 END
 
 IDD_INTRO_PAGE_DLG DIALOGEX 0, 0, 226, 172
@@ -234,7 +237,7 @@ BEGIN
     RTEXT           "Password:",IDT_PASSWORD,0,6,48,8
     RTEXT           "PKCS-5 PRF:",IDT_PKCS5_PRF,0,19,48,8
     RTEXT           "Volume PIM:",IDT_PIM,0,35,48,8,NOT WS_VISIBLE
-    CONTROL         "Use PIM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,35,97,10
+    CONTROL         "Use P&IM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,50,35,97,10
 END
 
 IDD_VOLUME_TYPE_PAGE_DLG DIALOGEX 0, 0, 226, 172
@@ -276,6 +279,8 @@ BEGIN
     CONTROL         "",IDC_SYS_POOL_CONTENTS,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,8,14,205,72,WS_EX_TRANSPARENT
     LTEXT           "IMPORTANT: Move your mouse as randomly as possible within this window. The longer you move it, the better. This significantly increases the cryptographic strength of the encryption keys. Then click Next to continue.",IDT_COLLECTING_RANDOM_DATA_NOTE,1,112,224,40
     GROUPBOX        "Current pool content (partial)",IDT_PARTIAL_POOL_CONTENTS,0,5,222,88
+    GROUPBOX        "Randomness Collected From Mouse Movements",IDT_ENTROPY_BAR,0,154,224,18
+    CONTROL         "",IDC_ENTROPY_BAR,"msctls_progress32",WS_BORDER,11,163,202,6
 END
 
 IDD_SYSENC_MULTI_BOOT_MODE_PAGE_DLG DIALOGEX 0, 0, 226, 172

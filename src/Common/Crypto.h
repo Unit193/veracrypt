@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -112,7 +112,11 @@ enum
 typedef struct
 {
 	int Id;					// Cipher ID
+#ifdef TC_WINDOWS_BOOT
 	char *Name;				// Name
+#else
+	wchar_t *Name;			// Name
+#endif
 	int BlockSize;			// Block size (bytes)
 	int KeySize;			// Key size (bytes)
 	int KeyScheduleSize;	// Scheduled key size (bytes)
@@ -125,13 +129,15 @@ typedef struct
 	int FormatEnabled;
 } EncryptionAlgorithm;
 
+#ifndef TC_WINDOWS_BOOT
 typedef struct
 {
 	int Id;					// Hash ID
-	char *Name;				// Name
+	wchar_t *Name;				// Name
 	BOOL Deprecated;
 	BOOL SystemEncryption;	// Available for system encryption
 } Hash;
+#endif
 
 // Maxium length of scheduled key
 #if !defined (TC_WINDOWS_BOOT) || defined (TC_WINDOWS_BOOT_AES)
@@ -185,14 +191,21 @@ typedef struct
 #include "GfMul.h"
 #include "Password.h"
 
+#ifndef TC_WINDOWS_BOOT
+
+#include "config.h"
+
 typedef struct keyInfo_t
 {
 	int noIterations;					/* Number of times to iterate (PKCS-5) */
 	int keyLength;						/* Length of the key */
-	__int8 userKey[MAX_PASSWORD];		/* Password (to which keyfiles may have been applied). WITHOUT +1 for the null terminator. */
+	uint64 dummy;						/* Dummy field to ensure 16-byte alignment of this structure */
 	__int8 salt[PKCS5_SALT_SIZE];		/* PKCS-5 salt */
 	__int8 master_keydata[MASTER_KEYDATA_SIZE];		/* Concatenated master primary and secondary key(s) (XTS mode). For LRW (deprecated/legacy), it contains the tweak key before the master key(s). For CBC (deprecated/legacy), it contains the IV seed before the master key(s). */
+	CRYPTOPP_ALIGN_DATA(16) __int8 userKey[MAX_PASSWORD];		/* Password (to which keyfiles may have been applied). WITHOUT +1 for the null terminator. */
 } KEY_INFO, *PKEY_INFO;
+
+#endif
 
 typedef struct CRYPTO_INFO_t
 {
@@ -267,7 +280,9 @@ typedef struct BOOT_CRYPTO_HEADER_t
 #endif
 
 PCRYPTO_INFO crypto_open (void);
+#ifndef TC_WINDOWS_BOOT
 void crypto_loadkey (PKEY_INFO keyInfo, char *lpszUserKey, int nUserKeyLen);
+#endif
 void crypto_close (PCRYPTO_INFO cryptoInfo);
 
 int CipherGetBlockSize (int cipher);
@@ -276,9 +291,8 @@ int CipherGetKeyScheduleSize (int cipher);
 BOOL CipherSupportsIntraDataUnitParallelization (int cipher);
 
 #ifndef TC_WINDOWS_BOOT
-const
+const wchar_t * CipherGetName (int cipher);
 #endif
-char * CipherGetName (int cipher);
 
 int CipherInit (int cipher, unsigned char *key, unsigned char *ks);
 #ifndef TC_WINDOWS_BOOT_SINGLE_CIPHER_MODE
@@ -297,12 +311,16 @@ void DecipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount);
 int EAGetFirst ();
 int EAGetCount (void);
 int EAGetNext (int previousEA);
-char * EAGetName (char *buf, int ea, int guiDisplay);
-int EAGetByName (char *name);
+#ifndef TC_WINDOWS_BOOT
+wchar_t * EAGetName (wchar_t *buf, int ea, int guiDisplay);
+int EAGetByName (wchar_t *name);
+#endif
 int EAGetKeySize (int ea);
 int EAGetFirstMode (int ea);
 int EAGetNextMode (int ea, int previousModeId);
-char * EAGetModeName (int ea, int mode, BOOL capitalLetters);
+#ifndef TC_WINDOWS_BOOT
+wchar_t * EAGetModeName (int ea, int mode, BOOL capitalLetters);
+#endif
 int EAGetKeyScheduleSize (int ea);
 int EAGetLargestKey ();
 int EAGetLargestKeyForMode (int mode);
@@ -317,13 +335,10 @@ BOOL EAIsModeSupported (int ea, int testedMode);
 
 
 #ifndef TC_WINDOWS_BOOT
-const
-#endif
-char *HashGetName (int hash_algo_id);
+const wchar_t *HashGetName (int hash_algo_id);
 
-#ifndef TC_WINDOWS_BOOT
 Hash *HashGet (int id);
-void HashGetName2 (char *buf, int hashId);
+void HashGetName2 (wchar_t *buf, int hashId);
 BOOL HashIsDeprecated (int hashId);
 BOOL HashForSystemEncryption (int hashId);
 int GetMaxPkcs5OutSize (void);

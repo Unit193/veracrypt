@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -13,6 +13,7 @@
 #include "TCdefs.h"
 #include <ntddk.h>
 #include <ntddvol.h>
+#include <Ntstrsafe.h>
 #include "Cache.h"
 #include "Crc.h"
 #include "Crypto.h"
@@ -124,7 +125,10 @@ NTSTATUS LoadBootArguments ()
 				Dump ("BootArgumentsCrc32 = %x\n", BootArgs.BootArgumentsCrc32);
 
 				if (CacheBootPassword && BootArgs.BootPassword.Length > 0)
-					AddPasswordToCache (&BootArgs.BootPassword);
+				{
+					int pim = CacheBootPim? (int) (BootArgs.Flags >> 16) : 0;
+					AddPasswordToCache (&BootArgs.BootPassword, pim);
+				}
 
 				// clear fingerprint
 				burn (BootLoaderFingerprint, sizeof (BootLoaderFingerprint));
@@ -1541,9 +1545,11 @@ static VOID SetupThreadProc (PVOID threadArg)
 		{
 			status = SaveDriveVolumeHeader (Extension);
 			ASSERT (NT_SUCCESS (status));
-
-			headerUpdateRequired = FALSE;
-			bytesWrittenSinceHeaderUpdate = 0;
+			if (NT_SUCCESS (status))
+			{
+				headerUpdateRequired = FALSE;
+				bytesWrittenSinceHeaderUpdate = 0;
+			}
 		}
 	}
 
@@ -1812,9 +1818,14 @@ void GetBootEncryptionAlgorithmName (PIRP irp, PIO_STACK_LOCATION irpSp)
 	{
 		if (BootDriveFilterExtension && BootDriveFilterExtension->DriveMounted)
 		{
+			wchar_t BootEncryptionAlgorithmNameW[256];
+			wchar_t BootPrfAlgorithmNameW[256];
 			GetBootEncryptionAlgorithmNameRequest *request = (GetBootEncryptionAlgorithmNameRequest *) irp->AssociatedIrp.SystemBuffer;
-			EAGetName (request->BootEncryptionAlgorithmName, BootDriveFilterExtension->Queue.CryptoInfo->ea, 0);
-			HashGetName2 (request->BootPrfAlgorithmName, BootDriveFilterExtension->Queue.CryptoInfo->pkcs5);
+			EAGetName (BootEncryptionAlgorithmNameW, BootDriveFilterExtension->Queue.CryptoInfo->ea, 0);
+			HashGetName2 (BootPrfAlgorithmNameW, BootDriveFilterExtension->Queue.CryptoInfo->pkcs5);
+
+			RtlStringCbPrintfA (request->BootEncryptionAlgorithmName, sizeof (request->BootEncryptionAlgorithmName), "%S", BootEncryptionAlgorithmNameW);
+			RtlStringCbPrintfA (request->BootPrfAlgorithmName, sizeof (request->BootPrfAlgorithmName), "%S", BootPrfAlgorithmNameW);
 
 			irp->IoStatus.Information = sizeof (GetBootEncryptionAlgorithmNameRequest);
 			irp->IoStatus.Status = STATUS_SUCCESS;

@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -17,15 +17,15 @@
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.14"
+#define VERSION_STRING					"1.17"
 
 // Version number to compare against driver
-#define VERSION_NUM						0x0114
+#define VERSION_NUM						0x0117
 
 // Release date
-#define TC_STR_RELEASE_DATE				"Septembre 16th, 2015"
-#define TC_RELEASE_DATE_YEAR			2015
-#define TC_RELEASE_DATE_MONTH			09
+#define TC_STR_RELEASE_DATE			L"February 13th, 2016"
+#define TC_RELEASE_DATE_YEAR			2016
+#define TC_RELEASE_DATE_MONTH			 2
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -52,6 +52,7 @@ typedef unsigned __int32	TC_LARGEST_COMPILER_UINT;
 typedef unsigned __int64	TC_LARGEST_COMPILER_UINT;
 typedef __int64 int64;
 typedef unsigned __int64 uint64;
+#define LL(x) x##ui64
 #endif
 
 #else // !_MSC_VER
@@ -67,6 +68,8 @@ typedef uint8_t byte;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+
+#define LL(x) x##ULL
 
 #if UCHAR_MAX != 0xffU
 #error UCHAR_MAX != 0xff
@@ -175,6 +178,7 @@ typedef int BOOL;
 #include <process.h>		/* Process control */
 #include <winioctl.h>
 #include <stdio.h>		/* For sprintf */
+#include <tchar.h>
 
 #endif				/* _WIN32 */
 
@@ -254,7 +258,7 @@ void EraseMemory (void *memory, int size);
 #define TC_MAX_PATH		260	/* Includes the null terminator */
 #endif
 
-#define TC_STR_RELEASED_BY "Released by IDRIX on " TC_STR_RELEASE_DATE
+#define TC_STR_RELEASED_BY L"Released by IDRIX on " TC_STR_RELEASE_DATE
 
 #define MAX_URL_LENGTH	2084 /* Internet Explorer limit. Includes the terminating null character. */
 

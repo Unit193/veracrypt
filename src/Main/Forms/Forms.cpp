@@ -1362,11 +1362,23 @@ KeyfileGeneratorDialogBase::KeyfileGeneratorDialogBase( wxWindow* parent, wxWind
 	bSizer147->Add( RandomPoolStaticText, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	ShowRandomPoolCheckBox = new wxCheckBox( this, wxID_ANY, _("Show"), wxDefaultPosition, wxDefaultSize, 0 );
-	ShowRandomPoolCheckBox->SetValue(true); 
 	bSizer147->Add( ShowRandomPoolCheckBox, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	
 	sbSizer43->Add( bSizer147, 0, wxEXPAND|wxTOP, 5 );
+	
+	
+	sbSizer43->Add( 0, 0, 1, wxEXPAND, 5 );
+	
+	wxStaticBoxSizer* sbSizer45;
+	sbSizer45 = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Randomness Collected From Mouse Movements") ), wxVERTICAL );
+	
+	CollectedEntropy = new wxGauge( this, wxID_ANY, 2560, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL|wxGA_SMOOTH );
+	CollectedEntropy->SetValue( 0 ); 
+	sbSizer45->Add( CollectedEntropy, 1, wxALL|wxEXPAND, 5 );
+	
+	
+	sbSizer43->Add( sbSizer45, 0, wxBOTTOM|wxEXPAND|wxTOP, 5 );
 	
 	
 	sbSizer43->Add( 0, 0, 1, wxEXPAND, 5 );
@@ -1424,7 +1436,7 @@ KeyfileGeneratorDialogBase::KeyfileGeneratorDialogBase( wxWindow* parent, wxWind
 	bSizer162->Add( fgSizer8, 1, wxEXPAND, 5 );
 	
 	
-	bSizer144->Add( bSizer162, 1, wxALL|wxEXPAND, 5 );
+	bSizer144->Add( bSizer162, 0, wxALL|wxEXPAND, 5 );
 	
 	wxBoxSizer* bSizer146;
 	bSizer146 = new wxBoxSizer( wxHORIZONTAL );
@@ -2315,11 +2327,23 @@ RandomPoolEnrichmentDialogBase::RandomPoolEnrichmentDialogBase( wxWindow* parent
 	bSizer147->Add( RandomPoolStaticText, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	ShowRandomPoolCheckBox = new wxCheckBox( this, wxID_ANY, _("Show"), wxDefaultPosition, wxDefaultSize, 0 );
-	ShowRandomPoolCheckBox->SetValue(true); 
 	bSizer147->Add( ShowRandomPoolCheckBox, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5 );
 	
 	
 	sbSizer43->Add( bSizer147, 0, wxEXPAND|wxTOP, 5 );
+	
+	
+	sbSizer43->Add( 0, 0, 1, wxEXPAND, 5 );
+	
+	wxStaticBoxSizer* sbSizer45;
+	sbSizer45 = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Randomness Collected From Mouse Movements") ), wxVERTICAL );
+	
+	CollectedEntropy = new wxGauge( this, wxID_ANY, 2560, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL|wxGA_SMOOTH );
+	CollectedEntropy->SetValue( 0 ); 
+	sbSizer45->Add( CollectedEntropy, 0, wxALL|wxEXPAND, 5 );
+	
+	
+	sbSizer43->Add( sbSizer45, 0, wxBOTTOM|wxEXPAND|wxTOP, 5 );
 	
 	
 	sbSizer43->Add( 0, 0, 1, wxEXPAND, 5 );
@@ -2861,7 +2885,6 @@ VolumeCreationProgressWizardPageBase::VolumeCreationProgressWizardPageBase( wxWi
 	bSizer126->Add( RandomPoolSampleStaticText, 0, wxEXPAND|wxTOP|wxRIGHT|wxALIGN_BOTTOM, 7 );
 	
 	DisplayKeysCheckBox = new wxCheckBox( this, wxID_ANY, _("Show"), wxDefaultPosition, wxDefaultSize, 0 );
-	DisplayKeysCheckBox->SetValue(true); 
 	bSizer126->Add( DisplayKeysCheckBox, 0, wxEXPAND|wxRIGHT, 5 );
 	
 	
@@ -2894,6 +2917,16 @@ VolumeCreationProgressWizardPageBase::VolumeCreationProgressWizardPageBase( wxWi
 	
 	
 	bSizer105->Add( sbSizer31, 0, wxALL|wxEXPAND, 5 );
+	
+	wxStaticBoxSizer* sbSizer45;
+	sbSizer45 = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, _("Randomness Collected From Mouse Movements") ), wxVERTICAL );
+	
+	CollectedEntropy = new wxGauge( this, wxID_ANY, 2560, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL|wxGA_SMOOTH );
+	CollectedEntropy->SetValue( 0 ); 
+	sbSizer45->Add( CollectedEntropy, 0, wxALL|wxEXPAND, 5 );
+	
+	
+	bSizer105->Add( sbSizer45, 0, wxEXPAND|wxLEFT|wxRIGHT, 5 );
 	
 	wxStaticBoxSizer* sbSizer32;
 	sbSizer32 = new wxStaticBoxSizer( new wxStaticBox( this, wxID_ANY, wxEmptyString ), wxVERTICAL );
@@ -2991,12 +3024,9 @@ VolumeCreationProgressWizardPageBase::VolumeCreationProgressWizardPageBase( wxWi
 	
 	bSizer105->Add( sbSizer32, 0, wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT, 5 );
 	
-	
-	bSizer105->Add( 0, 0, 0, wxTOP|wxBOTTOM, 5 );
-	
 	InfoStaticText = new wxStaticText( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	InfoStaticText->Wrap( -1 );
-	bSizer105->Add( InfoStaticText, 0, wxALL, 5 );
+	bSizer105->Add( InfoStaticText, 0, wxBOTTOM|wxLEFT|wxRIGHT, 5 );
 	
 	
 	bSizer104->Add( bSizer105, 1, wxEXPAND, 5 );

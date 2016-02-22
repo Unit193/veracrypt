@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -24,9 +24,9 @@ extern "C" {
 #endif
 
 BOOL ComServerMain ();
-int UacBackupVolumeHeader (HWND hwndDlg, BOOL bRequireConfirmation, char *lpszVolume);
-int UacRestoreVolumeHeader (HWND hwndDlg, char *lpszVolume);
-int UacChangePwd (char *lpszVolume, Password *oldPassword, int old_pkcs5, int old_pim, BOOL truecryptMode, Password *newPassword, int pkcs5, int pim, int wipePassCount, HWND hwndDlg);
+int UacBackupVolumeHeader (HWND hwndDlg, BOOL bRequireConfirmation, wchar_t *lpszVolume);
+int UacRestoreVolumeHeader (HWND hwndDlg, wchar_t *lpszVolume);
+int UacChangePwd (wchar_t *lpszVolume, Password *oldPassword, int old_pkcs5, int old_pim, BOOL truecryptMode, Password *newPassword, int pkcs5, int pim, int wipePassCount, HWND hwndDlg);
 
 #ifdef __cplusplus
 }

@@ -25,7 +25,7 @@
 			IntermediateDirectory="Debug"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			CharacterSet="2"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -68,11 +68,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib setupapi.lib ..\Crypto\Debug\crypto.lib"
+				AdditionalDependencies="..\Crypto\Debug\crypto.lib mpr.lib"
 				OutputFile="$(OutDir)/VeraCryptFormat.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreAllDefaultLibraries="false"
+				DelayLoadDLLs="mpr.dll"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/Format.pdb"
 				SubSystem="2"
@@ -105,100 +106,12 @@
 			/>
 		</Configuration>
 		<Configuration
-			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
-			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				TypeLibraryName="$(SolutionDir)/$(ProjectName)/$(ProjectName).tlb"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				AdditionalOptions="/w34189"
-				Optimization="2"
-				AdditionalIncludeDirectories="..\Common;..\Crypto;..\;..\PKCS11"
-				PreprocessorDefinitions="VOLFORMAT;WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NON_CONFORMING_SWPRINTFS"
-				RuntimeLibrary="0"
-				BufferSecurityCheck="true"
-				UsePrecompiledHeader="0"
-				AssemblerOutput="2"
-				AssemblerListingLocation="$(IntDir)/"
-				WarningLevel="4"
-				DebugInformationFormat="0"
-				DisableSpecificWarnings="4057;4100;4127;4201;4204;4701;4706"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib setupapi.lib ..\Crypto\Release\crypto.lib"
-				OutputFile="$(OutDir)/VeraCryptFormat.exe"
-				LinkIncremental="1"
-				GenerateManifest="false"
-				IgnoreAllDefaultLibraries="false"
-				GenerateDebugInformation="false"
-				GenerateMapFile="true"
-				SubSystem="2"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="2"
-				TargetMachine="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				AdditionalManifestFiles="Format.manifest"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-				CommandLine="copy Release\VeraCryptFormat.exe &quot;..\Release\Setup Files\VeraCrypt Format.exe&quot;"
-			/>
-		</Configuration>
-		<Configuration
 			Name="Debug|x64"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			CharacterSet="2"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -242,11 +155,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib setupapi.lib ..\Crypto\x64\Debug\crypto.lib"
+				AdditionalDependencies="..\Crypto\x64\Debug\crypto.lib mpr.lib"
 				OutputFile="$(OutDir)/VeraCryptFormat.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreAllDefaultLibraries="false"
+				DelayLoadDLLs="mpr.dll"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/Format.pdb"
 				SubSystem="2"
@@ -279,12 +193,101 @@
 			/>
 		</Configuration>
 		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="1"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TypeLibraryName="$(SolutionDir)/$(ProjectName)/$(ProjectName).tlb"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="/w34189"
+				Optimization="2"
+				AdditionalIncludeDirectories="..\Common;..\Crypto;..\;..\PKCS11"
+				PreprocessorDefinitions="VOLFORMAT;WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NON_CONFORMING_SWPRINTFS"
+				RuntimeLibrary="0"
+				BufferSecurityCheck="true"
+				UsePrecompiledHeader="0"
+				AssemblerOutput="2"
+				AssemblerListingLocation="$(IntDir)/"
+				WarningLevel="4"
+				DebugInformationFormat="0"
+				DisableSpecificWarnings="4057;4100;4127;4201;4204;4701;4706"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="..\Crypto\Release\crypto.lib mpr.lib"
+				OutputFile="$(OutDir)/VeraCryptFormat.exe"
+				LinkIncremental="1"
+				GenerateManifest="false"
+				IgnoreAllDefaultLibraries="false"
+				DelayLoadDLLs="mpr.dll"
+				GenerateDebugInformation="false"
+				GenerateMapFile="true"
+				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="2"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+				AdditionalManifestFiles="Format.manifest"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				CommandLine="copy Release\VeraCryptFormat.exe &quot;..\Release\Setup Files\VeraCrypt Format.exe&quot;"
+			/>
+		</Configuration>
+		<Configuration
 			Name="Release|x64"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			CharacterSet="2"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -329,11 +332,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib setupapi.lib ..\Crypto\x64\Release\crypto.lib"
+				AdditionalDependencies="..\Crypto\x64\Release\crypto.lib mpr.lib"
 				OutputFile="$(OutDir)/VeraCryptFormat.exe"
 				LinkIncremental="1"
 				GenerateManifest="false"
 				IgnoreAllDefaultLibraries="false"
+				DelayLoadDLLs="mpr.dll"
 				GenerateDebugInformation="false"
 				GenerateMapFile="true"
 				SubSystem="2"
@@ -396,7 +400,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -404,7 +408,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -432,7 +436,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -440,7 +444,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -495,7 +499,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Release|Win32"
+						Name="Debug|x64"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -503,7 +507,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Debug|x64"
+						Name="Release|Win32"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -531,7 +535,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Release|Win32"
+						Name="Debug|x64"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -539,7 +543,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Debug|x64"
+						Name="Release|Win32"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -587,7 +591,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Release|Win32"
+						Name="Debug|x64"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -595,7 +599,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Debug|x64"
+						Name="Release|Win32"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -751,11 +755,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Common\Resource.h"
+				RelativePath=".\resource.h"
 				>
 			</File>
 			<File
-				RelativePath=".\resource.h"
+				RelativePath="..\Common\Resource.h"
 				>
 			</File>
 			<File
@@ -797,6 +801,38 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
+				RelativePath="..\Boot\Windows\Release_Serpent_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Rescue_Twofish_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Rescue_Serpent_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Rescue_AES_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Rescue_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Release_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Release_AES_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
+				RelativePath="..\Boot\Windows\Release_Twofish_SHA2\BootSector.bin"
+				>
+			</File>
+			<File
 				RelativePath=".\Format.manifest"
 				>
 			</File>
@@ -810,6 +846,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Common\VeraCrypt_mounted.ico"
+				>
+			</File>
+			<File
 				RelativePath="..\Common\VeraCrypt_Volume.ico"
 				>
 			</File>
@@ -820,18 +860,6 @@
 			<Filter
 				Name="Common"
 				>
-				<File
-					RelativePath="..\Boot\Windows\Rescue\BootLoader.com.gz"
-					>
-				</File>
-				<File
-					RelativePath="..\Boot\Windows\Rescue_Twofish\BootLoader.com.gz"
-					>
-				</File>
-				<File
-					RelativePath="..\Boot\Windows\Release_Serpent\BootLoader.com.gz"
-					>
-				</File>
 				<File
 					RelativePath="..\Boot\Windows\Release_AES\BootLoader.com.gz"
 					>
@@ -850,6 +878,18 @@
 				</File>
 				<File
 					RelativePath="..\Boot\Windows\Rescue_AES\BootLoader.com.gz"
+					>
+				</File>
+				<File
+					RelativePath="..\Boot\Windows\Rescue\BootLoader.com.gz"
+					>
+				</File>
+				<File
+					RelativePath="..\Boot\Windows\Rescue_Twofish\BootLoader.com.gz"
+					>
+				</File>
+				<File
+					RelativePath="..\Boot\Windows\Release_Serpent\BootLoader.com.gz"
 					>
 				</File>
 				<File
@@ -896,7 +936,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Release|Win32"
+						Name="Debug|x64"
 						ExcludedFromBuild="true"
 						>
 						<Tool
@@ -904,7 +944,7 @@
 						/>
 					</FileConfiguration>
 					<FileConfiguration
-						Name="Debug|x64"
+						Name="Release|Win32"
 						ExcludedFromBuild="true"
 						>
 						<Tool
@@ -950,6 +990,38 @@
 				</File>
 			</Filter>
 		</Filter>
+		<File
+			RelativePath="..\Boot\Windows\Release_Serpent_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Release_Twofish_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Rescue_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Rescue_AES_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Rescue_Serpent_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Rescue_Twofish_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Release_SHA2\BootLoader.com.gz"
+			>
+		</File>
+		<File
+			RelativePath="..\Boot\Windows\Release_AES_SHA2\BootLoader.com.gz"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

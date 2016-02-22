@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -252,7 +252,6 @@ namespace VeraCrypt
 
 		// Ask user to select backup file path
 		wxString confirmMsg = LangString["CONFIRM_VOL_HEADER_BAK"];
-		confirmMsg.Replace (L"%hs", L"%s");
 
 		if (!AskYesNo (wxString::Format (confirmMsg, wstring (*volumePath).c_str()), true))
 			return;
@@ -1384,7 +1383,6 @@ namespace VeraCrypt
 			// Restore header from an external backup
 
 			wxString confirmMsg = LangString["CONFIRM_VOL_HEADER_RESTORE"];
-			confirmMsg.Replace (L"%hs", L"%s");
 
 			if (!AskYesNo (wxString::Format (confirmMsg, wstring (*volumePath).c_str()), true, true))
 				return;
