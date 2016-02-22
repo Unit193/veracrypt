@@ -6,6 +6,7 @@ Comment=Create and mount VeraCrypt encrypted volumes
 Icon=veracrypt
 Exec=veracrypt
 Categories=Security;Utility;Filesystem
+Keywords=encryption,filesystem
 Terminal=false
 X-Ayatana-Desktop-Shortcuts=MountFavorites;DismountAll
 
