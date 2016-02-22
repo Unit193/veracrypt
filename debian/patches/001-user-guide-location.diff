@@ -11,7 +11,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/GraphicUserInterface.cpp
 +++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1217,7 +1217,7 @@ namespace VeraCrypt
+@@ -1216,7 +1216,7 @@ namespace VeraCrypt
  #elif defined (TC_MACOSX)
  			docPath += L"/../Resources/VeraCrypt User Guide.pdf";
  #elif defined (TC_UNIX)

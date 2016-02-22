@@ -153,7 +153,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/GraphicUserInterface.cpp
 +++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1628,6 +1628,8 @@ namespace VeraCrypt
+@@ -1626,6 +1626,8 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
