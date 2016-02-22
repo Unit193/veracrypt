@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -16,6 +16,7 @@
 #include "Crypto.h"
 #include "Fat.h"
 #include "Tests.h"
+#include "cpu.h"
 
 #include "Apidrvr.h"
 #include "Boot/Windows/BootDefs.h"
@@ -54,6 +55,7 @@ BOOL DriverUnloadDisabled = FALSE;
 BOOL PortableMode = FALSE;
 BOOL VolumeClassFilterRegistered = FALSE;
 BOOL CacheBootPassword = FALSE;
+BOOL CacheBootPim = FALSE;
 BOOL NonAdminSystemFavoritesAccessDisabled = FALSE;
 static size_t EncryptionThreadPoolFreeCpuCountLimit = 0;
 static BOOL SystemFavoriteVolumeDirty = FALSE;
@@ -70,6 +72,8 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	int i;
 
 	Dump ("DriverEntry " TC_APP_NAME " " VERSION_STRING "\n");
+
+	DetectX86Features ();
 
 	PsGetVersion (&OsMajorVersion, &OsMinorVersion, NULL, NULL);
 
@@ -416,19 +420,23 @@ NTSTATUS TCCreateDeviceObject (PDRIVER_OBJECT DriverObject,
 		       PDEVICE_OBJECT * ppDeviceObject,
 		       MOUNT_STRUCT * mount)
 {
-	UNICODE_STRING Win32NameString, ntUnicodeString;
-	WCHAR dosname[32], ntname[32];
+	UNICODE_STRING ntUnicodeString;
+	WCHAR ntname[32];
 	PEXTENSION Extension;
 	NTSTATUS ntStatus;
 	ULONG devChars = 0;
+#if defined (DEBUG)
+	WCHAR dosname[32];
+#endif
 
 	Dump ("TCCreateDeviceObject BEGIN\n");
 	ASSERT (KeGetCurrentIrql() == PASSIVE_LEVEL);
 
-	TCGetDosNameFromNumber (dosname, sizeof(dosname),mount->nDosDriveNo);
 	TCGetNTNameFromNumber (ntname, sizeof(ntname),mount->nDosDriveNo);
 	RtlInitUnicodeString (&ntUnicodeString, ntname);
-	RtlInitUnicodeString (&Win32NameString, dosname);
+#if defined (DEBUG)
+	TCGetDosNameFromNumber (dosname, sizeof(dosname),mount->nDosDriveNo, DeviceNamespaceDefault);
+#endif
 
 	devChars = FILE_DEVICE_SECURE_OPEN;
 	devChars |= mount->bMountReadOnly ? FILE_READ_ONLY_DEVICE : 0;
@@ -588,7 +596,7 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 				break; 
 			}
 
-			TCGetDosNameFromNumber (ntName, sizeof(ntName),Extension->nDosDriveNo);
+			TCGetDosNameFromNumber (ntName, sizeof(ntName),Extension->nDosDriveNo, DeviceNamespaceDefault);
 			RtlInitUnicodeString (&ntUnicodeString, ntName);
 
 			outLength = FIELD_OFFSET(MOUNTDEV_SUGGESTED_LINK_NAME,Name) + ntUnicodeString.Length;
@@ -1440,7 +1448,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 
 			if (mount->VolumePassword.Length > MAX_PASSWORD || mount->ProtectedHidVolPassword.Length > MAX_PASSWORD
 				||	mount->pkcs5_prf < 0 || mount->pkcs5_prf > LAST_PRF_ID 
-				||	mount->VolumePim < 0 || mount->VolumePim == INT_MAX
+				||	mount->VolumePim < -1 || mount->VolumePim == INT_MAX
 				|| mount->ProtectedHidVolPkcs5Prf < 0 || mount->ProtectedHidVolPkcs5Prf > LAST_PRF_ID 
 				|| (mount->bTrueCryptMode != FALSE && mount->bTrueCryptMode != TRUE)
 				)
@@ -1958,8 +1966,8 @@ VOID VolumeThreadProc (PVOID Context)
 
 void TCGetNTNameFromNumber (LPWSTR ntname, int cbNtName, int nDriveNo)
 {
-	WCHAR tmp[3] =
-	{0, ':', 0};
+	WCHAR tmp[2] =
+	{0, 0};
 	int j = nDriveNo + (WCHAR) 'A';
 
 	tmp[0] = (short) j;
@@ -1967,14 +1975,23 @@ void TCGetNTNameFromNumber (LPWSTR ntname, int cbNtName, int nDriveNo)
 	RtlStringCbCatW (ntname, cbNtName, tmp);
 }
 
-void TCGetDosNameFromNumber (LPWSTR dosname,int cbDosName, int nDriveNo)
+void TCGetDosNameFromNumber (LPWSTR dosname,int cbDosName, int nDriveNo, DeviceNamespaceType namespaceType)
 {
 	WCHAR tmp[3] =
 	{0, ':', 0};
 	int j = nDriveNo + (WCHAR) 'A';
 
 	tmp[0] = (short) j;
-	RtlStringCbCopyW (dosname, cbDosName, (LPWSTR) DOS_MOUNT_PREFIX);
+
+	if (DeviceNamespaceGlobal == namespaceType)
+	{
+		RtlStringCbCopyW (dosname, cbDosName, (LPWSTR) DOS_MOUNT_PREFIX_GLOBAL);
+	}
+	else
+	{
+		RtlStringCbCopyW (dosname, cbDosName, (LPWSTR) DOS_MOUNT_PREFIX_DEFAULT);
+	}
+
 	RtlStringCbCatW (dosname, cbDosName, tmp);
 }
 
@@ -2540,7 +2557,7 @@ NTSTATUS CreateDriveLink (int nDosDriveNo)
 	NTSTATUS ntStatus;
 
 	TCGetNTNameFromNumber (dev, sizeof(dev),nDosDriveNo);
-	TCGetDosNameFromNumber (link, sizeof(link),nDosDriveNo);
+	TCGetDosNameFromNumber (link, sizeof(link),nDosDriveNo, DeviceNamespaceDefault);
 
 	RtlInitUnicodeString (&deviceName, dev);
 	RtlInitUnicodeString (&symLink, link);
@@ -2557,7 +2574,7 @@ NTSTATUS RemoveDriveLink (int nDosDriveNo)
 	UNICODE_STRING symLink;
 	NTSTATUS ntStatus;
 
-	TCGetDosNameFromNumber (link, sizeof(link),nDosDriveNo);
+	TCGetDosNameFromNumber (link, sizeof(link),nDosDriveNo, DeviceNamespaceDefault);
 	RtlInitUnicodeString (&symLink, link);
 
 	ntStatus = IoDeleteSymbolicLink (&symLink);
@@ -2573,7 +2590,6 @@ NTSTATUS MountManagerMount (MOUNT_STRUCT *mount)
 	char buf[200];
 	PMOUNTMGR_TARGET_NAME in = (PMOUNTMGR_TARGET_NAME) buf;
 	PMOUNTMGR_CREATE_POINT_INPUT point = (PMOUNTMGR_CREATE_POINT_INPUT) buf;
-	UNICODE_STRING symName, devName;
 
 	TCGetNTNameFromNumber (arrVolume, sizeof(arrVolume),mount->nDosDriveNo);
 	in->DeviceNameLength = (USHORT) wcslen (arrVolume) * 2;
@@ -2583,21 +2599,17 @@ NTSTATUS MountManagerMount (MOUNT_STRUCT *mount)
 		in, (ULONG) (sizeof (in->DeviceNameLength) + wcslen (arrVolume) * 2), 0, 0);
 
 	memset (buf, 0, sizeof buf);
-	TCGetDosNameFromNumber ((PWSTR) &point[1], sizeof(buf) - sizeof(MOUNTMGR_CREATE_POINT_INPUT),mount->nDosDriveNo);
+	TCGetDosNameFromNumber ((PWSTR) &point[1], sizeof(buf) - sizeof(MOUNTMGR_CREATE_POINT_INPUT),mount->nDosDriveNo, DeviceNamespaceDefault);
 
 	point->SymbolicLinkNameOffset = sizeof (MOUNTMGR_CREATE_POINT_INPUT);
 	point->SymbolicLinkNameLength = (USHORT) wcslen ((PWSTR) &point[1]) * 2;
-
-	RtlInitUnicodeString(&symName, (PWSTR) (buf + point->SymbolicLinkNameOffset));
 
 	point->DeviceNameOffset = point->SymbolicLinkNameOffset + point->SymbolicLinkNameLength;
 	TCGetNTNameFromNumber ((PWSTR) (buf + point->DeviceNameOffset), sizeof(buf) - point->DeviceNameOffset,mount->nDosDriveNo);
 	point->DeviceNameLength = (USHORT) wcslen ((PWSTR) (buf + point->DeviceNameOffset)) * 2;
 
-	RtlInitUnicodeString(&devName, (PWSTR) (buf + point->DeviceNameOffset));
-
 	ntStatus = TCDeviceIoControl (MOUNTMGR_DEVICE_NAME, IOCTL_MOUNTMGR_CREATE_POINT, point,
-		point->DeviceNameOffset + point->DeviceNameLength, 0, 0);
+			point->DeviceNameOffset + point->DeviceNameLength, 0, 0);
 
 	return ntStatus;
 }
@@ -2611,7 +2623,7 @@ NTSTATUS MountManagerUnmount (int nDosDriveNo)
 
 	memset (buf, 0, sizeof buf);
 
-	TCGetDosNameFromNumber ((PWSTR) &in[1], sizeof(buf) - sizeof(MOUNTMGR_MOUNT_POINT),nDosDriveNo);
+	TCGetDosNameFromNumber ((PWSTR) &in[1], sizeof(buf) - sizeof(MOUNTMGR_MOUNT_POINT),nDosDriveNo, DeviceNamespaceDefault);
 
 	// Only symbolic link can be deleted with IOCTL_MOUNTMGR_DELETE_POINTS. If any other entry is specified, the mount manager will ignore subsequent IOCTL_MOUNTMGR_VOLUME_ARRIVAL_NOTIFICATION for the same volume ID.
 	in->SymbolicLinkNameOffset = sizeof (MOUNTMGR_MOUNT_POINT);
@@ -2629,10 +2641,13 @@ NTSTATUS MountManagerUnmount (int nDosDriveNo)
 NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 {
 	PDEVICE_OBJECT NewDeviceObject;
-	NTSTATUS ntStatus;
+	NTSTATUS ntStatus;	
 
 	// Make sure the user is asking for a reasonable nDosDriveNo
-	if (mount->nDosDriveNo >= 0 && mount->nDosDriveNo <= 25 && IsDriveLetterAvailable (mount->nDosDriveNo))
+	if (mount->nDosDriveNo >= 0 && mount->nDosDriveNo <= 25 
+		&& IsDriveLetterAvailable (mount->nDosDriveNo, DeviceNamespaceDefault) // drive letter must not exist both locally and globally
+		&& IsDriveLetterAvailable (mount->nDosDriveNo, DeviceNamespaceGlobal)
+		)
 	{
 		Dump ("Mount request looks valid\n");
 	}
@@ -2664,7 +2679,10 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 
 		SeCaptureSubjectContext (&subContext);
 		SeLockSubjectContext(&subContext);
-		accessToken = SeQuerySubjectContextToken (&subContext);
+		if (subContext.ClientToken && subContext.ImpersonationLevel >= SecurityImpersonation)
+			accessToken = subContext.ClientToken;
+		else
+			accessToken = subContext.PrimaryToken;
 
 		if (!accessToken)
 		{
@@ -2719,6 +2737,16 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 				NewDeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
 				NewExtension->UniqueVolumeId = LastUniqueVolumeId++;
+
+				// check again that the drive letter is available globally and locally
+				if (	!IsDriveLetterAvailable (mount->nDosDriveNo, DeviceNamespaceDefault)
+					|| !IsDriveLetterAvailable (mount->nDosDriveNo, DeviceNamespaceGlobal)
+					)
+				{
+						TCDeleteDeviceObject (NewDeviceObject, NewExtension);
+						mount->nReturnCode = ERR_DRIVE_NOT_FOUND;
+						return ERR_DRIVE_NOT_FOUND;
+				}
 
 				if (mount->bMountManager)
 					MountManagerMount (mount);
@@ -3053,25 +3081,25 @@ BOOL UserCanAccessDriveDevice ()
 	return IsAccessibleByUser (&name, FALSE);
 }
 
-
-BOOL IsDriveLetterAvailable (int nDosDriveNo)
+BOOL IsDriveLetterAvailable (int nDosDriveNo, DeviceNamespaceType namespaceType)
 {
 	OBJECT_ATTRIBUTES objectAttributes;
 	UNICODE_STRING objectName;
 	WCHAR link[128];
 	HANDLE handle;
+	NTSTATUS ntStatus;
 
-	TCGetDosNameFromNumber (link, sizeof(link),nDosDriveNo);
+	TCGetDosNameFromNumber (link, sizeof(link),nDosDriveNo, namespaceType);
 	RtlInitUnicodeString (&objectName, link);
 	InitializeObjectAttributes (&objectAttributes, &objectName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, NULL);
 
-	if (NT_SUCCESS (ZwOpenSymbolicLinkObject (&handle, GENERIC_READ, &objectAttributes)))
+	if (NT_SUCCESS (ntStatus = ZwOpenSymbolicLinkObject (&handle, GENERIC_READ, &objectAttributes)))
 	{
 		ZwClose (handle);
 		return FALSE;
 	}
 
-	return TRUE;
+	return (ntStatus == STATUS_OBJECT_NAME_NOT_FOUND)? TRUE : FALSE;
 }
 
 
@@ -3269,6 +3297,9 @@ NTSTATUS ReadRegistryConfigFlags (BOOL driverEntry)
 
 				if (flags & TC_DRIVER_CONFIG_DISABLE_NONADMIN_SYS_FAVORITES_ACCESS)
 					NonAdminSystemFavoritesAccessDisabled = TRUE;
+
+				if (flags & TC_DRIVER_CONFIG_CACHE_BOOT_PIM)
+					CacheBootPim = TRUE;
 			}
 
 			EnableHwEncryption ((flags & TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION) ? FALSE : TRUE);
@@ -3403,7 +3434,11 @@ BOOL IsVolumeAccessibleByCurrentUser (PEXTENSION volumeDeviceExtension)
 	}
 
 	SeCaptureSubjectContext (&subContext);
-	accessToken = SeQuerySubjectContextToken (&subContext);
+	SeLockSubjectContext(&subContext);
+	if (subContext.ClientToken && subContext.ImpersonationLevel >= SecurityImpersonation)
+		accessToken = subContext.ClientToken;
+	else
+		accessToken = subContext.PrimaryToken;
 
 	if (!accessToken)
 		goto ret;
@@ -3421,6 +3456,7 @@ BOOL IsVolumeAccessibleByCurrentUser (PEXTENSION volumeDeviceExtension)
 	ExFreePool (tokenUser);		// Documented in newer versions of WDK
 
 ret:
+	SeUnlockSubjectContext(&subContext);
 	SeReleaseSubjectContext (&subContext);
 	return result;
 }
@@ -3460,6 +3496,9 @@ BOOL IsOSAtLeast (OSVersionEnum reqMinOS)
 	case WIN_SERVER_2003:	major = 5; minor = 2; break;
 	case WIN_VISTA:			major = 6; minor = 0; break;
 	case WIN_7:				major = 6; minor = 1; break;
+	case WIN_8:				major = 6; minor = 2; break;
+	case WIN_8_1:			major = 6; minor = 3; break;
+	case WIN_10:			major = 10; minor = 0; break;
 
 	default:
 		TC_THROW_FATAL_EXCEPTION;

@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -92,8 +92,8 @@ int TCFormatVolume (volatile FORMAT_VOL_PARAMETERS *volParams)
 	FILETIME ftLastAccessTime;
 	BOOL bTimeStampValid = FALSE;
 	BOOL bInstantRetryOtherFilesys = FALSE;
-	char dosDev[TC_MAX_PATH] = { 0 };
-	char devName[MAX_PATH] = { 0 };
+	WCHAR dosDev[TC_MAX_PATH] = { 0 };
+	WCHAR devName[MAX_PATH] = { 0 };
 	int driveLetter = -1;
 	WCHAR deviceName[MAX_PATH];
 	uint64 dataOffset, dataAreaSize;
@@ -138,8 +138,7 @@ int TCFormatVolume (volatile FORMAT_VOL_PARAMETERS *volParams)
 
 	if (volParams->bDevice)
 	{
-		StringCbCopyA ((char *)deviceName, sizeof(deviceName), volParams->volumePath);
-		ToUNICODE ((char *)deviceName, sizeof(deviceName));
+		StringCchCopyW (deviceName, ARRAYSIZE(deviceName), volParams->volumePath);
 
 		driveLetter = GetDiskDeviceDriveLetter (deviceName);
 	}
@@ -213,9 +212,9 @@ begin_format:
 			// to which no drive letter has been assigned under the system. This problem can be worked
 			// around by assigning a drive letter to the partition temporarily.
 
-			char szDriveLetter[] = { 'A', ':', 0 };
-			char rootPath[] = { 'A', ':', '\\', 0 };
-			char uniqVolName[MAX_PATH+1] = { 0 };
+			wchar_t szDriveLetter[] = { L'A', L':', 0 };
+			wchar_t rootPath[] = { L'A', L':', L'\\', 0 };
+			wchar_t uniqVolName[MAX_PATH+1] = { 0 };
 			int tmpDriveLetter = -1;
 			BOOL bResult = FALSE;
 
@@ -223,8 +222,8 @@ begin_format:
  
 			if (tmpDriveLetter != -1)
 			{
-				rootPath[0] += (char) tmpDriveLetter;
-				szDriveLetter[0] += (char) tmpDriveLetter;
+				rootPath[0] += (wchar_t) tmpDriveLetter;
+				szDriveLetter[0] += (wchar_t) tmpDriveLetter;
 
 				if (DefineDosDevice (DDD_RAW_TARGET_PATH, szDriveLetter, volParams->volumePath))
 				{
@@ -475,6 +474,7 @@ begin_format:
 	{
 	case FILESYS_NONE:
 	case FILESYS_NTFS:
+	case FILESYS_EXFAT:
 
 		if (volParams->bDevice && !StartFormatWriteThread())
 		{
@@ -573,7 +573,7 @@ begin_format:
 	}
 
 #ifndef DEBUG
-	if (volParams->quickFormat && volParams->fileSystem != FILESYS_NTFS)
+	if (volParams->quickFormat && volParams->fileSystem != FILESYS_NTFS && volParams->fileSystem != FILESYS_EXFAT)
 		Sleep (500);	// User-friendly GUI
 #endif
 
@@ -607,12 +607,13 @@ error:
 		goto fv_end;
 	}
 
-	if (volParams->fileSystem == FILESYS_NTFS)
+	if (volParams->fileSystem == FILESYS_NTFS || volParams->fileSystem == FILESYS_EXFAT)
 	{
 		// Quick-format volume as NTFS
 		int driveNo = GetLastAvailableDrive ();
 		MountOptions mountOptions;
 		int retCode;
+		int fsType = (volParams->fileSystem == FILESYS_EXFAT)? FILESYS_EXFAT: FILESYS_NTFS;
 
 		ZeroMemory (&mountOptions, sizeof (mountOptions));
 
@@ -635,7 +636,7 @@ error:
 		mountOptions.PartitionInInactiveSysEncScope = FALSE;
 		mountOptions.UseBackupHeader = FALSE;
 
-		if (MountVolume (volParams->hwndDlg, driveNo, volParams->volumePath, volParams->password, volParams->pkcs5, volParams->pim, FALSE, FALSE, TRUE, &mountOptions, FALSE, TRUE) < 1)
+		if (MountVolume (volParams->hwndDlg, driveNo, volParams->volumePath, volParams->password, volParams->pkcs5, volParams->pim, FALSE, FALSE, FALSE, TRUE, &mountOptions, FALSE, TRUE) < 1)
 		{
 			if (!Silent)
 			{
@@ -647,9 +648,9 @@ error:
 		}
 
 		if (!Silent && !IsAdmin () && IsUacSupported ())
-			retCode = UacFormatNtfs (volParams->hwndDlg, driveNo, volParams->clusterSize);
+			retCode = UacFormatFs (volParams->hwndDlg, driveNo, volParams->clusterSize, fsType);
 		else
-			retCode = FormatNtfs (driveNo, volParams->clusterSize);
+			retCode = FormatFs (driveNo, volParams->clusterSize, fsType);
 
 		if (retCode != TRUE)
 		{
@@ -861,33 +862,47 @@ BOOLEAN __stdcall FormatExCallback (int command, DWORD subCommand, PVOID paramet
 	return (FormatExError? FALSE : TRUE);
 }
 
-BOOL FormatNtfs (int driveNo, int clusterSize)
+BOOL FormatFs (int driveNo, int clusterSize, int fsType)
 {
-	char dllPath[MAX_PATH] = {0};
-	WCHAR dir[8] = { (WCHAR) driveNo + 'A', 0 };
+	wchar_t dllPath[MAX_PATH] = {0};
+	WCHAR dir[8] = { (WCHAR) driveNo + L'A', 0 };
 	PFORMATEX FormatEx;
 	HMODULE hModule;
 	int i;
+	WCHAR szFsFormat[16];
+	WCHAR szLabel[2] = {0};
+	switch (fsType)
+	{
+		case FILESYS_NTFS:
+			StringCchCopyW (szFsFormat, ARRAYSIZE (szFsFormat),L"NTFS");
+			break;
+		case FILESYS_EXFAT:
+			StringCchCopyW (szFsFormat, ARRAYSIZE (szFsFormat),L"EXFAT");
+			break;
+		default:
+			return FALSE;
+	}
+
 	
 	if (GetSystemDirectory (dllPath, MAX_PATH))
 	{
-		StringCbCatA(dllPath, sizeof(dllPath), "\\fmifs.dll");
+		StringCchCatW(dllPath, ARRAYSIZE(dllPath), L"\\fmifs.dll");
 	}
 	else
-		StringCbCopyA(dllPath, sizeof(dllPath), "C:\\Windows\\System32\\fmifs.dll");
+		StringCchCopyW(dllPath, ARRAYSIZE(dllPath), L"C:\\Windows\\System32\\fmifs.dll");
 	
 	hModule = LoadLibrary (dllPath);
 
 	if (hModule == NULL)
 		return FALSE;
 
-	if (!(FormatEx = (PFORMATEX) GetProcAddress (GetModuleHandle ("fmifs.dll"), "FormatEx")))
+	if (!(FormatEx = (PFORMATEX) GetProcAddress (GetModuleHandle (L"fmifs.dll"), "FormatEx")))
 	{
 		FreeLibrary (hModule);
 		return FALSE;
 	}
 
-	StringCbCatW (dir, sizeof(dir), L":\\");
+	StringCchCatW (dir, ARRAYSIZE(dir), L":\\");
 
 	FormatExError = TRUE;
 	
@@ -896,7 +911,7 @@ BOOL FormatNtfs (int driveNo, int clusterSize)
 	for (i = 0; i < 50 && FormatExError; i++)
 	{
 		FormatExError = FALSE;
-		FormatEx (dir, FMIFS_HARDDISK, L"NTFS", L"", TRUE, clusterSize * FormatSectorSize, FormatExCallback);
+		FormatEx (dir, FMIFS_HARDDISK, szFsFormat, szLabel, TRUE, clusterSize * FormatSectorSize, FormatExCallback);
 	}
 
 	// The device may be referenced for some time after FormatEx() returns
@@ -906,6 +921,10 @@ BOOL FormatNtfs (int driveNo, int clusterSize)
 	return FormatExError? FALSE : TRUE;
 }
 
+BOOL FormatNtfs (int driveNo, int clusterSize)
+{
+	return FormatFs (driveNo, clusterSize, FILESYS_NTFS);
+}
 
 BOOL WriteSector (void *dev, char *sector,
 	     char *write_buf, int *write_buf_cnt,

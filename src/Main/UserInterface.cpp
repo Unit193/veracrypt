@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <wx/apptrait.h>
 #include <wx/cmdline.h>
+#include "Crypto/cpu.h"
 #include "Platform/PlatformTest.h"
 #ifdef TC_UNIX
 #include <errno.h>
@@ -462,6 +463,8 @@ namespace VeraCrypt
 		EX2MSG (PasswordOrKeyboardLayoutIncorrect,	LangString["PASSWORD_OR_KEYFILE_WRONG"] + _("\n\nNote that pre-boot authentication passwords need to be typed in the pre-boot environment where non-US keyboard layouts are not available. Therefore, pre-boot authentication passwords must always be typed using the standard US keyboard layout (otherwise, the password will be typed incorrectly in most cases). However, note that you do NOT need a real US keyboard; you just need to change the keyboard layout in your operating system."));
 		EX2MSG (PasswordOrMountOptionsIncorrect,	LangString["PASSWORD_OR_KEYFILE_OR_MODE_WRONG"] + _("\n\nNote: If you are attempting to mount a partition located on an encrypted system drive without pre-boot authentication or to mount the encrypted system partition of an operating system that is not running, you can do so by selecting 'Options >' > 'Mount partition using system encryption'."));
 		EX2MSG (PasswordTooLong,					StringFormatter (_("Password is longer than {0} characters."), (int) VolumePassword::MaxSize));
+		EX2MSG (PasswordUTF8TooLong,				LangString["PASSWORD_UTF8_TOO_LONG"]);
+		EX2MSG (PasswordUTF8Invalid,				LangString["PASSWORD_UTF8_INVALID"]);
 		EX2MSG (PartitionDeviceRequired,			_("Partition device required."));
 		EX2MSG (ProtectionPasswordIncorrect,		_("Incorrect password to the protected hidden volume or the hidden volume does not exist."));
 		EX2MSG (ProtectionPasswordKeyfilesIncorrect,_("Incorrect keyfile(s) and/or password to the protected hidden volume or the hidden volume does not exist."));
@@ -502,6 +505,9 @@ namespace VeraCrypt
 		SetAppName (Application::GetName());
 		SetClassName (Application::GetName());
 
+#ifdef CRYPTOPP_CPUID_AVAILABLE
+		DetectX86Features ();
+#endif
 		LangString.Init();
 		Core->Init();
 		
@@ -832,8 +838,10 @@ namespace VeraCrypt
 #else
 		// MIME handler for directory seems to be unavailable through wxWidgets
 		wxString desktop = GetTraits()->GetDesktopEnvironment();
+		bool xdgOpenPresent = wxFileName::IsFileExecutable (wxT("/usr/bin/xdg-open"));
+		bool nautilusPresent = wxFileName::IsFileExecutable (wxT("/usr/bin/nautilus"));
 
-		if (desktop == L"GNOME")
+		if (desktop == L"GNOME" || (desktop.empty() && !xdgOpenPresent && nautilusPresent))
 		{
 			args.push_back ("--no-default-window");
 			args.push_back ("--no-desktop");
@@ -866,7 +874,7 @@ namespace VeraCrypt
 				catch (exception &e) { ShowError (e); }
 			}
 		}
-		else if (wxFileName::IsFileExecutable (wxT("/usr/bin/xdg-open")))
+		else if (xdgOpenPresent)
 		{
 			// Fallback on the standard xdg-open command 
 			// which is not always available by default
@@ -895,9 +903,9 @@ namespace VeraCrypt
 		if (Preferences.UseStandardInput)
 		{
 			wstring pwdInput;
-			wcin >> pwdInput;
+			getline(wcin, pwdInput);
 
-			cmdLine.ArgPassword = make_shared<VolumePassword> (pwdInput);
+			cmdLine.ArgPassword = ToUTF8Password ( pwdInput.c_str (), pwdInput.size ());				
 		}
 
 		switch (cmdLine.ArgCommand)
@@ -1156,9 +1164,8 @@ namespace VeraCrypt
 					"--filesystem=TYPE\n"
 					" Filesystem type to mount. The TYPE argument is passed to mount(8) command\n"
 					" with option -t. Default type is 'auto'. When creating a new volume, this\n"
-					" option specifies the filesystem to be created on the new volume (only 'FAT'\n"
-					" and 'none' TYPE is allowed). Filesystem type 'none' disables mounting or\n"
-					" creating a filesystem.\n"
+					" option specifies the filesystem to be created on the new volume.\n"
+					" Filesystem type 'none' disables mounting or creating a filesystem.\n"
 					"\n"
 					"--force\n"
 					" Force mounting of a volume in use, dismounting of a volume in use, or\n"
@@ -1244,8 +1251,10 @@ namespace VeraCrypt
 					"--slot=SLOT\n"
 					" Use specified slot number when mounting, dismounting, or listing a volume.\n"
 					"\n"
-					"--size=SIZE\n"
-					" Use specified size in bytes when creating a new volume.\n"
+					"--size=SIZE[K|M|G|T]\n"
+					" Use specified size when creating a new volume. If no suffix is indicated,\n"
+					" then SIZE is interpreted in bytes. Suffixes K, M, G or T can be used to\n"
+					" indicate a value in KB, MB, GB or TB respectively.\n"
 					"\n"
 					"-t, --text\n"
 					" Use text user interface. Graphical user interface is used by default if\n"
@@ -1549,6 +1558,8 @@ namespace VeraCrypt
 		VC_CONVERT_EXCEPTION (ProtectionPasswordKeyfilesIncorrect);
 		VC_CONVERT_EXCEPTION (PasswordEmpty);
 		VC_CONVERT_EXCEPTION (PasswordTooLong);
+		VC_CONVERT_EXCEPTION (PasswordUTF8TooLong);
+		VC_CONVERT_EXCEPTION (PasswordUTF8Invalid);
 		VC_CONVERT_EXCEPTION (UnportablePassword);
 		VC_CONVERT_EXCEPTION (ElevationFailed);
 		VC_CONVERT_EXCEPTION (RootDeviceUnavailable);

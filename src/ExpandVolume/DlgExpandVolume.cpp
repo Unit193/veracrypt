@@ -9,7 +9,7 @@
  or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -50,7 +50,7 @@
 #define TIMER_INTERVAL_RANDVIEW							50
 
 // see definition of enum EV_FileSystem
-const char * szFileSystemStr[3] = {"RAW","FAT","NTFS"};
+const wchar_t * szFileSystemStr[4] = {L"RAW",L"FAT",L"NTFS",L"EXFAT"};
 
 // prototypes for internal functions
 BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -59,15 +59,15 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 namespace VeraCryptExpander
 {
 /* defined in WinMain.c, referenced by ExpandVolumeWizard() */
-int ExtcvAskVolumePassword (HWND hwndDlg, const char* fileName, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions);
+int ExtcvAskVolumePassword (HWND hwndDlg, const wchar_t* fileName, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions);
 }
 
 
-int GetSpaceString(char *dest, size_t maxlen, uint64 size, BOOL bDevice)
+int GetSpaceString(wchar_t *dest, size_t cbDest, uint64 size, BOOL bDevice)
 {
-	const char * szFmtBytes = "%.0lf %s";
-	const char * szFmtOther = "%.2lf %s";
-	const char * SuffixStr[] = {"Byte", "kB", "MB", "GB", "TB"};
+	const wchar_t * szFmtBytes = L"%.0lf %s";
+	const wchar_t * szFmtOther = L"%.2lf %s";
+	const wchar_t * SuffixStr[] = {L"Byte", L"KB", L"MB", L"GB", L"TB"};
 	const uint64 Muliplier[] = {1, BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB, BYTES_PER_TB};
 	const int nMaxSuffix = sizeof(Muliplier)/sizeof(uint64) - 1;
 	int i;
@@ -77,38 +77,38 @@ int GetSpaceString(char *dest, size_t maxlen, uint64 size, BOOL bDevice)
 	--i;
 
 	if (bDevice) {
-		char szTemp[512];
+		wchar_t szTemp[512];
 
-		if (sprintf_s(szTemp, sizeof(szTemp),i?szFmtOther:szFmtBytes, size/(double)Muliplier[i], SuffixStr[i]) < 0 )
+		if (StringCbPrintfW(szTemp, sizeof(szTemp),i?szFmtOther:szFmtBytes, size/(double)Muliplier[i], SuffixStr[i]) < 0 )
 			return -1;
 
-		return sprintf_s(dest, maxlen, "%I64u sectors (%s)", size/SECTOR_SIZE_MSG , szTemp);
+		return StringCbPrintfW(dest, cbDest, L"%I64u sectors (%s)", size/SECTOR_SIZE_MSG , szTemp);
 	}
 
-	return sprintf_s(dest, maxlen,i?szFmtOther:szFmtBytes, size/(double)Muliplier[i], SuffixStr[i]);
+	return StringCbPrintfW(dest, cbDest,i?szFmtOther:szFmtBytes, size/(double)Muliplier[i], SuffixStr[i]);
 }
 
 void SetCurrentVolSize(HWND hwndDlg, uint64 size)
 {
-	const uint64 Muliplier[] = {BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB};
-	const int IdRadioBtn[] = {IDC_KB, IDC_MB, IDC_GB};
+	const uint64 Muliplier[] = {BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB, BYTES_PER_TB};
+	const int IdRadioBtn[] = {IDC_KB, IDC_MB, IDC_GB, IDC_TB};
 	const int nMaxSuffix = sizeof(Muliplier)/sizeof(uint64) - 1;
 	int i;
-	char szTemp[256];
+	wchar_t szTemp[256];
 
 	for (i=1; i<=nMaxSuffix && size>Muliplier[i]; i++) ;
 
 	--i;
 
 	SendDlgItemMessage (hwndDlg, IdRadioBtn[i], BM_SETCHECK, BST_CHECKED, 0);
-	StringCbPrintfA(szTemp,sizeof(szTemp),"%I64u",size/Muliplier[i]);
+	StringCbPrintfW(szTemp,sizeof(szTemp),L"%I64u",size/Muliplier[i]);
 	SetWindowText (GetDlgItem (hwndDlg, IDC_SIZEBOX), szTemp);
 }
 
 uint64 GetSizeBoxMultiplier(HWND hwndDlg)
 {
-	const uint64 Muliplier[] = {BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB};
-	const int IdRadioBtn[] = {IDC_KB, IDC_MB, IDC_GB};
+	const uint64 Muliplier[] = {BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB, BYTES_PER_TB};
+	const int IdRadioBtn[] = {IDC_KB, IDC_MB, IDC_GB, IDC_TB};
 	const int nMaxSuffix = sizeof(Muliplier)/sizeof(uint64) - 1;
 	int i;
 
@@ -127,7 +127,7 @@ BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 	{
 	case WM_INITDIALOG:
 		{
-			char szTemp[4096];
+			wchar_t szTemp[4096];
 
 			pVolExpandParam = (EXPAND_VOL_THREAD_PARAMS*)lParam;
 
@@ -135,6 +135,7 @@ BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			EnableWindow (GetDlgItem (hwndDlg, IDC_KB), !pVolExpandParam->bIsDevice);
 			EnableWindow (GetDlgItem (hwndDlg, IDC_MB), !pVolExpandParam->bIsDevice);
 			EnableWindow (GetDlgItem (hwndDlg, IDC_GB), !pVolExpandParam->bIsDevice);
+			EnableWindow (GetDlgItem (hwndDlg, IDC_TB), !pVolExpandParam->bIsDevice);
 
 			EnableWindow (GetDlgItem (hwndDlg, IDC_INIT_NEWSPACE),
 				!(pVolExpandParam->bIsLegacy && pVolExpandParam->bIsDevice));
@@ -158,11 +159,11 @@ BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			}
 			else
 			{
-				char szHostFreeStr[256];
+				wchar_t szHostFreeStr[256];
 
-				SetWindowText (GetDlgItem (hwndDlg, IDT_NEW_SIZE), "");
+				SetWindowText (GetDlgItem (hwndDlg, IDT_NEW_SIZE), L"");
 				GetSpaceString(szHostFreeStr,sizeof(szHostFreeStr),pVolExpandParam->hostSizeFree,FALSE);
-				StringCbPrintfA (szTemp,sizeof(szTemp),"%s available on host drive", szHostFreeStr);
+				StringCbPrintfW (szTemp,sizeof(szTemp),L"%s available on host drive", szHostFreeStr);
 			}
 
 			SetWindowText (GetDlgItem (hwndDlg, IDC_EXPAND_VOLUME_NEWSIZE), szTemp);
@@ -170,13 +171,13 @@ BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			// set help text
 			if (pVolExpandParam->bIsDevice)
 			{
-				StringCbPrintfA (szTemp,sizeof(szTemp),"This is a device-based VeraCrypt volume.\n\nThe new volume size will be choosen automatically as the size of the host device.");
+				StringCbPrintfW (szTemp,sizeof(szTemp),L"This is a device-based VeraCrypt volume.\n\nThe new volume size will be choosen automatically as the size of the host device.");
 				if (pVolExpandParam->bIsLegacy)
-					StringCbCatA(szTemp,sizeof(szTemp)," Note: filling the new space with random data is not supported for legacy volumes.");
+					StringCbCatW(szTemp,sizeof(szTemp),L" Note: filling the new space with random data is not supported for legacy volumes.");
 			}
 			else
 			{
-				StringCbPrintfA (szTemp, sizeof(szTemp),"Please specify the new size of the VeraCrypt volume (must be at least %I64u KB larger than the current size).",TC_MINVAL_FS_EXPAND/1024);
+				StringCbPrintfW (szTemp, sizeof(szTemp),L"Please specify the new size of the VeraCrypt volume (must be at least %I64u KB larger than the current size).",TC_MINVAL_FS_EXPAND/1024);
 			}
 			SetWindowText (GetDlgItem (hwndDlg, IDC_BOX_HELP), szTemp);
 
@@ -193,13 +194,13 @@ BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 
 		if (lw == IDOK)
 		{
-			char szTemp[4096];
+			wchar_t szTemp[4096];
 
 			pVolExpandParam->bInitFreeSpace = IsButtonChecked (GetDlgItem (hwndDlg, IDC_INIT_NEWSPACE));
 			if (!pVolExpandParam->bIsDevice) // for devices new size is set by calling function
 			{				
-				GetWindowText (GetDlgItem (hwndDlg, IDC_SIZEBOX), szTemp, sizeof (szTemp));
-				pVolExpandParam->newSize = _atoi64(szTemp) * GetSizeBoxMultiplier(hwndDlg);
+				GetWindowText (GetDlgItem (hwndDlg, IDC_SIZEBOX), szTemp, ARRAYSIZE (szTemp));
+				pVolExpandParam->newSize = _wtoi64(szTemp) * GetSizeBoxMultiplier(hwndDlg);
 			}
 
 			EndDialog (hwndDlg, lw);
@@ -213,7 +214,7 @@ BOOL CALLBACK ExpandVolSizeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 }
 
 
-extern "C" void AddProgressDlgStatus(HWND hwndDlg, const char* szText)
+extern "C" void AddProgressDlgStatus(HWND hwndDlg, const wchar_t* szText)
 {
 	HWND hwndCtrl;
 
@@ -223,7 +224,7 @@ extern "C" void AddProgressDlgStatus(HWND hwndDlg, const char* szText)
 }
 
 
-extern "C" void SetProgressDlgStatus(HWND hwndDlg, const char* szText)
+extern "C" void SetProgressDlgStatus(HWND hwndDlg, const wchar_t* szText)
 {
 	HWND hwndCtrl;
 
@@ -239,6 +240,14 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 	static EXPAND_VOL_THREAD_PARAMS *pProgressDlgParam;
 	static BOOL bVolTransformStarted = FALSE;
 	static BOOL showRandPool = TRUE;
+	static unsigned char randPool[16];
+	static unsigned char maskRandPool [16];
+	static BOOL bUseMask = FALSE;
+	static DWORD mouseEntropyGathered = 0xFFFFFFFF;
+	static DWORD mouseEventsInitialCount = 0;
+	/* max value of entropy needed to fill all random pool = 8 * RNG_POOL_SIZE = 2560 bits */
+	static const DWORD maxEntropyLevel = RNG_POOL_SIZE * 8;
+	static HWND hEntropyBar = NULL;
 
 	WORD lw = LOWORD (wParam);
 
@@ -246,14 +255,29 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 	{
 	case WM_INITDIALOG:
 		{
-			char szOldHostSize[512], szNewHostSize[512];
+			wchar_t szOldHostSize[512], szNewHostSize[512];
+			HCRYPTPROV hRngProv;
 
 			pProgressDlgParam = (EXPAND_VOL_THREAD_PARAMS*)lParam;
 			bVolTransformStarted = FALSE;
-			showRandPool = TRUE;
+			showRandPool = FALSE;
 
 			hCurPage = hwndDlg;
 			nPbar = IDC_PROGRESS_BAR;
+
+			VirtualLock (randPool, sizeof(randPool));
+			VirtualLock (&mouseEntropyGathered, sizeof(mouseEntropyGathered));
+			VirtualLock (maskRandPool, sizeof(maskRandPool));
+
+			mouseEntropyGathered = 0xFFFFFFFF;
+			mouseEventsInitialCount = 0;
+			bUseMask = FALSE;
+			if (CryptAcquireContext (&hRngProv, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
+			{
+				if (CryptGenRandom (hRngProv, sizeof (maskRandPool), maskRandPool))
+					bUseMask = TRUE;
+				CryptReleaseContext (hRngProv, 0);
+			}
 
 			GetSpaceString(szOldHostSize,sizeof(szOldHostSize),pProgressDlgParam->oldSize,pProgressDlgParam->bIsDevice);
 			GetSpaceString(szNewHostSize,sizeof(szNewHostSize),pProgressDlgParam->newSize,pProgressDlgParam->bIsDevice);
@@ -262,7 +286,7 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 			SetWindowText (GetDlgItem (hwndDlg, IDC_EXPAND_VOLUME_NEWSIZE), szNewHostSize);
 			SetWindowText (GetDlgItem (hwndDlg, IDC_EXPAND_VOLUME_NAME), pProgressDlgParam->szVolumeName);
 			SetWindowText (GetDlgItem (hwndDlg, IDC_EXPAND_FILE_SYSTEM), szFileSystemStr[pProgressDlgParam->FileSystem]);
-			SetWindowText (GetDlgItem (hwndDlg, IDC_EXPAND_VOLUME_INITSPACE), pProgressDlgParam->bInitFreeSpace?"Yes":"No");
+			SetWindowText (GetDlgItem (hwndDlg, IDC_EXPAND_VOLUME_INITSPACE), pProgressDlgParam->bInitFreeSpace?L"Yes":L"No");
 
 			SendMessage (GetDlgItem (hwndDlg, IDC_BOX_STATUS), WM_SETFONT, (WPARAM) hBoldFont, (LPARAM) TRUE);
 
@@ -274,14 +298,17 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 				showRandPool = FALSE;
 				EnableWindow (GetDlgItem (hwndDlg, IDC_DISPLAY_POOL_CONTENTS), FALSE);
 				EnableWindow (GetDlgItem (hwndDlg, IDC_RANDOM_BYTES), FALSE);
-				SetDlgItemText(hwndDlg, IDC_BOX_STATUS, "Click 'Continue' to expand the volume.");
+				SetDlgItemText(hwndDlg, IDC_BOX_STATUS, L"Click 'Continue' to expand the volume.");
 			}
 			else
 			{
-				SetDlgItemText(hwndDlg, IDC_BOX_STATUS, "IMPORTANT: Move your mouse as randomly as possible within this window. The longer you move it, the better. This significantly increases the cryptographic strength of the encryption keys. Then click 'Continue' to expand the volume.");
+				SetDlgItemText(hwndDlg, IDC_BOX_STATUS, L"IMPORTANT: Move your mouse as randomly as possible within this window. The longer you move it, the better. This significantly increases the cryptographic strength of the encryption keys. Then click 'Continue' to expand the volume.");
 			}
 
-			SendMessage (GetDlgItem (hwndDlg, IDC_DISPLAY_POOL_CONTENTS), BM_SETCHECK, showRandPool ? BST_CHECKED : BST_UNCHECKED, 0);
+			SendMessage (GetDlgItem (hwndDlg, IDC_DISPLAY_POOL_CONTENTS), BM_SETCHECK, BST_UNCHECKED, 0);
+			hEntropyBar = GetDlgItem (hwndDlg, IDC_ENTROPY_BAR);
+			SendMessage (hEntropyBar, PBM_SETRANGE32, 0, maxEntropyLevel);
+			SendMessage (hEntropyBar, PBM_SETSTEP, 1, 0);
 			SetTimer (hwndDlg, TIMER_ID_RANDVIEW, TIMER_INTERVAL_RANDVIEW, NULL);
 		}
 		return 0;
@@ -293,16 +320,16 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 			if (nStatus != 0)
 			{
 				if ( nStatus != ERR_USER_ABORT )
-					AddProgressDlgStatus (hwndDlg, "Error: volume expansion failed.");
+					AddProgressDlgStatus (hwndDlg, L"Error: volume expansion failed.");
 				else
-					AddProgressDlgStatus (hwndDlg, "Error: operation aborted by user.");
+					AddProgressDlgStatus (hwndDlg, L"Error: operation aborted by user.");
 			}
 			else
 			{
-				AddProgressDlgStatus (hwndDlg, "Finished. Volume successfully expanded.");
+				AddProgressDlgStatus (hwndDlg, L"Finished. Volume successfully expanded.");
 			}
 
-			SetWindowText (GetDlgItem (hwndDlg, IDOK), "Exit");
+			SetWindowText (GetDlgItem (hwndDlg, IDOK), L"Exit");
 			EnableWindow (GetDlgItem (hwndDlg, IDOK), TRUE);
 			EnableWindow (GetDlgItem (hwndDlg, IDCANCEL), FALSE);
 		}
@@ -314,20 +341,36 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 		{
 		case TIMER_ID_RANDVIEW:
 			{
-				unsigned char tmp[16] = {0};
-				char szRndPool[64] = {0};
+				wchar_t szRndPool[64] = {0};
+				DWORD mouseEventsCounter;
 
-				if (!showRandPool)
-					return 1;
+				RandpeekBytes (hwndDlg, randPool, sizeof (randPool),&mouseEventsCounter);
 
-				RandpeekBytes (hwndDlg, tmp, sizeof (tmp));
+				ProcessEntropyEstimate (hEntropyBar, &mouseEventsInitialCount, mouseEventsCounter, maxEntropyLevel, &mouseEntropyGathered);
 
-				StringCbPrintfA (szRndPool, sizeof(szRndPool), "%08X%08X%08X%08X", 
-					*((DWORD*) (tmp + 12)), *((DWORD*) (tmp + 8)), *((DWORD*) (tmp + 4)), *((DWORD*) (tmp)));
+				if (showRandPool)
+					StringCbPrintfW (szRndPool, sizeof(szRndPool), L"%08X%08X%08X%08X", 
+						*((DWORD*) (randPool + 12)), *((DWORD*) (randPool + 8)), *((DWORD*) (randPool + 4)), *((DWORD*) (randPool)));
+				else if (bUseMask)
+				{
+					for (int i = 0; i < 16; i++)
+					{
+						wchar_t tmp2[3];
+						unsigned char tmpByte = randPool[i] ^ maskRandPool[i];
+						tmp2[0] = (wchar_t) (((tmpByte >> 4) % 6) + L'*');
+						tmp2[1] = (wchar_t) (((tmpByte & 0x0F) % 6) + L'*');
+						tmp2[2] = 0;
+						StringCbCatW (szRndPool, sizeof(szRndPool), tmp2);
+					}
+				}
+				else
+				{
+					wmemset (szRndPool, L'*', 32);
+				}
 
 				SetWindowText (GetDlgItem (hwndDlg, IDC_RANDOM_BYTES), szRndPool);
 
-				burn (tmp, sizeof(tmp));
+				burn (randPool, sizeof(randPool));
 				burn (szRndPool, sizeof(szRndPool));
 			}
 			return 1;
@@ -367,7 +410,7 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 				KillTimer (hwndDlg, TIMER_ID_RANDVIEW);
 				EnableWindow (GetDlgItem (hwndDlg, IDC_DISPLAY_POOL_CONTENTS), FALSE);
 				EnableWindow (GetDlgItem (hwndDlg, IDOK), FALSE);
-				SetProgressDlgStatus (hwndDlg, "Starting volume expansion ...\r\n");
+				SetProgressDlgStatus (hwndDlg, L"Starting volume expansion ...\r\n");
 				bVolTransformStarted = TRUE;
 				pProgressDlgParam->hwndDlg = hwndDlg;
 				if ( _beginthread (volTransformThreadFunction, 0, pProgressDlgParam) == -1L )
@@ -381,6 +424,13 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 		}
 
 		return 0;
+
+	case WM_NCDESTROY:
+		burn (randPool, sizeof (randPool));
+		burn (&mouseEventsInitialCount, sizeof(mouseEventsInitialCount));
+		burn (&mouseEntropyGathered, sizeof(mouseEntropyGathered));
+		burn (maskRandPool, sizeof(maskRandPool));
+		return 0;
 	}
 
 	return 0;
@@ -390,7 +440,7 @@ BOOL CALLBACK ExpandVolProgressDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 typedef struct
 {
 	OpenVolumeContext *context;
-	const char *volumePath;
+	const wchar_t *volumePath;
 	Password *password;
 	int pkcs5_prf;
 	int pim;
@@ -427,7 +477,7 @@ void CALLBACK OpenVolumeWaitThreadProc(void* pArg, HWND hwndDlg)
 		none
 
 */
-void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
+void ExpandVolumeWizard (HWND hwndDlg, wchar_t *lpszVolume)
 {
 	int nStatus = ERR_OS_ERROR;
 	wchar_t szTmp[4096];
@@ -438,7 +488,7 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 	DWORD dwError;
 	int driveNo;
 	enum EV_FileSystem volFSType;
-	char rootPath[] = "A:\\";
+	wchar_t rootPath[] = L"A:\\";
 
 	switch (IsSystemDevicePath (lpszVolume, hwndDlg, TRUE))
 	{
@@ -624,6 +674,11 @@ void ExpandVolumeWizard (HWND hwndDlg, char *lpszVolume)
 		break;
 	case EV_FS_TYPE_FAT:
 		if (MessageBoxW (hwndDlg,L"Warning: The VeraCrypt volume contains a FAT file system!\n\nOnly the VeraCrypt volume itself will be expanded, but not the file system.\n\nDo you want to continue?",
+			lpszTitle, YES_NO|MB_ICONQUESTION|MB_DEFBUTTON2) == IDNO)
+			goto ret;
+		break;
+	case EV_FS_TYPE_EXFAT:
+		if (MessageBoxW (hwndDlg,L"Warning: The VeraCrypt volume contains an exFAT file system!\n\nOnly the VeraCrypt volume itself will be expanded, but not the file system.\n\nDo you want to continue?",
 			lpszTitle, YES_NO|MB_ICONQUESTION|MB_DEFBUTTON2) == IDNO)
 			goto ret;
 		break;

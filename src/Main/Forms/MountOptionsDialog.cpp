@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -85,12 +85,45 @@ namespace VeraCrypt
 	}
 
 	void MountOptionsDialog::OnOKButtonClick (wxCommandEvent& event)
-	{
+	{	
+		bool bUnsupportedKdf = false;
+		
+		/* verify that PIM values are valid before continuing*/
+		int Pim = PasswordPanel->GetVolumePim();
+		int ProtectionPim = (!ReadOnlyCheckBox->IsChecked() && ProtectionCheckBox->IsChecked())?
+			ProtectionPasswordPanel->GetVolumePim() : 0;
+			
+		/* invalid PIM: set focus to PIM field and stop processing */
+		if (-1 == Pim)
+		{
+			PasswordPanel->SetFocusToPimTextCtrl();
+			return;
+		}
+		
+		if (-1 == ProtectionPim)
+		{
+			ProtectionPasswordPanel->SetFocusToPimTextCtrl();
+			return;
+		}
+
 		TransferDataFromWindow();
 
-		Options.Password = PasswordPanel->GetPassword();
-		Options.Pim = PasswordPanel->GetVolumePim();
-		Options.Kdf = PasswordPanel->GetPkcs5Kdf();
+		try
+		{
+			Options.Password = PasswordPanel->GetPassword();
+		}
+		catch (PasswordException& e)
+		{
+			Gui->ShowWarning (e);
+			return;
+		}
+		Options.Pim = Pim;
+		Options.Kdf = PasswordPanel->GetPkcs5Kdf(bUnsupportedKdf);
+		if (bUnsupportedKdf)
+		{
+			Gui->ShowWarning (LangString ["ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
+			return;
+		}
 		Options.TrueCryptMode = PasswordPanel->GetTrueCryptMode();
 		Options.Keyfiles = PasswordPanel->GetKeyfiles();
 
@@ -100,10 +133,23 @@ namespace VeraCrypt
 		}
 		else if (ProtectionCheckBox->IsChecked())
 		{
-			Options.Protection = VolumeProtection::HiddenVolumeReadOnly;
-			Options.ProtectionPassword = ProtectionPasswordPanel->GetPassword();
-			Options.ProtectionPim = ProtectionPasswordPanel->GetVolumePim();
-			Options.ProtectionKdf = ProtectionPasswordPanel->GetPkcs5Kdf();
+			try
+			{
+				Options.ProtectionPassword = ProtectionPasswordPanel->GetPassword();
+			}
+			catch (PasswordException& e)
+			{
+				Gui->ShowWarning (e);
+				return;
+			}
+			Options.Protection = VolumeProtection::HiddenVolumeReadOnly;			
+			Options.ProtectionPim = ProtectionPim;
+			Options.ProtectionKdf = ProtectionPasswordPanel->GetPkcs5Kdf(Options.TrueCryptMode, bUnsupportedKdf);
+			if (bUnsupportedKdf)
+			{
+				Gui->ShowWarning (LangString ["ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
+				return;
+			}
 			Options.ProtectionKeyfiles = ProtectionPasswordPanel->GetKeyfiles();
 		}
 		else
@@ -116,23 +162,6 @@ namespace VeraCrypt
 			Options.MountPoint = make_shared <DirectoryPath> (mountPoint);
 
 		Options.FilesystemOptions = FilesystemOptionsTextCtrl->GetValue();
-
-		try
-		{
-			if (Options.Password)
-				Options.Password->CheckPortability();
-		}
-		catch (UnportablePassword &)
-		{
-			Gui->ShowWarning (LangString ["UNSUPPORTED_CHARS_IN_PWD_RECOM"]);
-		}
-		
-		if (Options.TrueCryptMode && Options.Kdf && (Options.Kdf->GetName() == L"HMAC-SHA-256"))
-		{
-			Gui->ShowWarning (LangString ["ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
-			event.Skip();
-			return;
-		}
 
 		EndModal (wxID_OK);
 	}

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -13,7 +13,6 @@
 #include "Tcdefs.h"
 #include "Platform/Finally.h"
 #include "Platform/ForEach.h"
-#include <Setupapi.h>
 #include <devguid.h>
 #include <io.h>
 #include <shlobj.h>
@@ -76,17 +75,17 @@ namespace VeraCrypt
 			}
 		}
 
-		static void CopyFile (const string &sourceFile, const string &destinationFile)
+		static void CopyFile (const wstring &sourceFile, const wstring &destinationFile)
 		{
 			Elevate();
 			DWORD result;
 			CComBSTR sourceFileBstr, destinationFileBstr;
-			BSTR bstr = A2WBSTR(sourceFile.c_str());
+			BSTR bstr = W2BSTR(sourceFile.c_str());
 			if (bstr)
 			{
 				sourceFileBstr.Attach (bstr);
 
-				bstr = A2WBSTR(destinationFile.c_str());
+				bstr = W2BSTR(destinationFile.c_str());
 				if (bstr)
 				{
 					destinationFileBstr.Attach (bstr);
@@ -109,12 +108,12 @@ namespace VeraCrypt
 			}
 		}
 
-		static void DeleteFile (const string &file)
+		static void DeleteFile (const wstring &file)
 		{
 			Elevate();
 			CComBSTR fileBstr;
 			DWORD result;
-			BSTR bstr = A2WBSTR(file.c_str());
+			BSTR bstr = W2BSTR(file.c_str());
 			if (bstr)
 			{
 				fileBstr.Attach (bstr);
@@ -132,7 +131,7 @@ namespace VeraCrypt
 			}
 		}
 
-		static void ReadWriteFile (BOOL write, BOOL device, const string &filePath, byte *buffer, uint64 offset, uint32 size, DWORD *sizeDone)
+		static void ReadWriteFile (BOOL write, BOOL device, const wstring &filePath, byte *buffer, uint64 offset, uint32 size, DWORD *sizeDone)
 		{
 			Elevate();
 
@@ -140,7 +139,7 @@ namespace VeraCrypt
 			CComBSTR bufferBstr, fileBstr;
 			if (bufferBstr.AppendBytes ((const char *) buffer, size) != S_OK)
 				throw ParameterIncorrect (SRC_POS);
-			BSTR bstr = A2WBSTR(filePath.c_str());
+			BSTR bstr = W2BSTR(filePath.c_str());
 			if (bstr)
 			{
 				fileBstr.Attach (bstr);
@@ -168,17 +167,17 @@ namespace VeraCrypt
 			return ElevatedComInstance->IsPagingFileActive (checkNonWindowsPartitionsOnly);
 		}
 
-		static void WriteLocalMachineRegistryDwordValue (char *keyPath, char *valueName, DWORD value)
+		static void WriteLocalMachineRegistryDwordValue (wchar_t *keyPath, wchar_t *valueName, DWORD value)
 		{
 			Elevate();
 			DWORD result;
 			CComBSTR keyPathBstr, valueNameBstr;
-			BSTR bstr = A2WBSTR(keyPath);
+			BSTR bstr = W2BSTR(keyPath);
 			if (bstr)
 			{
 				keyPathBstr.Attach (bstr);
 
-				bstr = A2WBSTR(valueName);
+				bstr = W2BSTR(valueName);
 				if (bstr)
 				{
 					valueNameBstr.Attach (bstr);
@@ -289,7 +288,7 @@ namespace VeraCrypt
 	public:
 		static void AddReference () { }
 		static void CallDriver (DWORD ioctl, void *input, DWORD inputSize, void *output, DWORD outputSize) { throw ParameterIncorrect (SRC_POS); }
-		static void ReadWriteFile (BOOL write, BOOL device, const string &filePath, byte *buffer, uint64 offset, uint32 size, DWORD *sizeDone) { throw ParameterIncorrect (SRC_POS); }
+		static void ReadWriteFile (BOOL write, BOOL device, const wstring &filePath, byte *buffer, uint64 offset, uint32 size, DWORD *sizeDone) { throw ParameterIncorrect (SRC_POS); }
 		static void RegisterFilterDriver (bool registerDriver, BootEncryption::FilterType filterType) { throw ParameterIncorrect (SRC_POS); }
 		static void Release () { }
 		static void SetDriverServiceStartType (DWORD startType) { throw ParameterIncorrect (SRC_POS); }
@@ -298,7 +297,7 @@ namespace VeraCrypt
 #endif // SETUP
 
 
-	File::File (string path, bool readOnly, bool create) : Elevated (false), FileOpen (false), LastError(0)
+	File::File (wstring path, bool readOnly, bool create) : Elevated (false), FileOpen (false), LastError(0)
 	{
 		Handle = CreateFile (path.c_str(),
 			readOnly ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
@@ -417,18 +416,18 @@ namespace VeraCrypt
 		}
 	}
 
-	void Show (HWND parent, const string &str)
+	void Show (HWND parent, const wstring &str)
 	{
 		MessageBox (parent, str.c_str(), NULL, 0);
 	}
 
 
-	Device::Device (string path, bool readOnly)
+	Device::Device (wstring path, bool readOnly)
 	{
 		 FileOpen = false;
 		 Elevated = false;
 
-		Handle = CreateFile ((string ("\\\\.\\") + path).c_str(),
+		Handle = CreateFile ((wstring (L"\\\\.\\") + path).c_str(),
 			readOnly ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
 			FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
 			FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_WRITE_THROUGH, NULL);
@@ -616,7 +615,7 @@ namespace VeraCrypt
 	DWORD BootEncryption::GetDriverServiceStartType ()
 	{
 		DWORD startType;
-		throw_sys_if (!ReadLocalMachineRegistryDword ("SYSTEM\\CurrentControlSet\\Services\\veracrypt", "Start", &startType));
+		throw_sys_if (!ReadLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", L"Start", &startType));
 		return startType;
 	}
 
@@ -645,42 +644,42 @@ namespace VeraCrypt
 
 		finally_do_arg (SC_HANDLE, serviceManager, { CloseServiceHandle (finally_arg); });
 
-		SC_HANDLE service = OpenService (serviceManager, "veracrypt", SERVICE_CHANGE_CONFIG);
+		SC_HANDLE service = OpenService (serviceManager, L"veracrypt", SERVICE_CHANGE_CONFIG);
 		throw_sys_if (!service);
 
 		finally_do_arg (SC_HANDLE, service, { CloseServiceHandle (finally_arg); });
 
 		// Windows versions preceding Vista can be installed on FAT filesystem which does not
 		// support long filenames during boot. Convert the driver path to short form if required.
-		string driverPath;
+		wstring driverPath;
 		if (startOnBoot && !IsOSAtLeast (WIN_VISTA))
 		{
-			char pathBuf[MAX_PATH];
-			char filesystem[128];
+			wchar_t pathBuf[MAX_PATH];
+			wchar_t filesystem[128];
 
-			string path (GetWindowsDirectory());
-			path += "\\drivers\\veracrypt.sys";
+			wstring path (GetWindowsDirectory());
+			path += L"\\drivers\\veracrypt.sys";
 
-			if (GetVolumePathName (path.c_str(), pathBuf, sizeof (pathBuf))
-				&& GetVolumeInformation (pathBuf, NULL, 0, NULL, NULL, NULL, filesystem, sizeof(filesystem))
-				&& memcmp (filesystem, "FAT", 3) == 0)
+			if (GetVolumePathName (path.c_str(), pathBuf, ARRAYSIZE (pathBuf))
+				&& GetVolumeInformation (pathBuf, NULL, 0, NULL, NULL, NULL, filesystem, ARRAYSIZE(filesystem))
+				&& wmemcmp (filesystem, L"FAT", 3) == 0)
 			{
-				throw_sys_if (GetShortPathName (path.c_str(), pathBuf, sizeof (pathBuf)) == 0);
+				throw_sys_if (GetShortPathName (path.c_str(), pathBuf, ARRAYSIZE (pathBuf)) == 0);
 
 				// Convert absolute path to relative to the Windows directory
 				driverPath = pathBuf;
-				driverPath = driverPath.substr (driverPath.rfind ("\\", driverPath.rfind ("\\", driverPath.rfind ("\\") - 1) - 1) + 1);
+				driverPath = driverPath.substr (driverPath.rfind (L"\\", driverPath.rfind (L"\\", driverPath.rfind (L"\\") - 1) - 1) + 1);
 			}
 		}
 
 		throw_sys_if (!ChangeServiceConfig (service, SERVICE_NO_CHANGE, SERVICE_NO_CHANGE,
 			startOnBoot ? SERVICE_ERROR_SEVERE : SERVICE_ERROR_NORMAL,
 			driverPath.empty() ? NULL : driverPath.c_str(),
-			startOnBoot ? "Filter" : NULL,
+			startOnBoot ? L"Filter" : NULL,
 			NULL, NULL, NULL, NULL, NULL));
 
 		// ChangeServiceConfig() rejects SERVICE_BOOT_START with ERROR_INVALID_PARAMETER
-		throw_sys_if (!WriteLocalMachineRegistryDword ("SYSTEM\\CurrentControlSet\\Services\\veracrypt", "Start", startType));
+		throw_sys_if (!WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", L"Start", startType));
 	}
 
 
@@ -692,7 +691,7 @@ namespace VeraCrypt
 		GetSystemDriveConfiguration();
 
 		ProbeRealDriveSizeRequest request;
-		StringCbPrintfW (request.DeviceName, sizeof (request.DeviceName), L"%hs", DriveConfig.DrivePartition.DevicePath.c_str());
+		StringCchCopyW (request.DeviceName, ARRAYSIZE (request.DeviceName), DriveConfig.DrivePartition.DevicePath.c_str());
 		
 		CallDriver (TC_IOCTL_PROBE_REAL_DRIVE_SIZE, &request, sizeof (request), &request, sizeof (request));
 		DriveConfig.DrivePartition.Info.PartitionLength = request.RealDriveSize;
@@ -717,11 +716,11 @@ namespace VeraCrypt
 
 		for (int partNumber = 0; partNumber < 64; ++partNumber)
 		{
-			stringstream partPath;
-			partPath << "\\Device\\Harddisk" << driveNumber << "\\Partition" << partNumber;
+			wstringstream partPath;
+			partPath << L"\\Device\\Harddisk" << driveNumber << L"\\Partition" << partNumber;
 
 			DISK_PARTITION_INFO_STRUCT diskPartInfo = {0};
-			StringCbPrintfW (diskPartInfo.deviceName, sizeof (diskPartInfo.deviceName), L"%hs", partPath.str().c_str());
+			StringCchCopyW (diskPartInfo.deviceName, ARRAYSIZE (diskPartInfo.deviceName), partPath.str().c_str());
 
 			try
 			{
@@ -748,19 +747,17 @@ namespace VeraCrypt
 				part.IsGPT = diskPartInfo.IsGPT;
 
 				// Mount point
-				wstringstream ws;
-				ws << partPath.str().c_str();
-				int driveNumber = GetDiskDeviceDriveLetter ((wchar_t *) ws.str().c_str());
+				int driveNumber = GetDiskDeviceDriveLetter ((wchar_t *) partPath.str().c_str());
 
 				if (driveNumber >= 0)
 				{
-					part.MountPoint += (char) (driveNumber + 'A');
-					part.MountPoint += ":";
+					part.MountPoint += (wchar_t) (driveNumber + L'A');
+					part.MountPoint += L":";
 				}
 
 				// Volume ID
 				wchar_t volumePath[TC_MAX_PATH];
-				if (ResolveSymbolicLink ((wchar_t *) ws.str().c_str(), volumePath, sizeof(volumePath)))
+				if (ResolveSymbolicLink ((wchar_t *) partPath.str().c_str(), volumePath, sizeof(volumePath)))
 				{
 					wchar_t volumeName[TC_MAX_PATH];
 					HANDLE fh = FindFirstVolumeW (volumeName, array_capacity (volumeName));
@@ -794,33 +791,23 @@ namespace VeraCrypt
 
 	DISK_GEOMETRY BootEncryption::GetDriveGeometry (int driveNumber)
 	{
-		stringstream devName;
-		devName << "\\Device\\Harddisk" << driveNumber << "\\Partition0";
+		wstringstream devName;
+		devName << L"\\Device\\Harddisk" << driveNumber << L"\\Partition0";
 
 		DISK_GEOMETRY geometry;
-		throw_sys_if (!::GetDriveGeometry ((char *) devName.str().c_str(), &geometry));
+		throw_sys_if (!::GetDriveGeometry (devName.str().c_str(), &geometry));
 		return geometry;
 	}
 
 	
-	string BootEncryption::GetWindowsDirectory ()
+	wstring BootEncryption::GetWindowsDirectory ()
 	{
-		char buf[MAX_PATH];
-		throw_sys_if (GetSystemDirectory (buf, sizeof (buf)) == 0);
+		wchar_t buf[MAX_PATH];
+		throw_sys_if (GetSystemDirectory (buf, ARRAYSIZE (buf)) == 0);
 		
-		return string (buf);
+		return wstring (buf);
 	}
 
-
-	string BootEncryption::GetTempPath ()
-	{
-		char tempPath[MAX_PATH];
-		DWORD tempLen = ::GetTempPath (sizeof (tempPath), tempPath);
-		if (tempLen == 0 || tempLen > sizeof (tempPath))
-			throw ParameterIncorrect (SRC_POS);
-
-		return string (tempPath);
-	}
 
 
 	uint16 BootEncryption::GetInstalledBootLoaderVersion ()
@@ -838,7 +825,7 @@ namespace VeraCrypt
 	}
 
 	// Note that this does not require admin rights (it just requires the driver to be running)
-	bool BootEncryption::IsBootLoaderOnDrive (char *devicePath)
+	bool BootEncryption::IsBootLoaderOnDrive (wchar_t *devicePath)
 	{
 		try 
 		{
@@ -846,8 +833,7 @@ namespace VeraCrypt
 			memset (&openTestStruct, 0, sizeof (openTestStruct));
 			DWORD dwResult;
 
-			StringCbCopyA ((char *) &openTestStruct.wszFileName[0], sizeof(openTestStruct.wszFileName),devicePath);
-			ToUNICODE ((char *) &openTestStruct.wszFileName[0], sizeof(openTestStruct.wszFileName));
+			StringCchCopyW (&openTestStruct.wszFileName[0], ARRAYSIZE(openTestStruct.wszFileName),devicePath);
 
 			openTestStruct.bDetectTCBootLoader = TRUE;
 
@@ -949,7 +935,7 @@ namespace VeraCrypt
 	bool BootEncryption::SystemDriveIsDynamic ()
 	{
 		GetSystemDriveConfigurationRequest request;
-		StringCbPrintfW (request.DevicePath, sizeof (request.DevicePath), L"%hs", GetSystemDriveConfiguration().DeviceKernelPath.c_str());
+		StringCchCopyW (request.DevicePath, ARRAYSIZE (request.DevicePath), GetSystemDriveConfiguration().DeviceKernelPath.c_str());
 
 		CallDriver (TC_IOCTL_GET_SYSTEM_DRIVE_CONFIG, &request, sizeof (request), &request, sizeof (request));
 		return request.DriveIsDynamic ? true : false;
@@ -963,7 +949,7 @@ namespace VeraCrypt
 
 		SystemDriveConfiguration config;
 
-		string winDir = GetWindowsDirectory();
+		wstring winDir = GetWindowsDirectory();
 
 		// Scan all drives
 		for (int driveNumber = 0; driveNumber < 32; ++driveNumber)
@@ -977,7 +963,7 @@ namespace VeraCrypt
 			foreach (const Partition &part, partitions)
 			{
 				if (!part.MountPoint.empty()
-					&& (_access ((part.MountPoint + "\\bootmgr").c_str(), 0) == 0 || _access ((part.MountPoint + "\\ntldr").c_str(), 0) == 0))
+					&& (_waccess ((part.MountPoint + L"\\bootmgr").c_str(), 0) == 0 || _waccess ((part.MountPoint + L"\\ntldr").c_str(), 0) == 0))
 				{
 					config.SystemLoaderPresent = true;
 				}
@@ -1006,12 +992,12 @@ namespace VeraCrypt
 			{
 				config.DriveNumber = driveNumber;
 
-				stringstream ss;
-				ss << "PhysicalDrive" << driveNumber;
+				wstringstream ss;
+				ss << L"PhysicalDrive" << driveNumber;
 				config.DevicePath = ss.str();
 
-				stringstream kernelPath;
-				kernelPath << "\\Device\\Harddisk" << driveNumber << "\\Partition0";
+				wstringstream kernelPath;
+				kernelPath << L"\\Device\\Harddisk" << driveNumber << L"\\Partition0";
 				config.DeviceKernelPath = kernelPath.str();
 
 				config.DrivePartition = partitions.front();
@@ -1187,7 +1173,7 @@ namespace VeraCrypt
 
 		// Boot sector
 		DWORD size;
-		byte *bootSecResourceImg = MapResource ("BIN", bootSectorId, &size);
+		byte *bootSecResourceImg = MapResource (L"BIN", bootSectorId, &size);
 		if (!bootSecResourceImg || size != TC_SECTOR_SIZE_BIOS)
 			throw ParameterIncorrect (SRC_POS);
 
@@ -1215,14 +1201,14 @@ namespace VeraCrypt
 		}
 
 		// Decompressor
-		byte *decompressor = MapResource ("BIN", IDR_BOOT_LOADER_DECOMPRESSOR, &size);
+		byte *decompressor = MapResource (L"BIN", IDR_BOOT_LOADER_DECOMPRESSOR, &size);
 		if (!decompressor || size > TC_BOOT_LOADER_DECOMPRESSOR_SECTOR_COUNT * TC_SECTOR_SIZE_BIOS)
 			throw ParameterIncorrect (SRC_POS);
 
 		memcpy (buffer + TC_SECTOR_SIZE_BIOS, decompressor, size);
 
 		// Compressed boot loader
-		byte *bootLoader = MapResource ("BIN", bootLoaderId, &size);
+		byte *bootLoader = MapResource (L"BIN", bootLoaderId, &size);
 		if (!bootLoader || size > TC_MAX_BOOT_LOADER_SECTOR_COUNT * TC_SECTOR_SIZE_BIOS)
 			throw ParameterIncorrect (SRC_POS);
 
@@ -1254,7 +1240,7 @@ namespace VeraCrypt
 			throw ParameterIncorrect (SRC_POS);
 
 		GetSystemDriveConfigurationRequest request;
-		StringCbPrintfW (request.DevicePath, sizeof (request.DevicePath), L"%hs", GetSystemDriveConfiguration().DeviceKernelPath.c_str());
+		StringCchCopyW (request.DevicePath, ARRAYSIZE (request.DevicePath), GetSystemDriveConfiguration().DeviceKernelPath.c_str());
 
 		try
 		{
@@ -1584,35 +1570,35 @@ namespace VeraCrypt
 	}
 #endif
 
-	string BootEncryption::GetSystemLoaderBackupPath ()
+	wstring BootEncryption::GetSystemLoaderBackupPath ()
 	{
-		char pathBuf[MAX_PATH];
+		WCHAR pathBuf[MAX_PATH];
 
 		throw_sys_if (!SUCCEEDED (SHGetFolderPath (NULL, CSIDL_COMMON_APPDATA | CSIDL_FLAG_CREATE, NULL, 0, pathBuf)));
 		
-		string path = string (pathBuf) + "\\" TC_APP_NAME;
+		wstring path = wstring (pathBuf) + L"\\" _T(TC_APP_NAME);
 		CreateDirectory (path.c_str(), NULL);
 
-		return path + '\\' + TC_SYS_BOOT_LOADER_BACKUP_NAME;
+		return path + L'\\' + TC_SYS_BOOT_LOADER_BACKUP_NAME;
 	}
 
 
 	void BootEncryption::RenameDeprecatedSystemLoaderBackup ()
 	{
-		char pathBuf[MAX_PATH];
+		WCHAR pathBuf[MAX_PATH];
 
 		if (SUCCEEDED (SHGetFolderPath (NULL, CSIDL_COMMON_APPDATA, NULL, 0, pathBuf)))
 		{
-			string path = string (pathBuf) + "\\" TC_APP_NAME + '\\' + TC_SYS_BOOT_LOADER_BACKUP_NAME_LEGACY;
+			wstring path = wstring (pathBuf) + L"\\" _T(TC_APP_NAME) + L'\\' + TC_SYS_BOOT_LOADER_BACKUP_NAME_LEGACY;
 
 			if (FileExists (path.c_str()) && !FileExists (GetSystemLoaderBackupPath().c_str()))
-				throw_sys_if (rename (path.c_str(), GetSystemLoaderBackupPath().c_str()) != 0);
+				throw_sys_if (_wrename (path.c_str(), GetSystemLoaderBackupPath().c_str()) != 0);
 		}
 	}
 
 
 #ifndef SETUP
-	void BootEncryption::CreateRescueIsoImage (bool initialSetup, const string &isoImagePath)
+	void BootEncryption::CreateRescueIsoImage (bool initialSetup, const wstring &isoImagePath)
 	{
 		BootEncryptionStatus encStatus = GetStatus();
 		if (encStatus.SetupInProgress)
@@ -1764,12 +1750,12 @@ namespace VeraCrypt
 		if (!RescueIsoImage)
 			throw ParameterIncorrect (SRC_POS);
 
-		for (char drive = 'Z'; drive >= 'C'; --drive)
+		for (WCHAR drive = L'Z'; drive >= L'C'; --drive)
 		{
 			try
 			{
-				char rootPath[4] = { drive, ':', '\\', 0};
-				UINT driveType = GetDriveTypeA (rootPath);
+				WCHAR rootPath[4] = { drive, L':', L'\\', 0};
+				UINT driveType = GetDriveType (rootPath);
 				// check that it is a CD/DVD drive or a removable media in case a bootable
 				// USB key was created from the rescue disk ISO file
 				if ((DRIVE_CDROM == driveType) || (DRIVE_REMOVABLE == driveType)) 
@@ -1795,7 +1781,7 @@ namespace VeraCrypt
 		return false;
 	}
 
-	bool BootEncryption::VerifyRescueDiskIsoImage (const char* imageFile)
+	bool BootEncryption::VerifyRescueDiskIsoImage (const wchar_t* imageFile)
 	{
 		if (!RescueIsoImage)
 			throw ParameterIncorrect (SRC_POS);
@@ -1956,7 +1942,7 @@ namespace VeraCrypt
 		case VolumeFilter:
 			filter = "veracrypt";
 			filterReg = "UpperFilters";
-			regKey = SetupDiOpenClassRegKey (deviceClassGuid, KEY_READ | KEY_WRITE);
+			regKey = OpenDeviceClassRegKey (deviceClassGuid);
 			throw_sys_if (regKey == INVALID_HANDLE_VALUE);
 
 			break;
@@ -1967,7 +1953,7 @@ namespace VeraCrypt
 
 			filter = "veracrypt.sys";
 			filterReg = "DumpFilters";
-			SetLastError (RegOpenKeyEx (HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\CrashControl", 0, KEY_READ | KEY_WRITE, &regKey));
+			SetLastError (RegOpenKeyEx (HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\CrashControl", 0, KEY_READ | KEY_WRITE, &regKey));
 			throw_sys_if (GetLastError() != ERROR_SUCCESS);
 
 			break;
@@ -1987,34 +1973,17 @@ namespace VeraCrypt
 			DWORD size = (DWORD) (sizeof (regKeyBuf) - strSize);
 
 			// SetupInstallFromInfSection() does not support prepending of values so we have to modify the registry directly
-			StringCbCopyA ((char *) regKeyBuf, sizeof(regKeyBuf), filter.c_str());
+			StringCchCopyA ((char *) regKeyBuf, ARRAYSIZE(regKeyBuf), filter.c_str());
 
-			if (RegQueryValueEx (regKey, filterReg.c_str(), NULL, NULL, regKeyBuf + strSize, &size) != ERROR_SUCCESS)
+			if (RegQueryValueExA (regKey, filterReg.c_str(), NULL, NULL, regKeyBuf + strSize, &size) != ERROR_SUCCESS)
 				size = 1;
 
-			SetLastError (RegSetValueEx (regKey, filterReg.c_str(), 0, REG_MULTI_SZ, regKeyBuf, (DWORD) strSize + size));
+			SetLastError (RegSetValueExA (regKey, filterReg.c_str(), 0, REG_MULTI_SZ, regKeyBuf, (DWORD) strSize + size));
 			throw_sys_if (GetLastError() != ERROR_SUCCESS);
 		}
 		else
 		{
-			string infFileName = GetTempPath() + "\\veracrypt_driver_setup.inf";
-
-			File infFile (infFileName, false, true);
-			finally_do_arg (string, infFileName, { DeleteFile (finally_arg.c_str()); });
-
-			string infTxt = "[veracrypt]\r\n"
-							+ string (registerFilter ? "Add" : "Del") + "Reg=veracrypt_reg\r\n\r\n"
-							"[veracrypt_reg]\r\n"
-							"HKR,,\"" + filterReg + "\",0x0001" + string (registerFilter ? "0008" : "8002") + ",\"" + filter + "\"\r\n";
-
-			infFile.Write ((byte *) infTxt.c_str(), (DWORD) infTxt.size());
-			infFile.Close();
-
-			HINF hInf = SetupOpenInfFile (infFileName.c_str(), NULL, INF_STYLE_OLDNT | INF_STYLE_WIN4, NULL);
-			throw_sys_if (hInf == INVALID_HANDLE_VALUE);
-			finally_do_arg (HINF, hInf, { SetupCloseInfFile (finally_arg); });
-
-			throw_sys_if (!SetupInstallFromInfSection (ParentWindow, hInf, "veracrypt", SPINST_REGISTRY, regKey, NULL, 0, NULL, NULL, NULL, NULL));
+			RegisterDriverInf (registerFilter, filter, filterReg, ParentWindow, regKey);
 		}
 	}
 
@@ -2052,8 +2021,8 @@ namespace VeraCrypt
 		throw_sys_if (!scm);
 		finally_do_arg (SC_HANDLE, scm, { CloseServiceHandle (finally_arg); });
 
-		string servicePath = GetServiceConfigPath (TC_APP_NAME ".exe", false);
-		string serviceLegacyPath = GetServiceConfigPath (TC_APP_NAME ".exe", true);
+		wstring servicePath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", false);
+		wstring serviceLegacyPath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", true);
 
 		if (registerService)
 		{
@@ -2065,20 +2034,20 @@ namespace VeraCrypt
 
 			if (!noFileHandling)
 			{
-				char appPath[TC_MAX_PATH];
-				throw_sys_if (!GetModuleFileName (NULL, appPath, sizeof (appPath)));
+				wchar_t appPath[TC_MAX_PATH];
+				throw_sys_if (!GetModuleFileName (NULL, appPath, ARRAYSIZE (appPath)));
 
 				throw_sys_if (!CopyFile (appPath, servicePath.c_str(), FALSE));
 			}
 
 			SC_HANDLE service = CreateService (scm,
 				TC_SYSTEM_FAVORITES_SERVICE_NAME,
-				TC_APP_NAME " System Favorites",
+				_T(TC_APP_NAME) L" System Favorites",
 				SERVICE_ALL_ACCESS,
 				SERVICE_WIN32_OWN_PROCESS,
 				SERVICE_AUTO_START,
 				SERVICE_ERROR_NORMAL,
-				(string ("\"") + servicePath + "\" " TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION).c_str(),
+				(wstring (L"\"") + servicePath + L"\" " TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION).c_str(),
 				TC_SYSTEM_FAVORITES_SERVICE_LOAD_ORDER_GROUP,
 				NULL,
 				NULL,
@@ -2088,15 +2057,15 @@ namespace VeraCrypt
 			throw_sys_if (!service);
 
 			SERVICE_DESCRIPTION description;
-			description.lpDescription = "Mounts VeraCrypt system favorite volumes.";
+			description.lpDescription = L"Mounts VeraCrypt system favorite volumes.";
 			ChangeServiceConfig2 (service, SERVICE_CONFIG_DESCRIPTION, &description);
 
 			CloseServiceHandle (service);
 
 			try
 			{
-				WriteLocalMachineRegistryString ("SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, NULL, "Service", FALSE);
-				WriteLocalMachineRegistryString ("SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, NULL, "Service", FALSE);
+				WriteLocalMachineRegistryString (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, NULL, L"Service", FALSE);
+				WriteLocalMachineRegistryString (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, NULL, L"Service", FALSE);
 
 				SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD_FOR_SYS_FAVORITES, true);
 			}
@@ -2115,8 +2084,8 @@ namespace VeraCrypt
 		{
 			SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD_FOR_SYS_FAVORITES, false);
 
-			DeleteLocalMachineRegistryKey ("SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal", TC_SYSTEM_FAVORITES_SERVICE_NAME);
-			DeleteLocalMachineRegistryKey ("SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network", TC_SYSTEM_FAVORITES_SERVICE_NAME);
+			DeleteLocalMachineRegistryKey (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal", TC_SYSTEM_FAVORITES_SERVICE_NAME);
+			DeleteLocalMachineRegistryKey (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network", TC_SYSTEM_FAVORITES_SERVICE_NAME);
 
 			SC_HANDLE service = OpenService (scm, TC_SYSTEM_FAVORITES_SERVICE_NAME, SERVICE_ALL_ACCESS);
 			throw_sys_if (!service);
@@ -2140,24 +2109,25 @@ namespace VeraCrypt
 
 		finally_do_arg (SC_HANDLE, scm, { CloseServiceHandle (finally_arg); });
 
-		string servicePath = GetServiceConfigPath (TC_APP_NAME ".exe", false);
+		wstring servicePath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", false);
 
 		// check if service exists
 		SC_HANDLE service = OpenService (scm, TC_SYSTEM_FAVORITES_SERVICE_NAME, SERVICE_ALL_ACCESS);
 		if (service)
 		{
+			finally_do_arg (SC_HANDLE, service, { CloseServiceHandle (finally_arg); });
 			// ensure that its parameters are correct
 			throw_sys_if (!ChangeServiceConfig (service,
 				SERVICE_WIN32_OWN_PROCESS,
 				SERVICE_AUTO_START,
 				SERVICE_ERROR_NORMAL,
-				(string ("\"") + servicePath + "\" " TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION).c_str(),
+				(wstring (L"\"") + servicePath + L"\" " TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION).c_str(),
 				TC_SYSTEM_FAVORITES_SERVICE_LOAD_ORDER_GROUP,
 				NULL,
 				NULL,
 				NULL,
 				NULL,
-				TC_APP_NAME " System Favorites"));
+				_T(TC_APP_NAME) L" System Favorites"));
 
 		}
 		else
@@ -2175,9 +2145,9 @@ namespace VeraCrypt
 		else
 			configMap &= ~flag;
 #ifdef SETUP
-		WriteLocalMachineRegistryDword ("SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, configMap);
+		WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, configMap);
 #else
-		WriteLocalMachineRegistryDwordValue ("SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, configMap);
+		WriteLocalMachineRegistryDwordValue (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, configMap);
 #endif
 	}
 
@@ -2260,20 +2230,20 @@ namespace VeraCrypt
 
 	void BootEncryption::InitialSecurityChecksForHiddenOS ()
 	{
-		char windowsDrive = (char) toupper (GetWindowsDirectory()[0]);
+		wchar_t windowsDrive = (wchar_t) towupper (GetWindowsDirectory()[0]);
 
 		// Paging files
 		bool pagingFilesOk = !IsPagingFileActive (TRUE);
 
-		char pagingFileRegData[65536];
+		wchar_t pagingFileRegData[65536];
 		DWORD pagingFileRegDataSize = sizeof (pagingFileRegData);
 
-		if (ReadLocalMachineRegistryMultiString ("System\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "PagingFiles", pagingFileRegData, &pagingFileRegDataSize)
-			&& pagingFileRegDataSize > 4)
+		if (ReadLocalMachineRegistryMultiString (L"System\\CurrentControlSet\\Control\\Session Manager\\Memory Management", L"PagingFiles", pagingFileRegData, &pagingFileRegDataSize)
+			&& pagingFileRegDataSize > 8)
 		{
-			for (size_t i = 1; i < pagingFileRegDataSize - 2; ++i)
+			for (size_t i = 1; i < pagingFileRegDataSize/2 - 2; ++i)
 			{
-				if (memcmp (pagingFileRegData + i, ":\\", 2) == 0 && toupper (pagingFileRegData[i - 1]) != windowsDrive)
+				if (wmemcmp (pagingFileRegData + i, L":\\", 2) == 0 && towupper (pagingFileRegData[i - 1]) != windowsDrive)
 				{
 					pagingFilesOk = false;
 					break;
@@ -2299,15 +2269,15 @@ namespace VeraCrypt
 		}
 
 		// User profile
-		char *configPath = GetConfigPath ("dummy");
-		if (configPath && toupper (configPath[0]) != windowsDrive)
+		wchar_t *configPath = GetConfigPath (L"dummy");
+		if (configPath && towupper (configPath[0]) != windowsDrive)
 		{
 			throw ErrorException (wstring (GetString ("USER_PROFILE_NOT_ON_SYS_PARTITION")) 
 				+ GetString ("LEAKS_OUTSIDE_SYSPART_UNIVERSAL_EXPLANATION"), SRC_POS);
 		}
 
 		// Temporary files
-		if (toupper (GetTempPath()[0]) != windowsDrive)
+		if (towupper (GetTempPathString()[0]) != windowsDrive)
 		{
 			throw ErrorException (wstring (GetString ("TEMP_NOT_ON_SYS_PARTITION")) 
 				+ GetString ("LEAKS_OUTSIDE_SYSPART_UNIVERSAL_EXPLANATION"), SRC_POS);
@@ -2602,7 +2572,7 @@ namespace VeraCrypt
 	}
 
 
-	void BootEncryption::PrepareInstallation (bool systemPartitionOnly, Password &password, int ea, int mode, int pkcs5, int pim, const string &rescueIsoImagePath)
+	void BootEncryption::PrepareInstallation (bool systemPartitionOnly, Password &password, int ea, int mode, int pkcs5, int pim, const wstring &rescueIsoImagePath)
 	{
 		BootEncryptionStatus encStatus = GetStatus();
 		if (encStatus.DriveMounted)
@@ -2616,23 +2586,26 @@ namespace VeraCrypt
 		if (!systemPartitionOnly)
 		{
 			DISK_GEOMETRY geometry = GetDriveGeometry (config.DriveNumber);
-			Buffer sector (geometry.BytesPerSector);
-
-			Device device (config.DevicePath);
-			device.CheckOpened (SRC_POS);
-
-			try
+			if ((geometry.BytesPerSector > 0) && (geometry.BytesPerSector < TC_MAX_VOLUME_SECTOR_SIZE))
 			{
-				device.SeekAt (config.DrivePartition.Info.PartitionLength.QuadPart - geometry.BytesPerSector);
-				device.Read (sector.Ptr(), (DWORD) sector.Size());
-			}
-			catch (SystemException &e)
-			{
-				if (e.ErrorCode != ERROR_CRC)
+				Buffer sector (geometry.BytesPerSector);
+
+				Device device (config.DevicePath);
+				device.CheckOpened (SRC_POS);
+
+				try
 				{
-					e.Show (ParentWindow);
-					Error ("WHOLE_DRIVE_ENCRYPTION_PREVENTED_BY_DRIVERS", ParentWindow);
-					throw UserAbort (SRC_POS);
+					device.SeekAt (config.DrivePartition.Info.PartitionLength.QuadPart - geometry.BytesPerSector);
+					device.Read (sector.Ptr(), (DWORD) sector.Size());
+				}
+				catch (SystemException &e)
+				{
+					if (e.ErrorCode != ERROR_CRC)
+					{
+						e.Show (ParentWindow);
+						Error ("WHOLE_DRIVE_ENCRYPTION_PREVENTED_BY_DRIVERS", ParentWindow);
+						throw UserAbort (SRC_POS);
+					}
 				}
 			}
 		}
@@ -2671,14 +2644,14 @@ namespace VeraCrypt
 
 	void BootEncryption::RestrictPagingFilesToSystemPartition ()
 	{
-		char pagingFiles[128];
-		StringCbCopyA (pagingFiles, sizeof(pagingFiles), "X:\\pagefile.sys 0 0");
+		wchar_t pagingFiles[128] = {0};
+		StringCchCopyW (pagingFiles, ARRAYSIZE(pagingFiles), L"X:\\pagefile.sys 0 0");
 		pagingFiles[0] = GetWindowsDirectory()[0];
 
-		throw_sys_if (!WriteLocalMachineRegistryMultiString ("System\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "PagingFiles", pagingFiles, (DWORD) strlen (pagingFiles) + 2));
+		throw_sys_if (!WriteLocalMachineRegistryMultiString (L"System\\CurrentControlSet\\Control\\Session Manager\\Memory Management", L"PagingFiles", pagingFiles, (DWORD) (wcslen (pagingFiles) + 2) * sizeof (wchar_t)));
 	}
 
-	void BootEncryption::WriteLocalMachineRegistryDwordValue (char *keyPath, char *valueName, DWORD value)
+	void BootEncryption::WriteLocalMachineRegistryDwordValue (wchar_t *keyPath, wchar_t *valueName, DWORD value)
 	{
 		if (!IsAdmin() && IsUacSupported())
 		{
@@ -2722,7 +2695,7 @@ namespace VeraCrypt
 		CallDriver (TC_IOCTL_BOOT_ENCRYPTION_SETUP, &request, sizeof (request), NULL, 0);
 	}
 
-	void BootEncryption::CopyFileAdmin (const string &sourceFile, const string &destinationFile)
+	void BootEncryption::CopyFileAdmin (const wstring &sourceFile, const wstring &destinationFile)
 	{
 		if (!IsAdmin())
 		{
@@ -2738,7 +2711,7 @@ namespace VeraCrypt
 			throw_sys_if (!::CopyFile (sourceFile.c_str(), destinationFile.c_str(), FALSE));
 	}
 
-	void BootEncryption::DeleteFileAdmin (const string &file)
+	void BootEncryption::DeleteFileAdmin (const wstring &file)
 	{
 		if (!IsAdmin() && IsUacSupported())
 			Elevator::DeleteFile (file);
@@ -2752,7 +2725,7 @@ namespace VeraCrypt
 	{
 		DWORD configMap;
 
-		if (!ReadLocalMachineRegistryDword ("SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, &configMap))
+		if (!ReadLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, &configMap))
 			configMap = 0;
 
 		return configMap;

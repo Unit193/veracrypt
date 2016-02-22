@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -39,7 +39,7 @@ namespace VeraCrypt
 	VolumeCreationWizard::VolumeCreationWizard (wxWindow* parent)
 		: WizardFrame (parent),
 		CrossPlatformSupport (true),
-		DisplayKeyInfo (true),
+		DisplayKeyInfo (false),
 		LargeFilesSupport (false),
 		QuickFormatEnabled (false),
 		SelectedFilesystemClusterSize (0),
@@ -378,6 +378,12 @@ namespace VeraCrypt
 			RandomNumberGenerator::AddToPool (ConstBufferPtr (reinterpret_cast <byte *> (&coord), sizeof (coord)));
 			coord = event.GetY();
 			RandomNumberGenerator::AddToPool (ConstBufferPtr (reinterpret_cast <byte *> (&coord), sizeof (coord)));
+			
+			VolumeCreationProgressWizardPage *page = dynamic_cast <VolumeCreationProgressWizardPage *> (GetCurrentPage());
+			if (page)
+			{
+				page->IncrementEntropyProgress ();
+			}
 		}
 	}
 	
@@ -445,12 +451,18 @@ namespace VeraCrypt
 
 				switch (SelectedFilesystemType)
 				{
+#if defined (TC_LINUX)
 				case VolumeCreationOptions::FilesystemType::Ext2:		fsFormatter = "mkfs.ext2"; break;
 				case VolumeCreationOptions::FilesystemType::Ext3:		fsFormatter = "mkfs.ext3"; break;
 				case VolumeCreationOptions::FilesystemType::Ext4:		fsFormatter = "mkfs.ext4"; break;
+				case VolumeCreationOptions::FilesystemType::NTFS:		fsFormatter = "mkfs.ntfs"; break;
+				case VolumeCreationOptions::FilesystemType::exFAT:		fsFormatter = "mkfs.exfat"; break;
+#elif defined (TC_MACOSX)
 				case VolumeCreationOptions::FilesystemType::MacOsExt:	fsFormatter = "newfs_hfs"; break;
+				case VolumeCreationOptions::FilesystemType::exFAT:		fsFormatter = "newfs_exfat"; break;
+#elif defined (TC_FREEBSD) || defined (TC_SOLARIS)
 				case VolumeCreationOptions::FilesystemType::UFS:		fsFormatter = "newfs" ; break;
-				case VolumeCreationOptions::FilesystemType::NTFS:		fsFormatter = "mkfs.ntfs" ; break;
+#endif
 				default: break;
 				}
 
@@ -733,22 +745,21 @@ namespace VeraCrypt
 		case Step::VolumePassword:
 			{
 				VolumePasswordWizardPage *page = dynamic_cast <VolumePasswordWizardPage *> (GetCurrentPage());
-				Password = page->GetPassword();
+				try
+				{
+					Password = page->GetPassword();
+				}
+				catch (PasswordException& e)
+				{
+					Gui->ShowWarning (e);
+					return GetCurrentStep();
+				}
+				
 				Kdf = page->GetPkcs5Kdf();
 				Keyfiles = page->GetKeyfiles();
 
 				if (forward && Password && !Password->IsEmpty())
 				{
-					try
-					{
-						Password->CheckPortability();
-					}
-					catch (UnportablePassword &e)
-					{
-						Gui->ShowError (e);
-						return GetCurrentStep();
-					}
-
 					if (Password->Size() < VolumePassword::WarningSizeThreshold)
 					{
 						if (!Gui->AskYesNo (LangString["PASSWORD_LENGTH_WARNING"], false, true))
@@ -793,6 +804,12 @@ namespace VeraCrypt
 
 				if (forward && Password && !Password->IsEmpty())
 				{
+					if (-1 == Pim)
+					{
+						// PIM invalid: don't go anywhere
+						return GetCurrentStep();
+					}
+
 					if (Password->Size() < VolumePassword::WarningSizeThreshold)
 					{
 						if (Pim > 0 && Pim < 485)
@@ -915,7 +932,6 @@ namespace VeraCrypt
 						if (SelectedVolumePath.IsDevice())
 						{
 							wxString confirmMsg = LangString["OVERWRITEPROMPT_DEVICE"];
-							confirmMsg.Replace (L"%hs", L"%s");
 
 							if (!Gui->AskYesNo (wxString::Format (confirmMsg, wxString (_("DEVICE")).c_str(), wstring (SelectedVolumePath).c_str(), L""), false, true))
 								return GetCurrentStep();
@@ -923,9 +939,8 @@ namespace VeraCrypt
 						else if (FilesystemPath (wstring (SelectedVolumePath)).IsFile())
 						{
 							wxString confirmMsg = LangString["OVERWRITEPROMPT"];
-							confirmMsg.Replace (L"%hs", L"%s");
 
-							if (!Gui->AskYesNo (wxString::Format (confirmMsg, wstring (SelectedVolumePath).c_str(), false, true)))
+							if (!Gui->AskYesNo (wxString::Format (confirmMsg, wstring (SelectedVolumePath).c_str()), false, true))
 								return GetCurrentStep();
 						}
 					}

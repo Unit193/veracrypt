@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -26,6 +26,9 @@
 #include "Common/resource.h"
 #include "Platform/Finally.h"
 #include "Platform/ForEach.h"
+#ifdef TCMOUNT
+#include "Mount/Mount.h"
+#endif
 
 #include <Strsafe.h>
 
@@ -37,6 +40,9 @@ using namespace VeraCrypt;
 
 BOOL HiddenFilesPresentInKeyfilePath = FALSE;
 
+#ifdef TCMOUNT
+extern BOOL UsePreferences;
+#endif
 
 KeyFile *KeyFileAdd (KeyFile *firstKeyFile, KeyFile *keyFile)
 {
@@ -109,27 +115,35 @@ KeyFile *KeyFileClone (KeyFile *keyFile)
 	clone = (KeyFile *) malloc (sizeof (KeyFile));
 	if (clone)
 	{
-		StringCbCopyA (clone->FileName, sizeof(clone->FileName), keyFile->FileName);
+		StringCbCopyW (clone->FileName, sizeof(clone->FileName), keyFile->FileName);
 		clone->Next = NULL;
 	}
 	return clone;
 }
 
 
-KeyFile *KeyFileCloneAll (KeyFile *firstKeyFile)
+void KeyFileCloneAll (KeyFile *firstKeyFile, KeyFile **outputKeyFile)
 {
-	KeyFile *cloneFirstKeyFile = KeyFileClone (firstKeyFile);
-	KeyFile *kf;
-
-	if (firstKeyFile == NULL) return NULL;
-	kf = firstKeyFile->Next;
-	while (kf != NULL)
+	if (outputKeyFile)
 	{
-		KeyFileAdd (cloneFirstKeyFile, KeyFileClone (kf));
-		kf = kf->Next;
-	}
+		KeyFile *cloneFirstKeyFile = KeyFileClone (firstKeyFile);
+		KeyFile *kf;
 
-	return cloneFirstKeyFile;
+		// free output only if different from input
+		if (*outputKeyFile != firstKeyFile)
+			KeyFileRemoveAll (outputKeyFile);
+		if (firstKeyFile)
+		{
+			kf = firstKeyFile->Next;
+			while (kf != NULL)
+			{
+				KeyFileAdd (cloneFirstKeyFile, KeyFileClone (kf));
+				kf = kf->Next;
+			}
+
+			*outputKeyFile = cloneFirstKeyFile;
+		}
+	}
 }
 
 
@@ -167,7 +181,7 @@ static BOOL KeyFileProcess (unsigned __int8 *keyPool, KeyFile *keyFile)
 			CloseHandle (finally_arg);
 	});
 
-	f = fopen (keyFile->FileName, "rb");
+	f = _wfopen (keyFile->FileName, L"rb");
 	if (f == NULL) return FALSE;
 
 	while ((bytesRead = fread (buffer, 1, sizeof (buffer), f)) > 0)
@@ -222,7 +236,7 @@ close:
 }
 
 
-BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, const char* volumeFileName)
+BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, const wchar_t* volumeFileName)
 {
 	BOOL status = TRUE;
 	KeyFile kfSubStruct;
@@ -231,8 +245,8 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 	static unsigned __int8 keyPool [KEYFILE_POOL_SIZE];
 	size_t i;
 	struct stat statStruct;
-	char searchPath [TC_MAX_PATH*2];
-	struct _finddata_t fBuf;
+	wchar_t searchPath [TC_MAX_PATH*2];
+	struct _wfinddata_t fBuf;
 	intptr_t searchHandle;
 
 	HiddenFilesPresentInKeyfilePath = FALSE;
@@ -247,11 +261,12 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 		// Determine whether it's a security token path
 		try
 		{
-			if (SecurityToken::IsKeyfilePathValid (SingleStringToWide (kf->FileName)))
+			if (SecurityToken::IsKeyfilePathValid (kf->FileName))
 			{
 				// Apply security token keyfile
 				vector <byte> keyfileData;
-				SecurityToken::GetKeyfileData (SecurityTokenKeyfile (SingleStringToWide (kf->FileName)), keyfileData);
+				SecurityTokenKeyfilePath secPath (kf->FileName);
+				SecurityToken::GetKeyfileData (SecurityTokenKeyfile (secPath), keyfileData);
 
 				if (keyfileData.empty())
 				{
@@ -293,7 +308,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 		}
 
 		// Determine whether it's a path or a file
-		if (stat (kf->FileName, &statStruct) != 0)
+		if (_wstat (kf->FileName, &statStruct) != 0)
 		{
 			handleWin32Error (hwndDlg, SRC_POS);
 			Error ("ERR_PROCESS_KEYFILE", hwndDlg);
@@ -306,8 +321,8 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 			/* Find and process all keyfiles in the directory */
 			int keyfileCount = 0;
 
-			StringCbPrintfA (searchPath, sizeof (searchPath), "%s\\*.*", kf->FileName);
-			if ((searchHandle = _findfirst (searchPath, &fBuf)) == -1)
+			StringCbPrintfW (searchPath, sizeof (searchPath), L"%s\\*.*", kf->FileName);
+			if ((searchHandle = _wfindfirst (searchPath, &fBuf)) == -1)
 			{
 				handleWin32Error (hwndDlg, SRC_POS);
 				Error ("ERR_PROCESS_KEYFILE_PATH", hwndDlg);
@@ -319,13 +334,13 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 			{
 				WIN32_FILE_ATTRIBUTE_DATA fileAttributes;
 
-				StringCbPrintfA (kfSub->FileName, sizeof(kfSub->FileName), "%s%c%s", kf->FileName,
-					'\\',
+				StringCbPrintfW (kfSub->FileName, sizeof(kfSub->FileName), L"%s%c%s", kf->FileName,
+					L'\\',
 					fBuf.name
 					);				
 
 				// Determine whether it's a path or a file
-				if (stat (kfSub->FileName, &statStruct) != 0)
+				if (_wstat (kfSub->FileName, &statStruct) != 0)
 				{
 					handleWin32Error (hwndDlg, SRC_POS);
 					Error ("ERR_PROCESS_KEYFILE", hwndDlg);
@@ -339,7 +354,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 				}
 
 				// Skip hidden files
-				if (GetFileAttributesEx (kfSub->FileName, GetFileExInfoStandard, &fileAttributes)
+				if (GetFileAttributesExW (kfSub->FileName, GetFileExInfoStandard, &fileAttributes)
 					&& (fileAttributes.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0)
 				{
 					HiddenFilesPresentInKeyfilePath = TRUE;
@@ -347,7 +362,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 				}
 
 				CorrectFileName (kfSub->FileName);
-				if (volumeFileName && (_stricmp (volumeFileName, kfSub->FileName) == 0))
+				if (volumeFileName && (_wcsicmp (volumeFileName, kfSub->FileName) == 0))
 				{
 					// skip if it is the current container file name
 					continue;
@@ -363,14 +378,14 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 					status = FALSE;
 				}
 
-			} while (_findnext (searchHandle, &fBuf) != -1);
+			} while (_wfindnext (searchHandle, &fBuf) != -1);
 			_findclose (searchHandle);
 
 			burn (&kfSubStruct, sizeof (kfSubStruct));
 
 			if (keyfileCount == 0)
 			{
-				ErrorDirect ((wstring (GetString ("ERR_KEYFILE_PATH_EMPTY")) + L"\n\n" + SingleStringToWide (kf->FileName)).c_str(), hwndDlg);
+				ErrorDirect ((wstring (GetString ("ERR_KEYFILE_PATH_EMPTY")) + L"\n\n" + wstring (kf->FileName)).c_str(), hwndDlg);
 				status = FALSE;
 			}
 		}
@@ -447,7 +462,7 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			param = (KeyFilesDlgParam *) lParam;
 			origParam = *(KeyFilesDlgParam *) lParam;
 
-			param->FirstKeyFile = KeyFileCloneAll (param->FirstKeyFile);
+			KeyFileCloneAll (param->FirstKeyFile, &param->FirstKeyFile);
 
 			LocalizeDialog (hwndDlg, "IDD_KEYFILES");
 			DragAcceptFiles (hwndDlg, TRUE);
@@ -465,6 +480,17 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 			LoadKeyList (hwndDlg, param->FirstKeyFile);
 			SetCheckBox (hwndDlg, IDC_KEYFILES_ENABLE, param->EnableKeyFiles);
+			
+#ifdef TCMOUNT
+			if (	(origParam.EnableKeyFiles == defaultKeyFilesParam.EnableKeyFiles)
+				&&	(origParam.FirstKeyFile == defaultKeyFilesParam.FirstKeyFile)
+				)
+			{
+				/* default keyfile dialog case */
+				SetCheckBox (hwndDlg, IDC_KEYFILES_TRY_EMPTY_PASSWORD, bTryEmptyPasswordWhenKeyfileUsed);
+				ShowWindow(GetDlgItem(hwndDlg, IDC_KEYFILES_TRY_EMPTY_PASSWORD), SW_SHOW);
+			}
+#endif
 
 			SetWindowTextW(GetDlgItem(hwndDlg, IDT_KEYFILES_NOTE), GetString ("KEYFILES_NOTE"));
 
@@ -485,7 +511,7 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					do
 					{
 						CorrectFileName (kf->FileName);
-						if (_stricmp (param->VolumeFileName, kf->FileName) == 0)
+						if (_wcsicmp (param->VolumeFileName, kf->FileName) == 0)
 							containerFileSkipped = true;
 						else
 						{
@@ -533,7 +559,7 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 					if (kf)
 					{
-						strcpy_s (kf->FileName, sizeof (kf->FileName), WideToSingleString (keyPath).c_str());
+						StringCbCopyW (kf->FileName, sizeof (kf->FileName), wstring(keyPath).c_str ());
 
 						param->FirstKeyFile = KeyFileAdd (param->FirstKeyFile, kf);
 						LoadKeyList (hwndDlg, param->FirstKeyFile);
@@ -586,6 +612,20 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 		if (lw == IDOK)
 		{
 			param->EnableKeyFiles = IsButtonChecked (GetDlgItem (hwndDlg, IDC_KEYFILES_ENABLE));
+
+#ifdef TCMOUNT
+			if (IsWindowVisible (GetDlgItem (hwndDlg, IDC_KEYFILES_TRY_EMPTY_PASSWORD)))
+			{
+				bTryEmptyPasswordWhenKeyfileUsed = IsButtonChecked (GetDlgItem (hwndDlg, IDC_KEYFILES_TRY_EMPTY_PASSWORD));
+
+				if (UsePreferences)
+				{
+					WaitCursor ();
+					SaveSettings (hwndDlg);
+					NormalCursor ();
+				}
+			}
+#endif
 			EndDialog (hwndDlg, IDOK);
 			return 1;
 		}
@@ -611,7 +651,7 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 				KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 				if (kf)
 				{
-					DragQueryFile (hdrop, i++, kf->FileName, sizeof (kf->FileName));
+					DragQueryFile (hdrop, i++, kf->FileName, ARRAYSIZE (kf->FileName));
 					param->FirstKeyFile = KeyFileAdd (param->FirstKeyFile, kf);
 					LoadKeyList (hwndDlg, param->FirstKeyFile);
 				}
@@ -716,7 +756,7 @@ BOOL KeyfilesPopupMenu (HWND hwndDlg, POINT popupPosition, KeyFilesDlgParam *par
 					KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 					if (kf)
 					{
-						strcpy_s (kf->FileName, sizeof (kf->FileName), WideToSingleString (keyPath).c_str());
+						StringCbCopyW (kf->FileName, sizeof (kf->FileName), wstring (keyPath).c_str());
 
 						param->FirstKeyFile = KeyFileAdd (param->FirstKeyFile, kf);
 						param->EnableKeyFiles = TRUE;

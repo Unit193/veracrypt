@@ -4,7 +4,7 @@
 # by the TrueCrypt License 3.0.
 #
 # Modifications and additions to the original source code (contained in this file) 
-# and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+# and all other portions of this file are Copyright (c) 2013-2016 IDRIX
 # and are governed by the Apache License 2.0 the full text of which is
 # contained in the file License.txt included in VeraCrypt binary and source
 # code distribution packages.
@@ -174,12 +174,23 @@ endif
 	
 	echo -n APPLTRUE >$(APPNAME).app/Contents/PkgInfo
 	sed -e 's/_VERSION_/$(patsubst %a,%.1,$(patsubst %b,%.2,$(TC_VERSION)))/' ../Build/Resources/MacOSX/Info.plist.xml >$(APPNAME).app/Contents/Info.plist
-	codesign -s "Developer ID Application: Mounir IDRASSI" $(APPNAME).app
+	codesign -s "Developer ID Application: Mounir IDRASSI" --timestamp $(APPNAME).app
 	/usr/local/bin/packagesbuild $(PWD)/Setup/MacOSX/veracrypt.pkgproj
-	productsign --sign "Developer ID Installer: Mounir IDRASSI" "$(PWD)/Setup/MacOSX/VeraCrypt $(TC_VERSION).pkg" $(PWD)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg
+	productsign --sign "Developer ID Installer: Mounir IDRASSI" --timestamp "$(PWD)/Setup/MacOSX/VeraCrypt $(TC_VERSION).pkg" $(PWD)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg
 	rm -f $(APPNAME)_$(TC_VERSION).dmg
-	hdiutil create -srcfolder $(PWD)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg -volname "VeraCrypt $(TC_VERSION) for Mac OS X $(VC_OSX_TARGET) and later" $(APPNAME)_$(TC_VERSION).dmg
+	rm -f "$(PWD)/Setup/MacOSX/template.dmg"
+	rm -fr "$(PWD)/Setup/MacOSX/VeraCrypt_dmg"
+	mkdir -p "$(PWD)/Setup/MacOSX/VeraCrypt_dmg"
+	bunzip2 -k -f "$(PWD)/Setup/MacOSX/template.dmg.bz2"
+	hdiutil attach "$(PWD)/Setup/MacOSX/template.dmg" -noautoopen -quiet -mountpoint "$(PWD)/Setup/MacOSX/VeraCrypt_dmg"
+	cp "$(PWD)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg" "$(PWD)/Setup/MacOSX/VeraCrypt_dmg/VeraCrypt_Installer.pkg"
+	hdiutil detach "$(PWD)/Setup/MacOSX/VeraCrypt_dmg" -quiet -force
+	hdiutil convert "$(PWD)/Setup/MacOSX/template.dmg" -quiet -format UDZO -imagekey zlib-level=9 -o $(APPNAME)_$(TC_VERSION).dmg
+	rm -f "$(PWD)/Setup/MacOSX/template.dmg"
+	rm -fr "$(PWD)/Setup/MacOSX/VeraCrypt_dmg"
 endif
+
+
 
 ifeq "$(PLATFORM)" "Linux"	
 ifeq "$(TC_BUILD_CONFIG)" "Release"
@@ -194,7 +205,7 @@ ifeq "$(TC_BUILD_CONFIG)" "Release"
 ifndef TC_NO_GUI
 	mkdir -p $(PWD)/Setup/Linux/usr/share/applications
 	mkdir -p $(PWD)/Setup/Linux/usr/share/pixmaps
-	cp $(PWD)/Resources/Icons/VeraCrypt-48x48.xpm $(PWD)/Setup/Linux/usr/share/pixmaps/$(APPNAME).xpm
+	cp $(PWD)/Resources/Icons/VeraCrypt-256x256.xpm $(PWD)/Setup/Linux/usr/share/pixmaps/$(APPNAME).xpm
 	cp $(PWD)/Setup/Linux/$(APPNAME).desktop $(PWD)/Setup/Linux/usr/share/applications/$(APPNAME).desktop
 endif
 

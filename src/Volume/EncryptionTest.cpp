@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -790,7 +790,7 @@ namespace VeraCrypt
 
 	void EncryptionTest::TestPkcs5 ()
 	{
-		VolumePassword password ("password", 8);
+		VolumePassword password ((byte*) "password", 8);
 		static const byte saltData[] = { 0x12, 0x34, 0x56, 0x78 };
 		ConstBufferPtr salt (saltData, sizeof (saltData));
 		Buffer derivedKey (4);

@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -169,7 +169,7 @@ BOOL ReadVolumeHeaderRecoveryMode = FALSE;
 int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int selected_pkcs5_prf, int pim, BOOL truecryptMode, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo)
 {
 	char header[TC_VOLUME_HEADER_EFFECTIVE_SIZE];
-	KEY_INFO keyInfo;
+	CRYPTOPP_ALIGN_DATA(16) KEY_INFO keyInfo;
 	PCRYPTO_INFO cryptoInfo;
 	char dk[MASTER_KEYDATA_SIZE];
 	int enqPkcs5Prf, pkcs5_prf;
@@ -186,6 +186,10 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 	size_t queuedWorkItems = 0;
 	LONG outstandingWorkItemCount = 0;
 	int i;
+
+	// if no PIM specified, use default value
+	if (pim < 0)
+		pim = 0;
 
 	if (truecryptMode)
 	{
@@ -794,7 +798,7 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 		   unsigned __int64 encryptedAreaStart, unsigned __int64 encryptedAreaLength, uint16 requiredProgramVersion, uint32 headerFlags, uint32 sectorSize, BOOL bWipeMode)
 {
 	unsigned char *p = (unsigned char *) header;
-	static KEY_INFO keyInfo;
+	static CRYPTOPP_ALIGN_DATA(16) KEY_INFO keyInfo;
 
 	int nUserKeyLen = password->Length;
 	PCRYPTO_INFO cryptoInfo = crypto_open ();
@@ -805,6 +809,10 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 
 	if (cryptoInfo == NULL)
 		return ERR_OUTOFMEMORY;
+
+	// if no PIM specified, use default value
+	if (pim < 0)
+		pim = 0;
 
 	memset (header, 0, TC_VOLUME_HEADER_EFFECTIVE_SIZE);
 
@@ -1013,17 +1021,17 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 		MasterKeyGUIView[0] = 0;
 		for (i = 0; i < j; i++)
 		{
-			char tmp2[8] = {0};
-			StringCbPrintfA (tmp2, sizeof(tmp2), "%02X", (int) (unsigned char) keyInfo.master_keydata[i + primaryKeyOffset]);
-			StringCbCatA (MasterKeyGUIView, sizeof(MasterKeyGUIView), tmp2);
+			wchar_t tmp2[8] = {0};
+			StringCchPrintfW (tmp2, ARRAYSIZE(tmp2), L"%02X", (int) (unsigned char) keyInfo.master_keydata[i + primaryKeyOffset]);
+			StringCchCatW (MasterKeyGUIView, ARRAYSIZE(MasterKeyGUIView), tmp2);
 		}
 
 		HeaderKeyGUIView[0] = 0;
 		for (i = 0; i < NBR_KEY_BYTES_TO_DISPLAY; i++)
 		{
-			char tmp2[8];
-			StringCbPrintfA (tmp2, sizeof(tmp2), "%02X", (int) (unsigned char) dk[primaryKeyOffset + i]);
-			StringCbCatA (HeaderKeyGUIView, sizeof(HeaderKeyGUIView), tmp2);
+			wchar_t tmp2[8];
+			StringCchPrintfW (tmp2, ARRAYSIZE(tmp2), L"%02X", (int) (unsigned char) dk[primaryKeyOffset + i]);
+			StringCchCatW (HeaderKeyGUIView, ARRAYSIZE(HeaderKeyGUIView), tmp2);
 		}
 
 		if (dots3)

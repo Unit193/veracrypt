@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -168,10 +168,23 @@ static byte AskPassword (Password &password, int& pim)
 		switch (scanCode)
 		{
 		case TC_BIOS_KEY_ENTER:
+			password.Length = pos;
+			Print ("\r");
+			if (!PreventNormalSystemBoot)
+				Print ("Enter password: ");
+			pos = 0;
+			while (pos < MAX_PASSWORD)
+			{
+				pos++;
+				if (pos < MAX_PASSWORD)
+					PrintChar ('*');
+				else
+					PrintCharAtCursor ('*');
+			}
+
 			ClearBiosKeystrokeBuffer();
 			PrintEndl();
-
-			password.Length = pos;
+			
 			break;
 
 		case TC_BIOS_KEY_BACKSPACE:
@@ -228,9 +241,17 @@ static byte AskPassword (Password &password, int& pim)
 		switch (scanCode)
 		{
 		case TC_BIOS_KEY_ENTER:
+			Print ("\rPIM: ");
+			pos =0;
+			while (pos < MAX_PIM)
+			{
+				PrintChar ('*');
+				pos++;
+			}
+
 			ClearBiosKeystrokeBuffer();
 			PrintEndl();
-
+			
 			return TC_BIOS_KEY_ENTER;
 
 		case TC_BIOS_KEY_BACKSPACE:
@@ -869,6 +890,8 @@ askBadSectorSkip:
 
 	if (headerUpdateRequired)
 	{
+		Print ("\rUpdating header...");
+
 		AcquireSectorBuffer();
 		uint64 headerSector;
 		headerSector.HighPart = 0;
@@ -906,6 +929,8 @@ askBadSectorSkip:
 
 		while (WriteSectors (SectorBuffer, drive, headerSector, 1) != BiosResultSuccess);
 		ReleaseSectorBuffer();
+
+		Print ("Done!\r\n");
 	}
 
 	if (sectorsRemaining.HighPart == 0 && sectorsRemaining.LowPart == 0)

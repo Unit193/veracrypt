@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -47,7 +47,7 @@ namespace VeraCrypt
 		SlotId = slotId;
 
 		size_t keyIdPos = pathStr.find (L"/" TC_SECURITY_TOKEN_KEYFILE_URL_FILE L"/");
-		if (keyIdPos == string::npos)
+		if (keyIdPos == wstring::npos)
 			throw InvalidSecurityTokenKeyfilePath();
 
 		Id = pathStr.substr (keyIdPos + wstring (L"/" TC_SECURITY_TOKEN_KEYFILE_URL_FILE L"/").size());
@@ -510,17 +510,23 @@ namespace VeraCrypt
 		}
 	}
 
+#ifdef TC_WINDOWS
+	void SecurityToken::InitLibrary (const wstring &pkcs11LibraryPath, auto_ptr <GetPinFunctor> pinCallback, auto_ptr <SendExceptionFunctor> warningCallback)
+#else
 	void SecurityToken::InitLibrary (const string &pkcs11LibraryPath, auto_ptr <GetPinFunctor> pinCallback, auto_ptr <SendExceptionFunctor> warningCallback)
+#endif
 	{
 		if (Initialized)
 			CloseLibrary();
 
 #ifdef TC_WINDOWS
-		Pkcs11LibraryHandle = LoadLibraryA (pkcs11LibraryPath.c_str());
+		Pkcs11LibraryHandle = LoadLibraryW (pkcs11LibraryPath.c_str());
+		throw_sys_if (!Pkcs11LibraryHandle);
 #else
 		Pkcs11LibraryHandle = dlopen (pkcs11LibraryPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+		throw_sys_sub_if (!Pkcs11LibraryHandle, dlerror());
 #endif
-		throw_sys_if (!Pkcs11LibraryHandle);
+		
 
 		typedef CK_RV (*C_GetFunctionList_t) (CK_FUNCTION_LIST_PTR_PTR ppFunctionList);
 #ifdef TC_WINDOWS

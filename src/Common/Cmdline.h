@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -21,8 +21,8 @@ extern "C" {
 typedef struct argument_t
 {
 	int Id;
-	char long_name[32];
-	char short_name[8];
+	wchar_t long_name[32];
+	wchar_t short_name[8];
 	BOOL Internal;
 } argument;
 
@@ -33,10 +33,10 @@ typedef struct argumentspec_t
 } argumentspec;
 
 BOOL CALLBACK CommandHelpDlgProc ( HWND hwndDlg , UINT msg , WPARAM wParam , LPARAM lParam );
-int Win32CommandLine ( char *lpszCommandLine , char ***lpszArgs );
-int GetArgSepPosOffset ( char *lpszArgument );
-int GetArgumentID ( argumentspec *as , char *lpszArgument );
-int GetArgumentValue ( char **lpszCommandLineArgs , int *nArgIdx , int nNoCommandLineArgs , char *lpszValue , int nValueSize );
+int Win32CommandLine ( wchar_t ***lpszArgs );
+int GetArgSepPosOffset ( wchar_t *lpszArgument );
+int GetArgumentID ( argumentspec *as , wchar_t *lpszArgument );
+int GetArgumentValue ( wchar_t **lpszCommandLineArgs , int *nArgIdx , int nNoCommandLineArgs , wchar_t *lpszValue , int nValueSize );
 
 #ifdef __cplusplus
 }

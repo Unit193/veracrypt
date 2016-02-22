@@ -4,7 +4,7 @@
 # by the TrueCrypt License 3.0.
 #
 # Modifications and additions to the original source code (contained in this file) 
-# and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+# and all other portions of this file are Copyright (c) 2013-2016 IDRIX
 # and are governed by the Apache License 2.0 the full text of which is
 # contained in the file License.txt included in VeraCrypt binary and source
 # code distribution packages.
@@ -193,8 +193,8 @@ $(LIBS)
 	$(LD) $(LFLAGS) @$(PROJ).crf
 	del $(PROJ).crf $(PROJ).crf2
 
-# Compress the Rescue Disk botloader for Cascades and SHA2 since it is too big (size > 31232 bytes)
-!if DEFINED(RESCUE_DISK) && !DEFINED (SINGLE_CIPHER) && "$(SINGLE_PRF)" == "SHA2"
+# Compress the Rescue Disk botloader for Cascades and Serpent since it is too big (size > 31232 bytes)
+!if DEFINED(RESCUE_DISK) && (!DEFINED (SINGLE_CIPHER) || ("$(SINGLE_CIPHER)" == "SERPENT"))
 	upx $(PROJ).$(TARGETEXT)
 !endif
 	gzip.exe -c -n --best $(PROJ).$(TARGETEXT) >$(PROJ).$(TARGETEXT).gz

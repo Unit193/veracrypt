@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2015 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -21,7 +21,8 @@ namespace VeraCrypt
 		PreviousGaugeValue (0),
 		ProgressBarRange (1),
 		RealProgressBarRange (1),
-		VolumeCreatorRunning (false)
+		VolumeCreatorRunning (false),
+		MouseEventsCounter (0)
 	{
 		DisplayKeysCheckBox->SetValue (displayKeyInfo);
 #ifdef TC_WINDOWS
@@ -34,6 +35,8 @@ namespace VeraCrypt
 #else
 		ProgressGauge->SetMinSize (wxSize (-1, Gui->GetCharHeight (this) * 2));
 #endif
+
+		CollectedEntropy->SetRange (RNG_POOL_SIZE * 8);
 
 		if (DisplayKeysCheckBox->IsChecked())
 			ShowBytes (RandomPoolSampleStaticText, RandomNumberGenerator::PeekPool(), true);
@@ -183,5 +186,12 @@ namespace VeraCrypt
 		ProgressBarRange = progressBarRange;
 		RealProgressBarRange = ProgressGauge->GetSize().GetWidth();
 		ProgressGauge->SetRange (RealProgressBarRange);
+	}
+	
+	void VolumeCreationProgressWizardPage::IncrementEntropyProgress ()
+	{
+		ScopeLock lock (AccessMutex);
+		if (MouseEventsCounter < (RNG_POOL_SIZE * 8))
+			CollectedEntropy->SetValue (++MouseEventsCounter);
 	}
 }
