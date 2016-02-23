@@ -1,3 +1,16 @@
+veracrypt (1.17-0vanir1) unstable; urgency=medium
+
+  * Imported Upstream version 1.17.
+    - Refresh patches.
+  * Update standards-version to 3.9.7.
+  * Update my email address.
+  * d/veracrypt.menu: Drop menu, following CTTE #741573.
+  * d/README.Debian: Drop, changes are unimportant, leftover from TC.
+  * d/veracrypt.desktop: Add some keywords.
+  * d/copyright: Update years.
+
+ -- Unit 193 <unit193@ubuntu.com>  Mon, 22 Feb 2016 18:48:31 -0500
+
 veracrypt (1.14-0vanir1) unstable; urgency=medium
 
   * Imported Upstream version 1.14.
