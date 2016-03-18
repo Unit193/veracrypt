@@ -1,3 +1,10 @@
+veracrypt (1.17-0vanir2) unstable; urgency=medium
+
+  * d/p/004-gcc5-compatibility.diff:
+    - Add a patch from upstream fixing GCC5 compatibility.
+
+ -- Unit 193 <unit193@ubuntu.com>  Fri, 18 Mar 2016 16:59:03 -0400
+
 veracrypt (1.17-0vanir1) unstable; urgency=medium
 
   * Imported Upstream version 1.17.
