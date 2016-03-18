@@ -1,3 +1,4 @@
 001-user-guide-location.diff
 002-build-flags.diff
 003-indicator-support.diff
+004-gcc5-compatibility.diff
