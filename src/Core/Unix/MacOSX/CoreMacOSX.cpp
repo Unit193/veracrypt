@@ -3,7 +3,7 @@
  Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
  by the TrueCrypt License 3.0.
 
- Modifications and additions to the original source code (contained in this file) 
+ Modifications and additions to the original source code (contained in this file)
  and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
@@ -124,20 +124,22 @@ namespace VeraCrypt
 			fuseVersionStringLength = MAXHOSTNAMELEN;
 			if ((status = sysctlbyname ("osxfuse.version.number", fuseVersionString, &fuseVersionStringLength, NULL, 0)) != 0)
 			{
-				throw HigherFuseVersionRequired (SRC_POS);
+				fuseVersionStringLength = MAXHOSTNAMELEN;
+				if ((status = sysctlbyname ("vfs.generic.osxfuse.version.number", fuseVersionString, &fuseVersionStringLength, NULL, 0)) != 0)
+				{
+					throw HigherFuseVersionRequired (SRC_POS);
+				}
+			}
+
+			// look for compatibility mode
+			struct stat sb;
+			if ((0 == stat("/usr/local/lib/libfuse.dylib", &sb)) && (0 == stat("/Library/Frameworks/MacFUSE.framework/MacFUSE", &sb)))
+			{
+				bIsOSXFuse = true;
 			}
 			else
-			{
-				// look for compatibility mode
-				struct stat sb;
-				if ((0 == stat("/usr/local/lib/libfuse.dylib", &sb)) && (0 == stat("/Library/Frameworks/MacFUSE.framework/MacFUSE", &sb)))
-				{
-					bIsOSXFuse = true;
-				}
-				else
-					throw HigherFuseVersionRequired (SRC_POS);
-			}
-			
+				throw HigherFuseVersionRequired (SRC_POS);
+
 		}
 
 		vector <string> fuseVersion = StringConverter::Split (string (fuseVersionString), ".");
@@ -185,7 +187,7 @@ namespace VeraCrypt
 			args.push_back ("-readonly");
 
 		string xml;
-		
+
 		while (true)
 		{
 			try
@@ -200,7 +202,7 @@ namespace VeraCrypt
 					args.remove ("-noautofsck");
 					continue;
 				}
-				
+
 				throw;
 			}
 		}

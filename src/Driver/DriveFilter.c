@@ -27,12 +27,13 @@
 #include "Wipe.h"
 #include "DriveFilter.h"
 #include "Boot/Windows/BootCommon.h"
+#include "cpu.h"
 
 static BOOL DeviceFilterActive = FALSE;
 
 BOOL BootArgsValid = FALSE;
 BootArguments BootArgs;
-static uint16 BootLoaderSegment;
+static uint64 BootLoaderArgsPtr;
 static BOOL BootDriveSignatureValid = FALSE;
 
 static KMUTEX MountMutex;
@@ -68,21 +69,22 @@ static int64 DecoySystemWipedAreaEnd;
 PKTHREAD DecoySystemWipeThread = NULL;
 static NTSTATUS DecoySystemWipeResult;
 
+uint64 BootArgsRegions[] = { EFI_BOOTARGS_REGIONS };
 
 NTSTATUS LoadBootArguments ()
 {
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
 	PHYSICAL_ADDRESS bootArgsAddr;
 	byte *mappedBootArgs;
-	uint16 bootLoaderSegment;
+	uint16 bootLoaderArgsIndex;
 
 	KeInitializeMutex (&MountMutex, 0);
 
-	for (bootLoaderSegment = TC_BOOT_LOADER_SEGMENT;
-		bootLoaderSegment >= TC_BOOT_LOADER_SEGMENT - 64 * 1024 / 16 && status != STATUS_SUCCESS;
-		bootLoaderSegment -= 32 * 1024 / 16)
+	for (bootLoaderArgsIndex = 0;
+		bootLoaderArgsIndex < sizeof(BootArgsRegions)/ sizeof(BootArgsRegions[1]) && status != STATUS_SUCCESS;
+		++bootLoaderArgsIndex)
 	{
-		bootArgsAddr.QuadPart = (bootLoaderSegment << 4) + TC_BOOT_LOADER_ARGS_OFFSET;
+		bootArgsAddr.QuadPart = BootArgsRegions[bootLoaderArgsIndex] + TC_BOOT_LOADER_ARGS_OFFSET;
 		Dump ("Checking BootArguments at 0x%x\n", bootArgsAddr.LowPart);
 
 		mappedBootArgs = MmMapIoSpace (bootArgsAddr, sizeof (BootArguments), MmCached);
@@ -106,7 +108,7 @@ NTSTATUS LoadBootArguments ()
 			// Sanity check: for valid boot argument, the password is less than 64 bytes long
 			if (bootArguments->BootPassword.Length <= MAX_PASSWORD)
 			{
-				BootLoaderSegment = bootLoaderSegment;
+				BootLoaderArgsPtr = BootArgsRegions[bootLoaderArgsIndex];
 
 				BootArgs = *bootArguments;
 				BootArgsValid = TRUE;
@@ -241,6 +243,7 @@ static void ComputeBootLoaderFingerprint(PDEVICE_OBJECT LowerDeviceObject, byte*
 
 	// compute Whirlpool+SHA512 fingerprint of bootloader including MBR
 	// we skip user configuration fields:
+	// TC_BOOT_SECTOR_PIM_VALUE_OFFSET = 400
 	// TC_BOOT_SECTOR_OUTER_VOLUME_BAK_HEADER_CRC_OFFSET = 402
 	//  => TC_BOOT_SECTOR_OUTER_VOLUME_BAK_HEADER_CRC_SIZE = 4
 	// TC_BOOT_SECTOR_USER_MESSAGE_OFFSET     = 406
@@ -257,11 +260,17 @@ static void ComputeBootLoaderFingerprint(PDEVICE_OBJECT LowerDeviceObject, byte*
 	status = TCReadDevice (LowerDeviceObject, ioBuffer, offset, TC_SECTOR_SIZE_BIOS);
 	if (NT_SUCCESS (status))
 	{
-		WHIRLPOOL_add (ioBuffer, TC_BOOT_SECTOR_OUTER_VOLUME_BAK_HEADER_CRC_OFFSET * 8, &whirlpool);
-		WHIRLPOOL_add (ioBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)) * 8, &whirlpool);
-		WHIRLPOOL_add (ioBuffer + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)) * 8, &whirlpool);
+#if !defined (_WIN64)
+		KFLOATING_SAVE floatingPointState;
+		NTSTATUS saveStatus = STATUS_SUCCESS;
+		if (HasISSE())
+			saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+		WHIRLPOOL_add (ioBuffer, TC_BOOT_SECTOR_PIM_VALUE_OFFSET, &whirlpool);
+		WHIRLPOOL_add (ioBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &whirlpool);
+		WHIRLPOOL_add (ioBuffer + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)), &whirlpool);
 
-		sha512_hash (ioBuffer, TC_BOOT_SECTOR_OUTER_VOLUME_BAK_HEADER_CRC_OFFSET, &sha2);
+		sha512_hash (ioBuffer, TC_BOOT_SECTOR_PIM_VALUE_OFFSET, &sha2);
 		sha512_hash (ioBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &sha2);
 		sha512_hash (ioBuffer + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)), &sha2);
 
@@ -277,7 +286,7 @@ static void ComputeBootLoaderFingerprint(PDEVICE_OBJECT LowerDeviceObject, byte*
 			{
 				remainingBytes -= bytesToRead;
 				offset.QuadPart += bytesToRead;
-				WHIRLPOOL_add (ioBuffer, bytesToRead * 8, &whirlpool);
+				WHIRLPOOL_add (ioBuffer, bytesToRead, &whirlpool);
 				sha512_hash (ioBuffer, bytesToRead, &sha2);
 			}
 			else
@@ -292,6 +301,11 @@ static void ComputeBootLoaderFingerprint(PDEVICE_OBJECT LowerDeviceObject, byte*
 			WHIRLPOOL_finalize (&whirlpool, BootLoaderFingerprint);
 			sha512_end (&BootLoaderFingerprint [WHIRLPOOL_DIGESTSIZE], &sha2);
 		}
+
+#if !defined (_WIN64)
+		if (NT_SUCCESS (saveStatus) && HasISSE())
+			KeRestoreFloatingPointState (&floatingPointState);
+#endif
 	}
 	else
 	{
@@ -309,6 +323,8 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 	char *header;
 	int pkcs5_prf = 0, pim = 0;
 	byte *mappedCryptoInfo = NULL;
+	PARTITION_INFORMATION_EX pi;
+	BOOL bIsGPT = FALSE;
 
 	Dump ("MountDrive pdo=%p\n", Extension->Pdo);
 	ASSERT (KeGetCurrentIrql() == PASSIVE_LEVEL);
@@ -359,11 +375,16 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 		goto ret;
 	}
 
+	if (NT_SUCCESS(SendDeviceIoControlRequest (Extension->LowerDeviceObject, IOCTL_DISK_GET_PARTITION_INFO_EX, NULL, 0, &pi, sizeof (pi))))
+	{
+		bIsGPT = (pi.PartitionStyle == PARTITION_STYLE_GPT)? TRUE : FALSE;
+	}
+
 	if (BootArgs.CryptoInfoLength > 0)
 	{
 		PHYSICAL_ADDRESS cryptoInfoAddress;		
 		
-		cryptoInfoAddress.QuadPart = (BootLoaderSegment << 4) + BootArgs.CryptoInfoOffset;
+		cryptoInfoAddress.QuadPart = BootLoaderArgsPtr + BootArgs.CryptoInfoOffset;
 #ifdef DEBUG
 		Dump ("Wiping memory %x %d\n", cryptoInfoAddress.LowPart, BootArgs.CryptoInfoLength);
 #endif
@@ -373,7 +394,7 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 			/* Get the parameters used for booting to speed up driver startup and avoid testing irrelevant PRFs */
 			BOOT_CRYPTO_HEADER* pBootCryptoInfo = (BOOT_CRYPTO_HEADER*) mappedCryptoInfo;
 			Hash* pHash = HashGet(pBootCryptoInfo->pkcs5);
-			if (pHash && pHash->SystemEncryption)
+			if (pHash && (bIsGPT || pHash->SystemEncryption))
 				pkcs5_prf = pBootCryptoInfo->pkcs5;
 		}
 	}

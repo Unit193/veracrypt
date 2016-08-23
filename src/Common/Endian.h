@@ -21,7 +21,7 @@ extern "C"
 {
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_UEFI)
 
 #	ifndef LITTLE_ENDIAN
 #		define LITTLE_ENDIAN 1234

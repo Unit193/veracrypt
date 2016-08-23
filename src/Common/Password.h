@@ -17,7 +17,8 @@
 // User text input limits
 #define MIN_PASSWORD			1		// Minimum possible password length
 #define MAX_PASSWORD			64		// Maximum possible password length
-#define MAX_PIM				10		// Maximum allowed digits in a PIM (enough for 32-bit value)
+#define MAX_PIM				7		// Maximum allowed digits in a PIM (enough for maximum value)
+#define MAX_PIM_VALUE		2147468 // Maximum value to have a positive 32-bit result for formula 15000 + (PIM x 1000)
 #define MAX_BOOT_PIM			5		// Maximum allowed digits in a PIM for boot (enough for 16-bit value)
 #define MAX_BOOT_PIM_VALUE	65535
 
@@ -35,14 +36,14 @@ typedef struct
 	char Pad[3]; // keep 64-bit alignment
 } Password;
 
-#if defined(_WIN32) && !defined(TC_WINDOWS_DRIVER)
+#if defined(_WIN32) && !defined(TC_WINDOWS_DRIVER) && !defined(_UEFI)
 
 void VerifyPasswordAndUpdate ( HWND hwndDlg , HWND hButton , HWND hPassword , HWND hVerify , unsigned char *szPassword , char *szVerify, BOOL keyFilesEnabled );
 BOOL CheckPasswordLength (HWND hwndDlg, unsigned __int32 passwordLength, int pim, BOOL bForBoot, BOOL bSkipPasswordWarning, BOOL bSkipPimWarning);		
 BOOL CheckPasswordCharEncoding (HWND hPassword, Password *ptrPw);			
 int ChangePwd (const wchar_t *lpszVolume, Password *oldPassword, int old_pkcs5, int old_pim, BOOL truecryptMode, Password *newPassword, int pkcs5, int pim, int wipePassCount, HWND hwndDlg);
 
-#endif	// defined(_WIN32) && !defined(TC_WINDOWS_DRIVER)
+#endif	// defined(_WIN32) && !defined(TC_WINDOWS_DRIVER) && !defined(_UEFI)
 
 #ifdef __cplusplus
 }

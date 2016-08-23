@@ -12,13 +12,15 @@
  code distribution packages. */
 
 #include "Tcdefs.h"
-
+#if !defined(_UEFI)
 #include <memory.h>
 #include <stdlib.h>
+#endif
 #include "Rmd160.h"
 #ifndef TC_WINDOWS_BOOT
 #include "Sha2.h"
 #include "Whirlpool.h"
+#include "cpu.h"
 #include "misc.h"
 #else
 #pragma optimize ("t", on)
@@ -718,7 +720,7 @@ void hmac_whirlpool_internal
 
 	memcpy (ctx, &(hmac->inner_digest_ctx), sizeof (WHIRLPOOL_CTX));
 
-	WHIRLPOOL_add ((unsigned char *) d, ld * 8, ctx);
+	WHIRLPOOL_add ((unsigned char *) d, ld, ctx);
 
 	WHIRLPOOL_finalize (ctx, (unsigned char *) d);
 
@@ -726,7 +728,7 @@ void hmac_whirlpool_internal
 
 	memcpy (ctx, &(hmac->outer_digest_ctx), sizeof (WHIRLPOOL_CTX));
 
-	WHIRLPOOL_add ((unsigned char *) d, WHIRLPOOL_DIGESTSIZE * 8, ctx);
+	WHIRLPOOL_add ((unsigned char *) d, WHIRLPOOL_DIGESTSIZE, ctx);
 
 	WHIRLPOOL_finalize (ctx, (unsigned char *) d);
 }
@@ -744,6 +746,12 @@ void hmac_whirlpool
 	char* buf = hmac.k;
 	int b;
 	char key[WHIRLPOOL_DIGESTSIZE];
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	KFLOATING_SAVE floatingPointState;
+	NTSTATUS saveStatus = STATUS_SUCCESS;
+	if (HasISSE())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
     /* If the key is longer than the hash algorithm block size,
 	   let key = whirlpool(key), as per HMAC specifications. */
 	if (lk > WHIRLPOOL_BLOCKSIZE)
@@ -751,7 +759,7 @@ void hmac_whirlpool
 		WHIRLPOOL_CTX tctx;
 
 		WHIRLPOOL_init (&tctx);
-		WHIRLPOOL_add ((unsigned char *) k, lk * 8, &tctx);
+		WHIRLPOOL_add ((unsigned char *) k, lk, &tctx);
 		WHIRLPOOL_finalize (&tctx, (unsigned char *) key);
 
 		k = key;
@@ -770,7 +778,7 @@ void hmac_whirlpool
 		buf[b] = (char) (k[b] ^ 0x36);
 	memset (&buf[lk], 0x36, WHIRLPOOL_BLOCKSIZE - lk);
 
-	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE * 8, ctx);
+	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE, ctx);
 
 	/**** Precompute HMAC Outer Digest ****/
 
@@ -781,9 +789,14 @@ void hmac_whirlpool
 		buf[b] = (char) (k[b] ^ 0x5C);
 	memset (&buf[lk], 0x5C, WHIRLPOOL_BLOCKSIZE - lk);
 
-	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE * 8, ctx);
+	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE, ctx);
 
 	hmac_whirlpool_internal(k, lk, d, ld, &hmac);
+
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	if (NT_SUCCESS (saveStatus) && HasISSE())
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
 	/* Prevent leaks */
 	burn(&hmac, sizeof(hmac));
 }
@@ -821,6 +834,12 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 	char* buf = hmac.k;
 	char key[WHIRLPOOL_DIGESTSIZE];
 	int b, l, r;
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	KFLOATING_SAVE floatingPointState;
+	NTSTATUS saveStatus = STATUS_SUCCESS;
+	if (HasISSE())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
     /* If the password is longer than the hash algorithm block size,
 	   let pwd = whirlpool(pwd), as per HMAC specifications. */
 	if (pwd_len > WHIRLPOOL_BLOCKSIZE)
@@ -828,7 +847,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 		WHIRLPOOL_CTX tctx;
 
 		WHIRLPOOL_init (&tctx);
-		WHIRLPOOL_add ((unsigned char *) pwd, pwd_len * 8, &tctx);
+		WHIRLPOOL_add ((unsigned char *) pwd, pwd_len, &tctx);
 		WHIRLPOOL_finalize (&tctx, (unsigned char *) key);
 
 		pwd = key;
@@ -858,7 +877,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 		buf[b] = (char) (pwd[b] ^ 0x36);
 	memset (&buf[pwd_len], 0x36, WHIRLPOOL_BLOCKSIZE - pwd_len);
 
-	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE * 8, ctx);
+	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE, ctx);
 
 	/**** Precompute HMAC Outer Digest ****/
 
@@ -869,7 +888,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 		buf[b] = (char) (pwd[b] ^ 0x5C);
 	memset (&buf[pwd_len], 0x5C, WHIRLPOOL_BLOCKSIZE - pwd_len);
 
-	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE * 8, ctx);
+	WHIRLPOOL_add ((unsigned char *) buf, WHIRLPOOL_BLOCKSIZE, ctx);
 
 	/* first l - 1 blocks */
 	for (b = 1; b < l; b++)
@@ -883,12 +902,232 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 	derive_u_whirlpool (pwd, pwd_len, salt, salt_len, iterations, b, &hmac);
 	memcpy (dk, hmac.u, r);
 
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	if (NT_SUCCESS (saveStatus) && HasISSE())
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
 
 	/* Prevent possible leaks. */
 	burn (&hmac, sizeof(hmac));
 	burn (key, sizeof(key));
 }
 
+
+typedef struct hmac_streebog_ctx_struct
+{
+	STREEBOG_CTX ctx;
+	STREEBOG_CTX inner_digest_ctx; /*pre-computed inner digest context */
+	STREEBOG_CTX outer_digest_ctx; /*pre-computed outer digest context */
+	CRYPTOPP_ALIGN_DATA(16) char k[PKCS5_SALT_SIZE + 4]; /* enough to hold (salt_len + 4) and also the Streebog hash */
+	char u[STREEBOG_DIGESTSIZE];
+} hmac_streebog_ctx;
+
+void hmac_streebog_internal
+(
+	  char *k,		/* secret key */
+	  int lk,		/* length of the key in bytes */
+	  char *d,		/* input/output data. d pointer is guaranteed to be at least 64-bytes long */
+	  int ld,		/* length of input data in bytes */
+	  hmac_streebog_ctx* hmac /* HMAC-Whirlpool context which holds temporary variables */
+)
+{
+	STREEBOG_CTX* ctx = &(hmac->ctx);
+
+	/**** Restore Precomputed Inner Digest Context ****/
+
+	memcpy (ctx, &(hmac->inner_digest_ctx), sizeof (STREEBOG_CTX));
+
+	STREEBOG_add (ctx, (unsigned char *) d, ld);
+
+	STREEBOG_finalize (ctx, (unsigned char *) d);
+
+	/**** Restore Precomputed Outer Digest Context ****/
+
+	memcpy (ctx, &(hmac->outer_digest_ctx), sizeof (STREEBOG_CTX));
+
+	STREEBOG_add (ctx, (unsigned char *) d, STREEBOG_DIGESTSIZE);
+
+	STREEBOG_finalize (ctx, (unsigned char *) d);
+}
+
+void hmac_streebog
+(
+	  char *k,		/* secret key */
+	  int lk,		/* length of the key in bytes */
+	  char *d,		/* input data. d pointer is guaranteed to be at least 32-bytes long */
+	  int ld		/* length of data in bytes */
+)
+{
+	hmac_streebog_ctx hmac;
+	STREEBOG_CTX* ctx;
+	char* buf = hmac.k;
+	int b;
+	CRYPTOPP_ALIGN_DATA(16) char key[STREEBOG_DIGESTSIZE];
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	KFLOATING_SAVE floatingPointState;
+	NTSTATUS saveStatus = STATUS_SUCCESS;
+	if (HasSSE2() || HasSSE41())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+    /* If the key is longer than the hash algorithm block size,
+	   let key = streebog(key), as per HMAC specifications. */
+	if (lk > STREEBOG_BLOCKSIZE)
+	{
+		STREEBOG_CTX tctx;
+
+		STREEBOG_init (&tctx);
+		STREEBOG_add (&tctx, (unsigned char *) k, lk);
+		STREEBOG_finalize (&tctx, (unsigned char *) key);
+
+		k = key;
+		lk = STREEBOG_DIGESTSIZE;
+
+		burn (&tctx, sizeof(tctx));		// Prevent leaks
+	}
+
+	/**** Precompute HMAC Inner Digest ****/
+
+	ctx = &(hmac.inner_digest_ctx);
+	STREEBOG_init (ctx);
+
+	/* Pad the key for inner digest */
+	for (b = 0; b < lk; ++b)
+		buf[b] = (char) (k[b] ^ 0x36);
+	memset (&buf[lk], 0x36, STREEBOG_BLOCKSIZE - lk);
+
+	STREEBOG_add (ctx, (unsigned char *) buf, STREEBOG_BLOCKSIZE);
+
+	/**** Precompute HMAC Outer Digest ****/
+
+	ctx = &(hmac.outer_digest_ctx);
+	STREEBOG_init (ctx);
+
+	for (b = 0; b < lk; ++b)
+		buf[b] = (char) (k[b] ^ 0x5C);
+	memset (&buf[lk], 0x5C, STREEBOG_BLOCKSIZE - lk);
+
+	STREEBOG_add (ctx, (unsigned char *) buf, STREEBOG_BLOCKSIZE);
+
+	hmac_streebog_internal(k, lk, d, ld, &hmac);
+
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	if (NT_SUCCESS (saveStatus) && (HasSSE2() || HasSSE41()))
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+	/* Prevent leaks */
+	burn(&hmac, sizeof(hmac));
+}
+
+static void derive_u_streebog (char *pwd, int pwd_len, char *salt, int salt_len, uint32 iterations, int b, hmac_streebog_ctx* hmac)
+{
+	char* u = hmac->u;
+	char* k = hmac->k;
+	uint32 c, i;
+
+	/* iteration 1 */
+	memcpy (k, salt, salt_len);	/* salt */
+	/* big-endian block number */
+	memset (&k[salt_len], 0, 3);	
+	k[salt_len + 3] = (char) b;
+
+	hmac_streebog_internal (pwd, pwd_len, k, salt_len + 4, hmac);
+	memcpy (u, k, STREEBOG_DIGESTSIZE);
+
+	/* remaining iterations */
+	for (c = 1; c < iterations; c++)
+	{
+		hmac_streebog_internal (pwd, pwd_len, k, STREEBOG_DIGESTSIZE, hmac);
+		for (i = 0; i < STREEBOG_DIGESTSIZE; i++)
+		{
+			u[i] ^= k[i];
+		}
+	}
+}
+
+void derive_key_streebog (char *pwd, int pwd_len, char *salt, int salt_len, uint32 iterations, char *dk, int dklen)
+{
+	hmac_streebog_ctx hmac;
+	STREEBOG_CTX* ctx;
+	char* buf = hmac.k;
+	char key[STREEBOG_DIGESTSIZE];
+	int b, l, r;
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	KFLOATING_SAVE floatingPointState;
+	NTSTATUS saveStatus = STATUS_SUCCESS;
+	if (HasSSE2() || HasSSE41())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+    /* If the password is longer than the hash algorithm block size,
+	   let pwd = streebog(pwd), as per HMAC specifications. */
+	if (pwd_len > STREEBOG_BLOCKSIZE)
+	{
+		STREEBOG_CTX tctx;
+
+		STREEBOG_init (&tctx);
+		STREEBOG_add (&tctx, (unsigned char *) pwd, pwd_len);
+		STREEBOG_finalize (&tctx, (unsigned char *) key);
+
+		pwd = key;
+		pwd_len = STREEBOG_DIGESTSIZE;
+
+		burn (&tctx, sizeof(tctx));		// Prevent leaks
+	}
+
+	if (dklen % STREEBOG_DIGESTSIZE)
+	{
+		l = 1 + dklen / STREEBOG_DIGESTSIZE;
+	}
+	else
+	{
+		l = dklen / STREEBOG_DIGESTSIZE;
+	}
+
+	r = dklen - (l - 1) * STREEBOG_DIGESTSIZE;
+
+	/**** Precompute HMAC Inner Digest ****/
+
+	ctx = &(hmac.inner_digest_ctx);
+	STREEBOG_init (ctx);
+
+	/* Pad the key for inner digest */
+	for (b = 0; b < pwd_len; ++b)
+		buf[b] = (char) (pwd[b] ^ 0x36);
+	memset (&buf[pwd_len], 0x36, STREEBOG_BLOCKSIZE - pwd_len);
+
+	STREEBOG_add (ctx, (unsigned char *) buf, STREEBOG_BLOCKSIZE);
+
+	/**** Precompute HMAC Outer Digest ****/
+
+	ctx = &(hmac.outer_digest_ctx);
+	STREEBOG_init (ctx);
+
+	for (b = 0; b < pwd_len; ++b)
+		buf[b] = (char) (pwd[b] ^ 0x5C);
+	memset (&buf[pwd_len], 0x5C, STREEBOG_BLOCKSIZE - pwd_len);
+
+	STREEBOG_add (ctx, (unsigned char *) buf, STREEBOG_BLOCKSIZE);
+
+	/* first l - 1 blocks */
+	for (b = 1; b < l; b++)
+	{
+		derive_u_streebog (pwd, pwd_len, salt, salt_len, iterations, b, &hmac);
+		memcpy (dk, hmac.u, STREEBOG_DIGESTSIZE);
+		dk += STREEBOG_DIGESTSIZE;
+	}
+
+	/* last block */
+	derive_u_streebog (pwd, pwd_len, salt, salt_len, iterations, b, &hmac);
+	memcpy (dk, hmac.u, r);
+
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	if (NT_SUCCESS (saveStatus) && (HasSSE2() || HasSSE41()))
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+
+	/* Prevent possible leaks. */
+	burn (&hmac, sizeof(hmac));
+	burn (key, sizeof(key));
+}
 
 wchar_t *get_pkcs5_prf_name (int pkcs5_prf_id)
 {
@@ -905,6 +1144,9 @@ wchar_t *get_pkcs5_prf_name (int pkcs5_prf_id)
 
 	case WHIRLPOOL:	
 		return L"HMAC-Whirlpool";
+
+	case STREEBOG:
+		return L"HMAC-STREEBOG";
 
 	default:		
 		return L"(Unknown)";
@@ -944,6 +1186,16 @@ int get_pkcs5_iteration_count (int pkcs5_prf_id, int pim, BOOL truecryptMode, BO
 	case SHA256:
 		if (truecryptMode)
 			return 0; // SHA-256 not supported by TrueCrypt
+		else if (pim == 0)
+			return bBoot? 200000 : 500000;
+		else
+		{
+			return bBoot? pim * 2048 : 15000 + pim * 1000;
+		}
+
+	case STREEBOG:	
+		if (truecryptMode)
+			return 1000;
 		else if (pim == 0)
 			return bBoot? 200000 : 500000;
 		else

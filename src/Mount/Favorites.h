@@ -3,7 +3,7 @@
  Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
  by the TrueCrypt License 3.0.
 
- Modifications and additions to the original source code (contained in this file) 
+ Modifications and additions to the original source code (contained in this file)
  and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
@@ -20,7 +20,7 @@ namespace VeraCrypt
 	struct FavoriteVolume
 	{
 		FavoriteVolume()
-			:	
+			:
 			Pim (0),
 			DisableHotkeyMount (false),
 			DisconnectedDevice (false),
@@ -30,8 +30,10 @@ namespace VeraCrypt
 			ReadOnly (false),
 			Removable (false),
 			SystemEncryption (false),
-			UseLabelInExplorer (false)
+			UseLabelInExplorer (false),
+			UseVolumeID (false)
 		{
+			memset (VolumeID, 0, VOLUME_ID_SIZE);
 		}
 
 		wstring Path;
@@ -39,6 +41,7 @@ namespace VeraCrypt
 		wstring VolumePathId;
 		wstring Label;
 		int Pim;
+		BYTE VolumeID[VOLUME_ID_SIZE];
 
 		bool DisableHotkeyMount;
 		bool DisconnectedDevice;
@@ -49,6 +52,7 @@ namespace VeraCrypt
 		bool Removable;
 		bool SystemEncryption;
 		bool UseLabelInExplorer;
+		bool UseVolumeID;
 	};
 
 	struct FavoriteVolumesDlgProcArguments

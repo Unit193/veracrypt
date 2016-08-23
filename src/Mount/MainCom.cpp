@@ -158,6 +158,46 @@ public:
 		return ::ChangePwd (volumePath, oldPassword, old_pkcs5, old_pim, truecryptMode, newPassword, pkcs5, pim, wipePassCount, (HWND) hWnd);
 	}
 
+	virtual DWORD STDMETHODCALLTYPE GetFileSize (BSTR filePath, unsigned __int64 *pSize)
+	{
+		return BaseCom::GetFileSize (filePath, pSize);
+	}
+
+	virtual DWORD STDMETHODCALLTYPE DeviceIoControl (BOOL readOnly, BOOL device, BSTR filePath, DWORD dwIoControlCode, BSTR input, BSTR *output)
+	{
+		return BaseCom::DeviceIoControl (readOnly, device, filePath, dwIoControlCode, input, output);
+	}
+
+	virtual DWORD STDMETHODCALLTYPE InstallEfiBootLoader (BOOL preserveUserConfig, BOOL hiddenOSCreation, int pim, int hashAlg)
+	{
+		return BaseCom::InstallEfiBootLoader (preserveUserConfig, hiddenOSCreation, pim, hashAlg);
+	}
+
+	virtual DWORD STDMETHODCALLTYPE BackupEfiSystemLoader ()
+	{
+		return BaseCom::BackupEfiSystemLoader ();
+	}
+
+	virtual DWORD STDMETHODCALLTYPE RestoreEfiSystemLoader ()
+	{
+		return BaseCom::RestoreEfiSystemLoader ();
+	}
+
+	virtual DWORD STDMETHODCALLTYPE GetEfiBootDeviceNumber (BSTR* pSdn)
+	{
+		return BaseCom::GetEfiBootDeviceNumber (pSdn);
+	}
+
+	virtual DWORD STDMETHODCALLTYPE ReadEfiConfig (BSTR* pContent, DWORD *pcbRead)
+	{
+		return BaseCom::ReadEfiConfig (pContent, pcbRead);
+	}
+
+	virtual DWORD STDMETHODCALLTYPE WriteEfiBootSectorUserConfig (DWORD userConfig, BSTR customUserMessage, int pim, int hashAlg)
+	{
+		return BaseCom::WriteEfiBootSectorUserConfig (userConfig, customUserMessage,pim, hashAlg);
+	}
+
 protected:
 	DWORD MessageThreadId;
 	LONG RefCount;

@@ -54,6 +54,7 @@ enum
 	WHIRLPOOL,
 	SHA256,
 	RIPEMD160,
+	STREEBOG,
 	HASH_ENUM_END_ID
 };
 
@@ -71,6 +72,9 @@ enum
 
 #define WHIRLPOOL_BLOCKSIZE		64
 #define WHIRLPOOL_DIGESTSIZE	64
+
+#define STREEBOG_BLOCKSIZE 64
+#define STREEBOG_DIGESTSIZE 64
 
 #define MAX_DIGESTSIZE			WHIRLPOOL_DIGESTSIZE
 
@@ -106,7 +110,10 @@ enum
 	NONE = 0,
 	AES,
 	SERPENT,			
-	TWOFISH
+	TWOFISH,
+	CAMELLIA,
+	GOST89,
+	KUZNYECHIK
 };
 
 typedef struct
@@ -126,6 +133,9 @@ typedef struct
 {
 	int Ciphers[4];			// Null terminated array of ciphers used by encryption algorithm
 	int Modes[LAST_MODE_OF_OPERATION + 1];			// Null terminated array of modes of operation
+#ifndef TC_WINDOWS_BOOT
+	BOOL MbrSysEncEnabled;
+#endif
 	int FormatEnabled;
 } EncryptionAlgorithm;
 
@@ -155,12 +165,16 @@ typedef struct
 #		define MAX_EXPANDED_KEY	SERPENT_KS
 #	elif defined (TC_WINDOWS_BOOT_TWOFISH)
 #		define MAX_EXPANDED_KEY	TWOFISH_KS
+#	elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+#		define MAX_EXPANDED_KEY	CAMELLIA_KS
 #	endif
 
 #else
-
-#define MAX_EXPANDED_KEY	(AES_KS + SERPENT_KS + TWOFISH_KS)
-
+#ifdef TC_WINDOWS_BOOT
+#define MAX_EXPANDED_KEY	VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), CAMELLIA_KS)
+#else
+#define MAX_EXPANDED_KEY	VC_MAX(VC_MAX(VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), GOST_KS), CAMELLIA_KS), KUZNYECHIK_KS)
+#endif
 #endif
 
 #ifdef DEBUG
@@ -186,6 +200,12 @@ typedef struct
 #ifndef TC_WINDOWS_BOOT
 #	include "Sha2.h"
 #	include "Whirlpool.h"
+#	include "Streebog.h"
+#	include "GostCipher.h"
+#	include "kuznyechik.h"
+#	include "Camellia.h"
+#else
+#	include "CamelliaSmall.h"
 #endif
 
 #include "GfMul.h"
@@ -201,7 +221,7 @@ typedef struct keyInfo_t
 	int keyLength;						/* Length of the key */
 	uint64 dummy;						/* Dummy field to ensure 16-byte alignment of this structure */
 	__int8 salt[PKCS5_SALT_SIZE];		/* PKCS-5 salt */
-	__int8 master_keydata[MASTER_KEYDATA_SIZE];		/* Concatenated master primary and secondary key(s) (XTS mode). For LRW (deprecated/legacy), it contains the tweak key before the master key(s). For CBC (deprecated/legacy), it contains the IV seed before the master key(s). */
+	CRYPTOPP_ALIGN_DATA(16) __int8 master_keydata[MASTER_KEYDATA_SIZE];		/* Concatenated master primary and secondary key(s) (XTS mode). For LRW (deprecated/legacy), it contains the tweak key before the master key(s). For CBC (deprecated/legacy), it contains the IV seed before the master key(s). */
 	CRYPTOPP_ALIGN_DATA(16) __int8 userKey[MAX_PASSWORD];		/* Password (to which keyfiles may have been applied). WITHOUT +1 for the null terminator. */
 } KEY_INFO, *PKEY_INFO;
 
@@ -223,8 +243,8 @@ typedef struct CRYPTO_INFO_t
 
 	GfCtx gf_ctx; 
 
-	unsigned __int8 master_keydata[MASTER_KEYDATA_SIZE];	/* This holds the volume header area containing concatenated master key(s) and secondary key(s) (XTS mode). For LRW (deprecated/legacy), it contains the tweak key before the master key(s). For CBC (deprecated/legacy), it contains the IV seed before the master key(s). */
-	unsigned __int8 k2[MASTER_KEYDATA_SIZE];				/* For XTS, this contains the secondary key (if cascade, multiple concatenated). For LRW (deprecated/legacy), it contains the tweak key. For CBC (deprecated/legacy), it contains the IV seed. */
+	CRYPTOPP_ALIGN_DATA(16) unsigned __int8 master_keydata[MASTER_KEYDATA_SIZE];	/* This holds the volume header area containing concatenated master key(s) and secondary key(s) (XTS mode). For LRW (deprecated/legacy), it contains the tweak key before the master key(s). For CBC (deprecated/legacy), it contains the IV seed before the master key(s). */
+	CRYPTOPP_ALIGN_DATA(16) unsigned __int8 k2[MASTER_KEYDATA_SIZE];				/* For XTS, this contains the secondary key (if cascade, multiple concatenated). For LRW (deprecated/legacy), it contains the tweak key. For CBC (deprecated/legacy), it contains the IV seed. */
 	unsigned __int8 salt[PKCS5_SALT_SIZE];
 	int noIterations;	
 	BOOL bTrueCryptMode;
@@ -262,7 +282,7 @@ typedef struct CRYPTO_INFO_t
 
 } CRYPTO_INFO, *PCRYPTO_INFO;
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_UEFI)
 
 #pragma pack (push)
 #pragma pack(1)
@@ -331,6 +351,9 @@ int EAGetLastCipher (int ea);
 int EAGetNextCipher (int ea, int previousCipherId);
 int EAGetPreviousCipher (int ea, int previousCipherId);
 int EAIsFormatEnabled (int ea);
+#ifndef TC_WINDOWS_BOOT
+int EAIsMbrSysEncEnabled (int ea);
+#endif
 BOOL EAIsModeSupported (int ea, int testedMode);
 
 

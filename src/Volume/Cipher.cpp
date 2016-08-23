@@ -3,7 +3,7 @@
  Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
  by the TrueCrypt License 3.0.
 
- Modifications and additions to the original source code (contained in this file) 
+ Modifications and additions to the original source code (contained in this file)
  and all other portions of this file are Copyright (c) 2013-2016 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
@@ -15,9 +15,13 @@
 #include "Crypto/Aes.h"
 #include "Crypto/Serpent.h"
 #include "Crypto/Twofish.h"
+#include "Crypto/Camellia.h"
+#include "Crypto/GostCipher.h"
+#include "Crypto/kuznyechik.h"
 
 #ifdef TC_AES_HW_CPU
 #	include "Crypto/Aes_hw_cpu.h"
+#	include "Crypto/cpu.h"
 #endif
 
 namespace VeraCrypt
@@ -77,6 +81,9 @@ namespace VeraCrypt
 		l.push_back (shared_ptr <Cipher> (new CipherAES ()));
 		l.push_back (shared_ptr <Cipher> (new CipherSerpent ()));
 		l.push_back (shared_ptr <Cipher> (new CipherTwofish ()));
+		l.push_back (shared_ptr <Cipher> (new CipherCamellia ()));
+		l.push_back (shared_ptr <Cipher> (new CipherGost89 ()));
+		l.push_back (shared_ptr <Cipher> (new CipherKuznyechik ()));
 
 		return l;
 	}
@@ -179,7 +186,7 @@ namespace VeraCrypt
 
 		if (!stateValid)
 		{
-			state = is_aes_hw_cpu_supported() ? true : false;
+			state = g_hasAESNI ? true : false;
 			stateValid = true;
 		}
 		return state && HwSupportEnabled;
@@ -207,7 +214,7 @@ namespace VeraCrypt
 	{
 		serpent_encrypt (data, data, ScheduledKey);
 	}
-	
+
 	size_t CipherSerpent::GetScheduledKeySize () const
 	{
 		return 140*4;
@@ -239,7 +246,68 @@ namespace VeraCrypt
 	{
 		twofish_set_key ((TwofishInstance *) ScheduledKey.Ptr(), (unsigned int *) key);
 	}
+	
+	// Camellia
+	void CipherCamellia::Decrypt (byte *data) const
+	{
+		camellia_decrypt (data, data, ScheduledKey.Ptr());
+	}
 
+	void CipherCamellia::Encrypt (byte *data) const
+	{
+		camellia_encrypt (data, data, ScheduledKey.Ptr());
+	}
 
+	size_t CipherCamellia::GetScheduledKeySize () const
+	{
+		return CAMELLIA_KS;
+	}
+
+	void CipherCamellia::SetCipherKey (const byte *key)
+	{
+		camellia_set_key (key, ScheduledKey.Ptr());
+	}
+
+	// GOST89
+	void CipherGost89::Decrypt (byte *data) const
+	{
+		gost_decrypt (data, data, (gost_kds *) ScheduledKey.Ptr(), 1);
+	}
+
+	void CipherGost89::Encrypt (byte *data) const
+	{
+		gost_encrypt (data, data, (gost_kds *) ScheduledKey.Ptr(), 1);
+	}
+
+	size_t CipherGost89::GetScheduledKeySize () const
+	{
+		return GOST_KS;
+	}
+
+	void CipherGost89::SetCipherKey (const byte *key)
+	{
+		gost_set_key (key, (gost_kds *) ScheduledKey.Ptr());
+	}
+
+	// Kuznyechik
+	void CipherKuznyechik::Decrypt (byte *data) const
+	{
+		kuznyechik_decrypt_block (data, data, (kuznyechik_kds *) ScheduledKey.Ptr());
+	}
+
+	void CipherKuznyechik::Encrypt (byte *data) const
+	{
+		kuznyechik_encrypt_block (data, data, (kuznyechik_kds *) ScheduledKey.Ptr());
+	}
+
+	size_t CipherKuznyechik::GetScheduledKeySize () const
+	{
+		return KUZNYECHIK_KS;
+	}
+
+	void CipherKuznyechik::SetCipherKey (const byte *key)
+	{
+		kuznyechik_set_key (key, (kuznyechik_kds *) ScheduledKey.Ptr());
+	}
 	bool Cipher::HwSupportEnabled = true;
 }

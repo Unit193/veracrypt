@@ -110,6 +110,14 @@ public:
 	static DWORD RegisterSystemFavoritesService (BOOL registerService);
 	static DWORD SetDriverServiceStartType (DWORD startType);
 	static DWORD WriteLocalMachineRegistryDwordValue (BSTR keyPath, BSTR valueName, DWORD value);
+	static DWORD GetFileSize (BSTR filePath, unsigned __int64 *pSize);
+	static DWORD DeviceIoControl (BOOL readOnly, BOOL device, BSTR filePath, DWORD dwIoControlCode, BSTR input, BSTR *output);
+	static DWORD InstallEfiBootLoader (BOOL preserveUserConfig, BOOL hiddenOSCreation, int pim, int hashAlg);
+	static DWORD BackupEfiSystemLoader ();
+	static DWORD RestoreEfiSystemLoader ();
+	static DWORD GetEfiBootDeviceNumber (BSTR* pSdn);
+	static DWORD ReadEfiConfig (BSTR* pContent, DWORD *pcbRead);
+	static DWORD WriteEfiBootSectorUserConfig (DWORD userConfig, BSTR customUserMessage, int pim, int hashAlg);
 };
 
 

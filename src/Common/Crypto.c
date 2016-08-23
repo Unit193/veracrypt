@@ -16,12 +16,16 @@
 #include "Xts.h"
 #include "Crc.h"
 #include "Common/Endian.h"
+#if !defined(_UEFI)
 #include <string.h>
 #ifndef TC_WINDOWS_BOOT
 #include "EncryptionThreadPool.h"
 #endif
+#endif
 #include "Volumes.h"
+#include "cpu.h"
 
+#pragma warning (disable:4706) // assignment within conditional expression
 /* Update the following when adding a new cipher or EA:
 
    Crypto.h:
@@ -52,6 +56,11 @@ static Cipher Ciphers[] =
 	{ AES,		L"AES",			16,			32,			AES_KS				},
 	{ SERPENT,	L"Serpent",		16,			32,			140*4				},
 	{ TWOFISH,	L"Twofish",		16,			32,			TWOFISH_KS			},
+	{ CAMELLIA,	L"Camellia",	16,			32,			CAMELLIA_KS			},
+#if defined(CIPHER_GOST89)
+	{ GOST89,	L"GOST89",		16,			32,			GOST_KS },
+#endif  // defined(CIPHER_GOST89)
+	{ KUZNYECHIK,	L"Kuznyechik",16,		32,			KUZNYECHIK_KS },
 #endif
 	{ 0,		0,				0,			0,			0					}
 };
@@ -64,16 +73,21 @@ static EncryptionAlgorithm EncryptionAlgorithms[] =
 
 #ifndef TC_WINDOWS_BOOT
 
-	{ { 0,						0 }, { 0, 0},				0 },	// Must be all-zero
-	{ { AES,					0 }, { XTS, 0 },			1 },
-	{ { SERPENT,				0 }, { XTS, 0 },			1 },
-	{ { TWOFISH,				0 }, { XTS, 0 },			1 },
-	{ { TWOFISH, AES,			0 }, { XTS, 0 },	1 },
-	{ { SERPENT, TWOFISH, AES,	0 }, { XTS, 0 },	1 },
-	{ { AES, SERPENT,			0 }, { XTS, 0 },	1 },
-	{ { AES, TWOFISH, SERPENT,	0 }, { XTS, 0 },	1 },
-	{ { SERPENT, TWOFISH,		0 }, { XTS, 0 },	1 },
-	{ { 0,						0 }, { 0, 0},				0 }		// Must be all-zero
+	{ { 0,							0 }, { 0, 0},		0, 0 },	// Must be all-zero
+	{ { AES,							0 }, { XTS, 0 },	1, 1 },
+	{ { SERPENT,					0 }, { XTS, 0 },	1, 1 },
+	{ { TWOFISH,					0 }, { XTS, 0 },	1, 1 },
+	{ { CAMELLIA,					0 }, { XTS, 0 },	1, 1 },
+#if defined(CIPHER_GOST89)
+	{ { GOST89,						0 }, { XTS, 0 },	0, 1 },
+#endif  // defined(CIPHER_GOST89)
+	{ { KUZNYECHIK,				0 }, { XTS, 0 },	0, 1 },
+	{ { TWOFISH, AES,				0 }, { XTS, 0 },	1, 1 },
+	{ { SERPENT, TWOFISH, AES,	0 }, { XTS, 0 },	1, 1 },
+	{ { AES, SERPENT,				0 }, { XTS, 0 },	1, 1 },
+	{ { AES, TWOFISH, SERPENT,	0 }, { XTS, 0 },	1, 1 },
+	{ { SERPENT, TWOFISH,		0 }, { XTS, 0 },	1, 1 },
+	{ { 0,							0 }, { 0,    0},	0, 0 }		// Must be all-zero
 
 #else // TC_WINDOWS_BOOT
 
@@ -97,11 +111,12 @@ static EncryptionAlgorithm EncryptionAlgorithms[] =
 #ifndef TC_WINDOWS_BOOT
 // Hash algorithms
 static Hash Hashes[] =
-{	// ID			Name			Deprecated		System Encryption
-	{ SHA512,		L"SHA-512",		FALSE,			FALSE },
-	{ WHIRLPOOL,	L"Whirlpool",	FALSE,			FALSE },
-	{ SHA256,		L"SHA-256",		FALSE,			TRUE },
-	{ RIPEMD160,	L"RIPEMD-160",	TRUE,			TRUE },
+{	// ID				Name					Deprecated	System Encryption
+	{ SHA512,		L"SHA-512",				FALSE,	FALSE },
+	{ WHIRLPOOL,	L"Whirlpool",			FALSE,	FALSE },
+	{ SHA256,		L"SHA-256",				FALSE,	TRUE },
+	{ RIPEMD160,	L"RIPEMD-160",			TRUE,		TRUE },
+	{ STREEBOG,		L"Streebog",	FALSE,	FALSE },
 	{ 0, 0, 0 }
 };
 #endif
@@ -134,6 +149,23 @@ int CipherInit (int cipher, unsigned char *key, unsigned __int8 *ks)
 		twofish_set_key ((TwofishInstance *)ks, (const u4byte *)key);
 		break;
 
+#if !defined (TC_WINDOWS_BOOT) || defined (TC_WINDOWS_BOOT_CAMELLIA)
+	case CAMELLIA:
+		camellia_set_key (key, ks);
+		break;
+#endif
+
+#if !defined(TC_WINDOWS_BOOT) 
+#if defined(CIPHER_GOST89)
+	case GOST89:
+		gost_set_key(key, (gost_kds*)ks);
+		break;
+#endif // && defined(CIPHER_GOST89)
+	case KUZNYECHIK:
+		kuznyechik_set_key(key, (kuznyechik_kds*)ks);
+		break;
+#endif // !defined(TC_WINDOWS_BOOT)
+
 	default:
 		// Unknown/wrong cipher ID
 		return ERR_CIPHER_INIT_FAILURE;
@@ -158,6 +190,15 @@ void EncipherBlock(int cipher, void *data, void *ks)
 
 	case TWOFISH:		twofish_encrypt (ks, data, data); break;
 	case SERPENT:		serpent_encrypt (data, data, ks); break;
+#if !defined (TC_WINDOWS_BOOT) || defined (TC_WINDOWS_BOOT_CAMELLIA)
+	case CAMELLIA:		camellia_encrypt (data, data, ks); break;
+#endif
+#if !defined(TC_WINDOWS_BOOT)
+#if defined(CIPHER_GOST89)
+	case GOST89:		gost_encrypt(data, data, ks, 1); break;
+#endif // defined(CIPHER_GOST89)
+	case KUZNYECHIK:		kuznyechik_encrypt_block(data, data, ks); break;
+#endif // !defined(TC_WINDOWS_BOOT) 
 	default:			TC_THROW_FATAL_EXCEPTION;	// Unknown/wrong ID
 	}
 }
@@ -191,6 +232,9 @@ void EncipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 	}
+	else if (cipher == GOST89)	{
+			gost_encrypt(data, data, ks, (int)blockCount);
+	}
 	else
 	{
 		size_t blockSize = CipherGetBlockSize (cipher);
@@ -210,6 +254,17 @@ void DecipherBlock(int cipher, void *data, void *ks)
 	{
 	case SERPENT:	serpent_decrypt (data, data, ks); break;
 	case TWOFISH:	twofish_decrypt (ks, data, data); break;
+#if !defined (TC_WINDOWS_BOOT) || defined (TC_WINDOWS_BOOT_CAMELLIA)
+	case CAMELLIA:	camellia_decrypt (data, data, ks); break;
+#endif
+#if !defined(TC_WINDOWS_BOOT)
+#if defined(CIPHER_GOST89)
+	case GOST89:	gost_decrypt(data, data, ks, 1); break;
+#endif // defined(CIPHER_GOST89)
+	case KUZNYECHIK:	kuznyechik_decrypt_block(data, data, ks); break;
+#endif // !defined(TC_WINDOWS_BOOT)
+
+
 #ifndef TC_WINDOWS_BOOT
 
 	case AES:
@@ -256,6 +311,9 @@ void DecipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 #if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
+	}
+	else if (cipher == GOST89)	{
+			gost_decrypt(data, data, ks, (int)blockCount);
 	}
 	else
 	{
@@ -325,7 +383,8 @@ int CipherGetKeyScheduleSize (int cipherId)
 
 BOOL CipherSupportsIntraDataUnitParallelization (int cipher)
 {
-	return cipher == AES && IsAesHwCpuSupported();
+	return cipher == AES && IsAesHwCpuSupported() ||
+		cipher == GOST89;
 }
 
 #endif
@@ -450,8 +509,12 @@ int EAGetByName (wchar_t *name)
 
 	do
 	{
-		EAGetName (n, ea, 1);
-		if (_wcsicmp (n, name) == 0)
+		EAGetName(n, ea, 1);
+#if defined(_UEFI)
+		if (wcscmp(n, name) == 0)
+#else
+		if (_wcsicmp(n, name) == 0)
+#endif
 			return ea;
 	}
 	while (ea = EAGetNext (ea));
@@ -621,6 +684,12 @@ int EAIsFormatEnabled (int ea)
 	return EncryptionAlgorithms[ea].FormatEnabled;
 }
 
+#ifndef TC_WINDOWS_BOOT
+int EAIsMbrSysEncEnabled (int ea)
+{
+	return EncryptionAlgorithms[ea].MbrSysEncEnabled;
+}
+#endif
 
 // Returns TRUE if the mode of operation is supported for the encryption algorithm
 BOOL EAIsModeSupported (int ea, int testedMode)
@@ -691,7 +760,7 @@ int GetMaxPkcs5OutSize (void)
 {
 	int size = 32;
 
-	size = max (size, EAGetLargestKeyForMode (XTS) * 2);	// Sizes of primary + secondary keys
+	size = VC_MAX (size, EAGetLargestKeyForMode (XTS) * 2);	// Sizes of primary + secondary keys
 
 	return size;
 }
@@ -720,7 +789,7 @@ PCRYPTO_INFO crypto_open ()
 
 	memset (cryptoInfo, 0, sizeof (CRYPTO_INFO));
 
-#ifndef DEVICE_DRIVER
+#if !defined(DEVICE_DRIVER) && !defined(_UEFI)
 	VirtualLock (cryptoInfo, sizeof (CRYPTO_INFO));
 #endif
 
@@ -755,7 +824,7 @@ void crypto_close (PCRYPTO_INFO cryptoInfo)
 	if (cryptoInfo != NULL)
 	{
 		burn (cryptoInfo, sizeof (CRYPTO_INFO));
-#ifndef DEVICE_DRIVER
+#if !defined(DEVICE_DRIVER) && !defined(_UEFI)
 		VirtualUnlock (cryptoInfo, sizeof (CRYPTO_INFO));
 #endif
 		TCfree (cryptoInfo);
@@ -819,7 +888,7 @@ void EncryptBuffer (unsigned __int8 *buf, TC_LARGEST_COMPILER_UINT len, PCRYPTO_
 // unitNo:		sequential number of the data unit with which the buffer starts
 // nbrUnits:	number of data units in the buffer
 void EncryptDataUnits (unsigned __int8 *buf, const UINT64_STRUCT *structUnitNo, uint32 nbrUnits, PCRYPTO_INFO ci)
-#ifndef TC_WINDOWS_BOOT
+#if !defined(TC_WINDOWS_BOOT) && !defined(_UEFI)
 {
 	EncryptionThreadPoolDoWork (EncryptDataUnitsWork, buf, structUnitNo, nbrUnits, ci);
 }
@@ -900,7 +969,7 @@ void DecryptBuffer (unsigned __int8 *buf, TC_LARGEST_COMPILER_UINT len, PCRYPTO_
 // unitNo:		sequential number of the data unit with which the buffer starts
 // nbrUnits:	number of data units in the buffer
 void DecryptDataUnits (unsigned __int8 *buf, const UINT64_STRUCT *structUnitNo, uint32 nbrUnits, PCRYPTO_INFO ci)
-#ifndef TC_WINDOWS_BOOT
+#if !defined(TC_WINDOWS_BOOT) && !defined(_UEFI)
 {
 	EncryptionThreadPoolDoWork (DecryptDataUnitsWork, buf, structUnitNo, nbrUnits, ci);
 }
@@ -945,7 +1014,7 @@ void DecryptDataUnitsCurrentThread (unsigned __int8 *buf, const UINT64_STRUCT *s
 #else // TC_WINDOWS_BOOT_SINGLE_CIPHER_MODE
 
 
-#if !defined (TC_WINDOWS_BOOT_AES) && !defined (TC_WINDOWS_BOOT_SERPENT) && !defined (TC_WINDOWS_BOOT_TWOFISH)
+#if !defined (TC_WINDOWS_BOOT_AES) && !defined (TC_WINDOWS_BOOT_SERPENT) && !defined (TC_WINDOWS_BOOT_TWOFISH) && !defined (TC_WINDOWS_BOOT_CAMELLIA)
 #error No cipher defined
 #endif
 
@@ -960,6 +1029,8 @@ void EncipherBlock(int cipher, void *data, void *ks)
 	serpent_encrypt (data, data, ks);
 #elif defined (TC_WINDOWS_BOOT_TWOFISH)
 	twofish_encrypt (ks, data, data);
+#elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+	camellia_encrypt (data, data, ks);
 #endif
 }
 
@@ -974,6 +1045,8 @@ void DecipherBlock(int cipher, void *data, void *ks)
 	serpent_decrypt (data, data, ks);
 #elif defined (TC_WINDOWS_BOOT_TWOFISH)
 	twofish_decrypt (ks, data, data);
+#elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+	camellia_decrypt (data, data, ks);
 #endif
 }
 
@@ -1033,7 +1106,11 @@ BOOL IsAesHwCpuSupported ()
 
 	if (!stateValid)
 	{
+#ifdef TC_WINDOWS_BOOT_AES
 		state = is_aes_hw_cpu_supported() ? TRUE : FALSE;
+#else
+		state = g_hasAESNI ? TRUE : FALSE;
+#endif
 		stateValid = TRUE;
 	}
 

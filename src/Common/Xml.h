@@ -16,13 +16,16 @@ extern "C" {
 
 char *XmlNextNode (char *xmlNode);
 char *XmlFindElement (char *xmlNode, char *nodeName);
-char *XmlGetAttributeText (char *xmlNode, char *xmlAttrName, char *xmlAttrValue, int xmlAttrValueSize);
+char *XmlGetAttributeText (char *xmlNode, const char *xmlAttrName, char *xmlAttrValue, int xmlAttrValueSize);
 char *XmlGetNodeText (char *xmlNode, char *xmlText, int xmlTextSize);
-int XmlWriteHeader (FILE *file);
-int XmlWriteFooter (FILE *file);
-char *XmlFindElementByAttributeValue (char *xml, char *nodeName, char *attrName, char *attrValue);
+char *XmlFindElementByAttributeValue (char *xml, char *nodeName, const char *attrName, const char *attrValue);
 char *XmlQuoteText (const char *textSrc, char *textDst, int textDstMaxSize);
 wchar_t *XmlQuoteTextW (const wchar_t *textSrc, wchar_t *textDst, int textDstMaxSize);
+
+#if !defined(_UEFI)
+int XmlWriteHeader (FILE *file);
+int XmlWriteFooter (FILE *file);
+#endif !defined(_UEFI)
 
 #ifdef __cplusplus
 }
