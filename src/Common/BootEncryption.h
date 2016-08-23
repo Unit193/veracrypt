@@ -18,6 +18,16 @@
 #include "Exception.h"
 #include "Platform/PlatformBase.h"
 #include "Volumes.h"
+#include <Winternl.h>
+
+#define SYSPARTITIONINFORMATION 0x62
+
+typedef NTSTATUS (WINAPI *NtQuerySystemInformationFn)(
+		SYSTEM_INFORMATION_CLASS SystemInformationClass,
+		PVOID                    SystemInformation,
+      ULONG                    SystemInformationLength,
+		PULONG                   ReturnLength
+);
 
 using namespace std;
 
@@ -26,7 +36,7 @@ namespace VeraCrypt
 	class File
 	{
 	public:
-		File () : Elevated (false), FileOpen (false), FilePointerPosition(0), Handle(INVALID_HANDLE_VALUE), IsDevice(false), LastError(0) { }
+		File () : Elevated (false), FileOpen (false), ReadOnly (false), FilePointerPosition(0), Handle(INVALID_HANDLE_VALUE), IsDevice(false), LastError(0) { }
 		File (wstring path,bool readOnly = false, bool create = false);
 		virtual ~File () { Close(); }
 
@@ -35,10 +45,14 @@ namespace VeraCrypt
 		DWORD Read (byte *buffer, DWORD size);
 		void Write (byte *buffer, DWORD size);
 		void SeekAt (int64 position);
+		void GetFileSize (unsigned __int64& size);
+		void GetFileSize (DWORD& dwSize);
+      bool IoCtl(DWORD code, void* inBuf, DWORD inBufSize, void* outBuf, DWORD outBufSize);
 
 	protected:
 		bool Elevated;
 		bool FileOpen;
+		bool ReadOnly;
 		uint64 FilePointerPosition;
 		HANDLE Handle;
 		bool IsDevice;
@@ -131,6 +145,67 @@ namespace VeraCrypt
 		bool SystemLoaderPresent;
 	};
 
+	class EfiBootConf
+	{
+	public:
+
+		int passwordType;
+		string passwordMsg;
+		string passwordPicture;
+		string hashMsg;
+		int hashAlgo;
+		int requestHash;
+		string pimMsg;
+		int pim;
+		int requestPim;
+		int authorizeVisible;
+		int authorizeRetry;
+
+		EfiBootConf();
+
+		static BOOL ReadConfigValue (char* configContent, const char *configKey, char *configValue, int maxValueSize);
+		static int ReadConfigInteger (char* configContent, const char *configKey, int defaultValue);
+		static char *ReadConfigString (char* configContent, const char *configKey, char *defaultValue, char *str, int maxLen);
+		static BOOL WriteConfigString (FILE* configFile, char* configContent, const char *configKey, const char *configValue);
+		static BOOL WriteConfigInteger (FILE* configFile, char* configContent, const char *configKey, int configValue);
+		BOOL Load (const wchar_t* fileName);
+		void Load (char* configContent);
+		BOOL Save (const wchar_t* fileName, HWND hwnd);
+	};
+
+	class EfiBoot {
+	public:
+		EfiBoot();
+
+		void MountBootPartition(WCHAR letter);
+		void DismountBootPartition();
+		bool IsEfiBoot();
+
+		void DeleteStartExec(uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL);
+		void SetStartExec(wstring description, wstring execPath, uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL, uint32 attr = 1);
+		void SaveFile(wchar_t* name, byte* data, DWORD size);
+		void GetFileSize(const wchar_t* name, unsigned __int64& size);
+		void ReadFile(const wchar_t* name, byte* data, DWORD size);
+		void CopyFile(const wchar_t* name, const wchar_t* targetName);
+
+		BOOL RenameFile(wchar_t* name, wchar_t* nameNew, BOOL bForce);
+		BOOL DelFile(wchar_t* name);
+		BOOL MkDir(wchar_t* name, bool& bAlreadyExists);
+		BOOL ReadConfig (wchar_t* name, EfiBootConf& conf);
+		BOOL UpdateConfig (wchar_t* name, int pim, int hashAlgo, HWND hwndDlg);
+		BOOL WriteConfig (wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg);
+
+		PSTORAGE_DEVICE_NUMBER GetStorageDeviceNumber () { return &sdn;}
+
+	protected:
+		bool m_bMounted;
+		WCHAR	EfiBootPartPath[3];
+		STORAGE_DEVICE_NUMBER sdn;
+		PARTITION_INFORMATION_EX partInfo;
+		WCHAR     tempBuf[1024];
+		WCHAR systemPartitionPath[MAX_PATH];
+	};
+
 	class BootEncryption
 	{
 	public:
@@ -168,9 +243,9 @@ namespace VeraCrypt
 		BootEncryptionStatus GetStatus ();
 		void GetVolumeProperties (VOLUME_PROPERTIES_STRUCT *properties);
 		SystemDriveConfiguration GetSystemDriveConfiguration ();
-		void Install (bool hiddenSystem);
-		void InstallBootLoader (Device& device, bool preserveUserConfig = false, bool hiddenOSCreation = false);
-		void InstallBootLoader (bool preserveUserConfig = false, bool hiddenOSCreation = false);
+		void Install (bool hiddenSystem, int hashAlgo);
+		void InstallBootLoader (Device& device, bool preserveUserConfig = false, bool hiddenOSCreation = false, int pim = -1, int hashAlg = -1);
+		void InstallBootLoader (bool preserveUserConfig = false, bool hiddenOSCreation = false, int pim = -1, int hashAlg = -1);
 		bool CheckBootloaderFingerprint (bool bSilent = false);
 		void InvalidateCachedSysDriveProperties ();
 		bool IsCDRecorderPresent ();
@@ -179,8 +254,9 @@ namespace VeraCrypt
 		void PrepareHiddenOSCreation (int ea, int mode, int pkcs5);
 		void PrepareInstallation (bool systemPartitionOnly, Password &password, int ea, int mode, int pkcs5, int pim, const wstring &rescueIsoImagePath);
 		void ProbeRealSystemDriveSize ();
-		void ReadBootSectorConfig (byte *config, size_t bufLength, byte *userConfig = nullptr, string *customUserMessage = nullptr, uint16 *bootLoaderVersion = nullptr);
+		bool ReadBootSectorConfig (byte *config, size_t bufLength, byte *userConfig = nullptr, string *customUserMessage = nullptr, uint16 *bootLoaderVersion = nullptr);
 		uint32 ReadDriverConfigurationFlags ();
+		void ReadEfiConfig (byte* confContent, DWORD maxSize, DWORD* pcbRead);
 		void RegisterBootDriver (bool hiddenSystem);
 		void RegisterFilterDriver (bool registerDriver, FilterType filterType);
 		void RegisterSystemFavoritesService (BOOL registerService);
@@ -202,17 +278,20 @@ namespace VeraCrypt
 		bool SystemPartitionCoversWholeDrive ();
 		bool SystemDriveIsDynamic ();
 		bool VerifyRescueDisk ();
-		bool VerifyRescueDiskIsoImage (const wchar_t* imageFile);
+		bool VerifyRescueDiskImage (const wchar_t* imageFile);
 		void WipeHiddenOSCreationConfig ();
 		void WriteBootDriveSector (uint64 offset, byte *data);
 		void WriteBootSectorConfig (const byte newConfig[]);
-		void WriteBootSectorUserConfig (byte userConfig, const string &customUserMessage);
+		void WriteBootSectorUserConfig (byte userConfig, const string &customUserMessage, int pim, int hashAlg);
+		void WriteEfiBootSectorUserConfig (byte userConfig, const string &customUserMessage, int pim, int hashAlg);
 		void WriteLocalMachineRegistryDwordValue (wchar_t *keyPath, wchar_t *valueName, DWORD value);
+		void GetEfiBootDeviceNumber (PSTORAGE_DEVICE_NUMBER pSdn);
+		void BackupSystemLoader ();
+		void RestoreSystemLoader ();
 
 	protected:
 		static const uint32 RescueIsoImageSize = 1835008; // Size of ISO9660 image with bootable emulated 1.44MB floppy disk image
 
-		void BackupSystemLoader ();
 		void CreateBootLoaderInMemory (byte *buffer, size_t bufferSize, bool rescueDisk, bool hiddenOSCreation = false);
 		void CreateVolumeHeader (uint64 volumeSize, uint64 encryptedAreaStart, Password *password, int ea, int mode, int pkcs5, int pim);
 		wstring GetSystemLoaderBackupPath ();
@@ -221,8 +300,7 @@ namespace VeraCrypt
 		PartitionList GetDrivePartitions (int driveNumber);
 		wstring GetRemarksOnHiddenOS ();
 		wstring GetWindowsDirectory ();
-		void RegisterFilter (bool registerFilter, FilterType filterType, const GUID *deviceClassGuid = nullptr);
-		void RestoreSystemLoader ();
+		void RegisterFilter (bool registerFilter, FilterType filterType, const GUID *deviceClassGuid = nullptr);		
 		void InstallVolumeHeader ();
 
 		HWND ParentWindow;
@@ -231,6 +309,8 @@ namespace VeraCrypt
 		int SelectedPrfAlgorithmId;
 		Partition HiddenOSCandidatePartition;
 		byte *RescueIsoImage;
+		byte *RescueZipData;
+		unsigned long RescueZipSize;
 		byte RescueVolumeHeader[TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE];
 		byte VolumeHeader[TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE];
 		bool DriveConfigValid;

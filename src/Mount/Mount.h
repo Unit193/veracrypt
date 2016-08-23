@@ -99,7 +99,6 @@ static BOOL CheckMountList (HWND hwndDlg, BOOL bForceTaskBarUpdate);
 int GetCipherBlockSizeByDriveNo (int nDosDriveNo);
 int GetModeOfOperationByDriveNo (int nDosDriveNo);
 void ChangeMainWindowVisibility ();
-void LaunchVolCreationWizard (HWND hwndDlg);
 BOOL WholeSysDriveEncryption (BOOL bSilent);
 BOOL CheckSysEncMountWithoutPBA (HWND hwndDlg, const wchar_t *devicePath, BOOL quiet);
 BOOL TCBootLoaderOnInactiveSysEncDrive (wchar_t *szDevicePath);

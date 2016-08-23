@@ -16,7 +16,7 @@ import "..\Common\Password.h";
 [
 	uuid(56327DDA-F1A7-4e13-B128-520D129BDEF6),
 	helpstring("VeraCrypt Format UAC Support Library"),
-	version(2.5)	// Update ComSetup.cpp when changing version number
+	version(2.6)	// Update ComSetup.cpp when changing version number
 ]
 library TrueCryptFormatCom
 {
@@ -40,6 +40,14 @@ library TrueCryptFormatCom
 		DWORD SetDriverServiceStartType (DWORD startType);
 		DWORD WriteLocalMachineRegistryDwordValue (BSTR keyPath, BSTR valueName, DWORD value);
 		BOOL FormatFs (int driveNo, int clusterSize, int fsType);
+		DWORD GetFileSize (BSTR filePath, unsigned __int64* pSize);
+		DWORD DeviceIoControl (BOOL readOnly, BOOL device, BSTR filePath, DWORD dwIoControlCode, BSTR input, BSTR *output);
+		DWORD InstallEfiBootLoader (BOOL preserveUserConfig, BOOL hiddenOSCreation, int pim, int hashAlg);
+		DWORD BackupEfiSystemLoader ();
+		DWORD RestoreEfiSystemLoader ();
+		DWORD GetEfiBootDeviceNumber (BSTR* pSdn);
+		DWORD ReadEfiConfig (BSTR* pContent, DWORD *pcbRead);
+		DWORD WriteEfiBootSectorUserConfig (DWORD userConfig, BSTR customUserMessage, int pim, int hashAlg);
 	};
 
 	[

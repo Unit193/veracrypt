@@ -3,7 +3,7 @@
 # Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
 # by the TrueCrypt License 3.0.
 #
-# Modifications and additions to the original source code (contained in this file) 
+# Modifications and additions to the original source code (contained in this file)
 # and all other portions of this file are Copyright (c) 2013-2016 IDRIX
 # and are governed by the Apache License 2.0 the full text of which is
 # contained in the file License.txt included in VeraCrypt binary and source
@@ -20,6 +20,8 @@
 # RESOURCEDIR:	Run-time resource directory
 # VERBOSE:		Enable verbose messages
 # WXSTATIC:		Use static wxWidgets library
+# SSSE3:		Enable SSSE3 support in compiler
+# SSE41:		Enable SSE4.1 support in compiler
 
 #------ Targets ------
 # all
@@ -114,7 +116,7 @@ endif
 
 ifeq "$(origin DEBUGGER)" "command line"
 
-	C_CXX_FLAGS += -ggdb  
+	C_CXX_FLAGS += -ggdb
 	WX_CONFIGURE_FLAGS += --enable-debug_gdb --enable-debug_info
 
 endif
@@ -160,6 +162,26 @@ ifeq "$(shell uname -s)" "Linux"
 
 	PLATFORM := Linux
 	C_CXX_FLAGS += -DTC_UNIX -DTC_LINUX
+	
+	CFLAGS += -msse2
+	CXXFLAGS += -msse2
+
+	GCC_GTEQ_440 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40400)
+	GCC_GTEQ_430 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40300)
+	ifeq "$(GCC_GTEQ_440)" "1"
+		CFLAGS += -maes
+		CXXFLAGS += -maes
+	endif
+
+	ifeq "$(GCC_GTEQ_430)" "1"
+		ifeq "$(origin SSSE3)" "command line"
+			CFLAGS += -mssse3 -msse4.1
+		endif
+
+		ifeq "$(origin SSE41)" "command line"
+			CXXFLAGS += -mssse3 -msse4.1
+		endif
+	endif
 
 	ifeq "$(TC_BUILD_CONFIG)" "Release"
 		C_CXX_FLAGS += -fdata-sections -ffunction-sections
@@ -172,9 +194,15 @@ ifeq "$(shell uname -s)" "Linux"
 		WXCONFIG_CFLAGS += -fdata-sections -ffunction-sections
 		WXCONFIG_CXXFLAGS += -fdata-sections -ffunction-sections
 	endif
-	
+
 	ifneq "$(origin WXSTATIC)" "command line"
 		LFLAGS += -ldl
+	else
+		GCC5USED := $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 5)
+		ifeq "$(GCC5USED)" "1"
+			CXXFLAGS += -D_GLIBCXX_USE_CXX11_ABI=0
+			WXCONFIG_CXXFLAGS += -D_GLIBCXX_USE_CXX11_ABI=0
+		endif
 	endif
 
 endif
@@ -185,7 +213,7 @@ ifeq "$(shell uname -s)" "Darwin"
 
 	PLATFORM := MacOSX
 	APPNAME := VeraCrypt
-	
+
 	export VC_OSX_TARGET ?= 10.7
 
 	#check to see if XCode 3 path exists.Otherwise, use XCode 4 path
@@ -278,7 +306,7 @@ WX_CONFIGURE_FLAGS += --enable-unicode -disable-shared --disable-dependency-trac
 	--disable-gif --disable-pcx --disable-tga --disable-iff --disable-gif --disable-pnm --disable-svg \
 	--without-expat --without-libtiff --without-libjpeg --without-libpng -without-regex --without-zlib
 
-ifeq "$(PLATFORM)" "Linux"	
+ifeq "$(PLATFORM)" "Linux"
 WX_CONFIGURE_FLAGS += --disable-tooltips
 endif
 
@@ -295,7 +323,7 @@ all clean:
 		PROJ=$$(echo $$DIR | cut -d/ -f1); \
 		$(MAKE) -C $$DIR -f $$PROJ.make NAME=$$PROJ $(MAKECMDGOALS) || exit $?; \
 		export LIBS="$(BASE_DIR)/$$DIR/$$PROJ.a $$LIBS"; \
-	done	
+	done
 
 
 #------ wxWidgets build ------
@@ -317,6 +345,6 @@ endif
 	mkdir -p "$(WX_BUILD_DIR)"
 	@echo Configuring wxWidgets library...
 	cd "$(WX_BUILD_DIR)" && "$(WX_ROOT)/configure" $(WX_CONFIGURE_FLAGS) >/dev/null
-	
+
 	@echo Building wxWidgets library...
 	cd "$(WX_BUILD_DIR)" && $(MAKE)

@@ -2,6 +2,7 @@
 #define CRYPTOPP_CPU_H
 
 #include "Common/Tcdefs.h"
+#include "config.h"
 
 #ifdef CRYPTOPP_GENERATE_X64_MASM
 
@@ -11,32 +12,112 @@
 
 #else
 
-#include "config.h"
-
 #if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE
+#if defined(TC_WINDOWS_DRIVER) || defined (_UEFI)
+#if defined(__cplusplus)
+extern "C" {
+#endif
+typedef union __declspec(intrin_type) CRYPTOPP_ALIGN_DATA(8) __m64
+{
+    unsigned __int64    m64_u64;
+    float               m64_f32[2];
+    __int8              m64_i8[8];
+    __int16             m64_i16[4];
+    __int32             m64_i32[2];    
+    __int64             m64_i64;
+    unsigned __int8     m64_u8[8];
+    unsigned __int16    m64_u16[4];
+    unsigned __int32    m64_u32[2];
+} __m64;
+
+typedef union __declspec(intrin_type) CRYPTOPP_ALIGN_DATA(16) __m128 {
+     float               m128_f32[4];
+     unsigned __int64    m128_u64[2];
+     __int8              m128_i8[16];
+     __int16             m128_i16[8];
+     __int32             m128_i32[4];
+     __int64             m128_i64[2];
+     unsigned __int8     m128_u8[16];
+     unsigned __int16    m128_u16[8];
+     unsigned __int32    m128_u32[4];
+ } __m128;
+ 
+typedef union __declspec(intrin_type) CRYPTOPP_ALIGN_DATA(16) __m128i {
+    __int8              m128i_i8[16];
+    __int16             m128i_i16[8];
+    __int32             m128i_i32[4];    
+    __int64             m128i_i64[2];
+    unsigned __int8     m128i_u8[16];
+    unsigned __int16    m128i_u16[8];
+    unsigned __int32    m128i_u32[4];
+    unsigned __int64    m128i_u64[2];
+} __m128i;
+
+typedef struct __declspec(intrin_type) CRYPTOPP_ALIGN_DATA(16) __m128d {
+    double              m128d_f64[2];
+} __m128d;
+
+#define _MM_SHUFFLE2(x,y) (((x)<<1) | (y))
+
+extern void  _m_empty(void);
+extern int _mm_extract_epi16(__m128i _A, int _Imm);
+extern __m128i _mm_load_si128(__m128i const*_P);
+extern __m128i _mm_xor_si128(__m128i _A, __m128i _B);
+extern __m128i _mm_cvtsi64_si128(__int64);
+extern __m128i _mm_unpacklo_epi64(__m128i _A, __m128i _B);
+extern void _mm_store_si128(__m128i *_P, __m128i _B);
+extern __m64 _m_pxor(__m64 _MM1, __m64 _MM2);
+extern __m128i _mm_set_epi64(__m64 _Q1, __m64 _Q0);
+extern __m128i _mm_setr_epi32(int _I0, int _I1, int _I2, int _I3);
+#define _mm_xor_si64      _m_pxor
+#define _mm_empty         _m_empty
+#if defined(__cplusplus)
+}
+#endif
+#else
+#include <mmintrin.h>
 #include <emmintrin.h>
+#endif
 #endif
 
 #if CRYPTOPP_BOOL_AESNI_INTRINSICS_AVAILABLE
 #if defined(__SSSE3__) || defined(__INTEL_COMPILER)
-#ifdef TC_WINDOWS_DRIVER
+#if defined(TC_WINDOWS_DRIVER) || defined (_UEFI)
+#if defined(__cplusplus)
+extern "C" {
+#endif
 extern __m128i _mm_shuffle_epi8 (__m128i a, __m128i b);
+#if defined(__cplusplus)
+}
+#endif
 #else
 #include <tmmintrin.h>
 #endif
 #endif
 
-#if defined(__SSE4_1__) || defined(__INTEL_COMPILER)
-#ifdef TC_WINDOWS_DRIVER
+#if defined(__SSE4_1__) || defined(__INTEL_COMPILER) || defined(_MSC_VER)
+#if defined(TC_WINDOWS_DRIVER) || defined (_UEFI)
+#if defined(__cplusplus)
+extern "C" {
+#endif
 extern int   _mm_extract_epi32(__m128i src, const int ndx);
 extern __m128i _mm_insert_epi32(__m128i dst, int s, const int ndx);
+#if defined(_M_X64)
+extern __m128i _mm_insert_epi64(__m128i dst, __int64 s, const int ndx);
+#endif
+#if defined(__cplusplus)
+}
+#endif
 #else
 #include <smmintrin.h>
 #endif
 #endif
 
-#if (defined(__AES__) && defined(__PCLMUL__)) || defined(__INTEL_COMPILER)
-#ifdef TC_WINDOWS_DRIVER
+#if (defined(__AES__) && defined(__PCLMUL__)) || defined(__INTEL_COMPILER) || CRYPTOPP_BOOL_AESNI_INTRINSICS_AVAILABLE
+#if defined(TC_WINDOWS_DRIVER) || defined (_UEFI)
+#if defined(__cplusplus)
+extern "C" {
+#endif
 extern __m128i _mm_clmulepi64_si128(__m128i v1, __m128i v2, 
 					    const int imm8);
 extern __m128i _mm_aeskeygenassist_si128(__m128i ckey, const int rcon);
@@ -45,22 +126,28 @@ extern __m128i _mm_aesenc_si128(__m128i v, __m128i rkey);
 extern __m128i _mm_aesenclast_si128(__m128i v, __m128i rkey);
 extern __m128i _mm_aesdec_si128(__m128i v, __m128i rkey);
 extern __m128i _mm_aesdeclast_si128(__m128i v, __m128i rkey);
+#if defined(__cplusplus)
+}
+#endif
 #else
 #include <wmmintrin.h>
 #endif
 #endif
 #endif
 
-#if CRYPTOPP_BOOL_X86 || CRYPTOPP_BOOL_X64
-
-#define CRYPTOPP_CPUID_AVAILABLE
+#if CRYPTOPP_BOOL_X86 || CRYPTOPP_BOOL_X32 || CRYPTOPP_BOOL_X64
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#define CRYPTOPP_CPUID_AVAILABLE
+
 // these should not be used directly
 extern int g_x86DetectionDone;
+extern int g_hasAVX;
+extern int g_hasSSE42;
+extern int g_hasSSE41;
 extern int g_hasSSSE3;
 extern int g_hasAESNI;
 extern int g_hasCLMUL;
@@ -85,6 +172,9 @@ extern int g_hasMMX;
 
 #endif
 
+#define HasSSE42() g_hasSSE42
+#define HasSSE41() g_hasSSE41
+#define HasSAVX() g_hasAVX
 #define HasSSSE3() g_hasSSSE3
 #define HasAESNI() g_hasAESNI
 #define HasCLMUL() g_hasCLMUL
@@ -125,25 +215,55 @@ extern int g_hasMMX;
 	#define AS_HEX(y) 0x##y
 #else
 	#define CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY
-	// define these in two steps to allow arguments to be expanded
-	#define GNU_AS1(x) #x ";"
-	#define GNU_AS2(x, y) #x ", " #y ";"
-	#define GNU_AS3(x, y, z) #x ", " #y ", " #z ";"
-	#define GNU_ASL(x) "\n" #x ":"
-	#define GNU_ASJ(x, y, z) #x " " #y #z ";"
-	#define AS1(x) GNU_AS1(x)
-	#define AS2(x, y) GNU_AS2(x, y)
-	#define AS3(x, y, z) GNU_AS3(x, y, z)
-	#define ASS(x, y, a, b, c, d) #x ", " #y ", " #a "*64+" #b "*16+" #c "*4+" #d ";"
-	#define ASL(x) GNU_ASL(x)
-	#define ASJ(x, y, z) GNU_ASJ(x, y, z)
-	#define ASC(x, y) #x " " #y ";"
-	#define CRYPTOPP_NAKED
-	#define AS_HEX(y) 0x##y
+
+    #if defined(CRYPTOPP_CLANG_VERSION) || defined(CRYPTOPP_APPLE_CLANG_VERSION)
+        #define NEW_LINE "\n"
+        #define INTEL_PREFIX ".intel_syntax;"
+        #define INTEL_NOPREFIX ".intel_syntax;"
+        #define ATT_PREFIX ".att_syntax;"
+        #define ATT_NOPREFIX ".att_syntax;"
+    #else
+        #define NEW_LINE
+        #define INTEL_PREFIX ".intel_syntax prefix;"
+        #define INTEL_NOPREFIX ".intel_syntax noprefix;"
+        #define ATT_PREFIX ".att_syntax prefix;"
+        #define ATT_NOPREFIX ".att_syntax noprefix;"
+        #endif
+
+    // define these in two steps to allow arguments to be expanded
+    #define GNU_AS1(x) #x ";" NEW_LINE
+    #define GNU_AS2(x, y) #x ", " #y ";" NEW_LINE
+    #define GNU_AS3(x, y, z) #x ", " #y ", " #z ";" NEW_LINE
+    #define GNU_ASL(x) "\n" #x ":" NEW_LINE
+    #define GNU_ASJ(x, y, z) #x " " #y #z ";" NEW_LINE
+    #define AS1(x) GNU_AS1(x)
+    #define AS2(x, y) GNU_AS2(x, y)
+    #define AS3(x, y, z) GNU_AS3(x, y, z)
+    #define ASS(x, y, a, b, c, d) #x ", " #y ", " #a "*64+" #b "*16+" #c "*4+" #d ";"
+    #define ASL(x) GNU_ASL(x)
+    #define ASJ(x, y, z) GNU_ASJ(x, y, z)
+    #define ASC(x, y) #x " " #y ";"
+    #define CRYPTOPP_NAKED
+    #define AS_HEX(y) 0x##y
 #endif
 
 #define IF0(y)
 #define IF1(y) y
+
+// Should be confined to GCC, but its used to help manage Clang 3.4 compiler error.
+//   Also see LLVM Bug 24232, http://llvm.org/bugs/show_bug.cgi?id=24232 .
+#ifndef INTEL_PREFIX
+#define INTEL_PREFIX
+#endif
+#ifndef INTEL_NOPREFIX
+#define INTEL_NOPREFIX
+#endif
+#ifndef ATT_PREFIX
+#define ATT_PREFIX
+#endif
+#ifndef ATT_NOPREFIX
+#define ATT_NOPREFIX
+#endif
 
 #ifdef CRYPTOPP_GENERATE_X64_MASM
 #define ASM_MOD(x, y) ((x) MOD (y))
@@ -176,6 +296,27 @@ extern int g_hasMMX;
 	#define AS_PUSH_IF86(x) AS1(push e##x)
 	#define AS_POP_IF86(x) AS1(pop e##x)
 	#define AS_JCXZ jecxz
+#elif CRYPTOPP_BOOL_X32
+    #define AS_REG_1 ecx
+    #define AS_REG_2 edx
+    #define AS_REG_3 r8d
+    #define AS_REG_4 r9d
+    #define AS_REG_5 eax
+    #define AS_REG_6 r10d
+    #define AS_REG_7 r11d
+    #define AS_REG_1d ecx
+    #define AS_REG_2d edx
+    #define AS_REG_3d r8d
+    #define AS_REG_4d r9d
+    #define AS_REG_5d eax
+    #define AS_REG_6d r10d
+    #define AS_REG_7d r11d
+    #define WORD_SZ 4
+    #define WORD_REG(x)	e##x
+    #define WORD_PTR DWORD PTR
+    #define AS_PUSH_IF86(x) AS1(push r##x)
+    #define AS_POP_IF86(x) AS1(pop r##x)
+    #define AS_JCXZ jecxz
 #elif CRYPTOPP_BOOL_X64
 	#ifdef CRYPTOPP_GENERATE_X64_MASM
 		#define AS_REG_1 rcx
