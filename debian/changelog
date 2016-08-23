@@ -1,3 +1,12 @@
+veracrypt (1.18-0vanir1) unstable; urgency=medium
+
+  * Imported Upstream version 1.18
+    - Drop upstream patch, refresh remaining patches.
+  * d/watch: Find releases using Proper Case tarballs.
+  * Update standards-version to 3.9.8.
+
+ -- Unit 193 <unit193@ubuntu.com>  Tue, 23 Aug 2016 18:00:57 -0400
+
 veracrypt (1.17-0vanir2) unstable; urgency=medium
 
   * d/p/004-gcc5-compatibility.diff:
