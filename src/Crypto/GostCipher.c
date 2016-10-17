@@ -5,7 +5,8 @@ Copyright (c) 2016. Disk Cryptography Services for EFI (DCS), Alex Kolotnikov
 
 This program and the accompanying materials
 are licensed and made available under the terms and conditions
-of the Apache License, Version 2.0.  The full text of the license may be found at
+of the Apache License, Version 2.0.  
+The full text of the license may be found at
 https://opensource.org/licenses/Apache-2.0
 
 Dynamic SBOX idea is from GostCrypt project. Copyright (c) 2008-2011 TrueCrypt Developers Association
@@ -68,7 +69,6 @@ void gost_prepare_kds(gost_kds* kds) {
 }
 
 
-#ifdef GOST_DYNAMIC_SBOXES
 static void xor_s_box(byte s_box[8][16], byte *seed)
 {
    int i;
@@ -84,37 +84,34 @@ static void xor_s_box(byte s_box[8][16], byte *seed)
       s_box[7][i] ^= (seed[ (i * 4) + 3 ]>>4) & 0xF;
    }
 }
-#endif
 
-void gost_set_key(const byte *key, gost_kds *ks)
+void gost_set_key(const byte *key, gost_kds *ks, int useDynamicSbox)
 {
-#ifdef GOST_DYNAMIC_SBOXES
-	STREEBOG_CTX sctx;
-	byte sbox_seed[64];
-#if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	KFLOATING_SAVE floatingPointState;
-	NTSTATUS saveStatus = STATUS_SUCCESS;
-	if (HasSSE2() || HasSSE41())
-		saveStatus = KeSaveFloatingPointState (&floatingPointState);
-#endif
-#endif
-
 	memcpy(ks->key, key, GOST_KEYSIZE);
 	memcpy(ks->sbox, S_TC26, sizeof(ks->sbox));
 
-#ifdef GOST_DYNAMIC_SBOXES
-	//Generate pseudorandom data based on the key
-	STREEBOG_init(&sctx);
-	STREEBOG_add(&sctx, key, 32);
-	STREEBOG_finalize(&sctx, sbox_seed);
+    if (useDynamicSbox)
+    {
+	    STREEBOG_CTX sctx;
+	    byte sbox_seed[64];
+#if defined (DEVICE_DRIVER) && !defined (_WIN64)
+	    KFLOATING_SAVE floatingPointState;
+	    NTSTATUS saveStatus = STATUS_SUCCESS;
+	    if (HasSSE2() || HasSSE41())
+		    saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+	    //Generate pseudorandom data based on the key
+	    STREEBOG_init(&sctx);
+	    STREEBOG_add(&sctx, ks->key, 32);
+	    STREEBOG_finalize(&sctx, sbox_seed);
 
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	if (NT_SUCCESS (saveStatus) && (HasSSE2() || HasSSE41()))
-		KeRestoreFloatingPointState (&floatingPointState);
+	    if (NT_SUCCESS (saveStatus) && (HasSSE2() || HasSSE41()))
+		    KeRestoreFloatingPointState (&floatingPointState);
 #endif
 
-	xor_s_box(ks->sbox, sbox_seed);
-#endif
+	    xor_s_box(ks->sbox, sbox_seed);
+    }
 
 	gost_prepare_kds(ks);
 }

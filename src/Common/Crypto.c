@@ -79,7 +79,7 @@ static EncryptionAlgorithm EncryptionAlgorithms[] =
 	{ { TWOFISH,					0 }, { XTS, 0 },	1, 1 },
 	{ { CAMELLIA,					0 }, { XTS, 0 },	1, 1 },
 #if defined(CIPHER_GOST89)
-	{ { GOST89,						0 }, { XTS, 0 },	0, 1 },
+	{ { GOST89,						0 }, { XTS, 0 },	0, 0 },
 #endif  // defined(CIPHER_GOST89)
 	{ { KUZNYECHIK,				0 }, { XTS, 0 },	0, 1 },
 	{ { TWOFISH, AES,				0 }, { XTS, 0 },	1, 1 },
@@ -158,7 +158,7 @@ int CipherInit (int cipher, unsigned char *key, unsigned __int8 *ks)
 #if !defined(TC_WINDOWS_BOOT) 
 #if defined(CIPHER_GOST89)
 	case GOST89:
-		gost_set_key(key, (gost_kds*)ks);
+		gost_set_key(key, (gost_kds*)ks, 1);
 		break;
 #endif // && defined(CIPHER_GOST89)
 	case KUZNYECHIK:
@@ -232,6 +232,21 @@ void EncipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 	}
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
+	else if (cipher == SERPENT
+			&& (blockCount >= 4)
+			&& HasSSE2()
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+			&& NT_SUCCESS (KeSaveFloatingPointState (&floatingPointState))
+#endif
+		)
+	{
+		serpent_encrypt_blocks (data, data, blockCount, ks);
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+	}
+#endif
 	else if (cipher == GOST89)	{
 			gost_encrypt(data, data, ks, (int)blockCount);
 	}
@@ -312,6 +327,21 @@ void DecipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 	}
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
+	else if (cipher == SERPENT
+			&& (blockCount >= 4)
+			&& HasSSE2()
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+			&& NT_SUCCESS (KeSaveFloatingPointState (&floatingPointState))
+#endif
+		)
+	{
+		serpent_decrypt_blocks (data, data, blockCount, ks);
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+	}
+#endif
 	else if (cipher == GOST89)	{
 			gost_decrypt(data, data, ks, (int)blockCount);
 	}
@@ -383,8 +413,12 @@ int CipherGetKeyScheduleSize (int cipherId)
 
 BOOL CipherSupportsIntraDataUnitParallelization (int cipher)
 {
-	return cipher == AES && IsAesHwCpuSupported() ||
-		cipher == GOST89;
+	return (cipher == AES && IsAesHwCpuSupported()) 
+		|| (cipher == GOST89)
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
+		|| (cipher == SERPENT && HasSSE2())
+#endif
+		;
 }
 
 #endif

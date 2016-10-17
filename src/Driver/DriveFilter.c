@@ -268,11 +268,9 @@ static void ComputeBootLoaderFingerprint(PDEVICE_OBJECT LowerDeviceObject, byte*
 #endif
 		WHIRLPOOL_add (ioBuffer, TC_BOOT_SECTOR_PIM_VALUE_OFFSET, &whirlpool);
 		WHIRLPOOL_add (ioBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &whirlpool);
-		WHIRLPOOL_add (ioBuffer + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)), &whirlpool);
 
 		sha512_hash (ioBuffer, TC_BOOT_SECTOR_PIM_VALUE_OFFSET, &sha2);
 		sha512_hash (ioBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &sha2);
-		sha512_hash (ioBuffer + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)), &sha2);
 
 		// we has the reste of the bootloader, 512 bytes at a time
 		offset.QuadPart = TC_SECTOR_SIZE_BIOS;
@@ -424,7 +422,16 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 			Extension->Queue.CryptoInfo->EncryptedAreaStart.Value = BootArgs.DecoySystemPartitionStart;
 			
 			if (Extension->Queue.CryptoInfo->VolumeSize.Value > hiddenPartitionOffset - BootArgs.DecoySystemPartitionStart)
+			{
+				// Erase boot loader scheduled keys
+				if (mappedCryptoInfo)
+				{
+					burn (mappedCryptoInfo, BootArgs.CryptoInfoLength);
+					MmUnmapIoSpace (mappedCryptoInfo, BootArgs.CryptoInfoLength);
+					BootArgs.CryptoInfoLength = 0;
+				}
 				TC_THROW_FATAL_EXCEPTION;
+			}
 
 			Dump ("RemappedAreaOffset = %I64d\n", Extension->Queue.RemappedAreaOffset);
 			Dump ("RemappedAreaDataUnitOffset = %I64d\n", Extension->Queue.RemappedAreaDataUnitOffset);

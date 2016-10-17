@@ -129,6 +129,7 @@ export PLATFORM_ARCH := "Unknown"
 export PLATFORM_UNSUPPORTED := 0
 
 export CPU_ARCH ?= unknown
+export SIMD_SUPPORTED := 0
 
 ARCH = $(shell uname -p)
 ifeq "$(ARCH)" "unknown"
@@ -149,9 +150,11 @@ endif
 
 ifeq "$(CPU_ARCH)" "x86"
 	PLATFORM_ARCH := i386
+	SIMD_SUPPORTED := 1
 	C_CXX_FLAGS += -D TC_ARCH_X86
 else ifeq "$(CPU_ARCH)" "x64"
 	PLATFORM_ARCH := amd64
+	SIMD_SUPPORTED := 1
 	C_CXX_FLAGS += -D TC_ARCH_X64
 endif
 
@@ -163,23 +166,27 @@ ifeq "$(shell uname -s)" "Linux"
 	PLATFORM := Linux
 	C_CXX_FLAGS += -DTC_UNIX -DTC_LINUX
 	
-	CFLAGS += -msse2
-	CXXFLAGS += -msse2
+	ifeq "$(SIMD_SUPPORTED)" "1"
+		CFLAGS += -msse2
+		CXXFLAGS += -msse2
 
-	GCC_GTEQ_440 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40400)
-	GCC_GTEQ_430 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40300)
-	ifeq "$(GCC_GTEQ_440)" "1"
-		CFLAGS += -maes
-		CXXFLAGS += -maes
-	endif
-
-	ifeq "$(GCC_GTEQ_430)" "1"
-		ifeq "$(origin SSSE3)" "command line"
-			CFLAGS += -mssse3 -msse4.1
+		GCC_GTEQ_440 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40400)
+		GCC_GTEQ_430 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40300)
+		ifeq "$(GCC_GTEQ_440)" "1"
+			CFLAGS += -maes
+			CXXFLAGS += -maes
 		endif
 
-		ifeq "$(origin SSE41)" "command line"
-			CXXFLAGS += -mssse3 -msse4.1
+		ifeq "$(GCC_GTEQ_430)" "1"
+			ifeq "$(origin SSSE3)" "command line"
+				CFLAGS += -mssse3
+				CXXFLAGS += -mssse3
+			endif
+
+			ifeq "$(origin SSE41)" "command line"
+				CFLAGS += -mssse3 -msse4.1
+				CXXFLAGS += -mssse3 -msse4.1
+			endif
 		endif
 	endif
 
@@ -231,6 +238,19 @@ ifeq "$(shell uname -s)" "Darwin"
 
 	ifeq "$(CPU_ARCH)" "x64"
 		CPU_ARCH = x86
+	endif
+
+	CFLAGS += -msse2
+	CXXFLAGS += -msse2
+
+	ifeq "$(origin SSSE3)" "command line"
+		CFLAGS += -mssse3
+		CXXFLAGS += -mssse3
+	endif
+
+	ifeq "$(origin SSE41)" "command line"
+		CFLAGS += -mssse3 -msse4.1
+		CXXFLAGS += -mssse3 -msse4.1
 	endif
 
 	AS := $(BASE_DIR)/Build/Tools/MacOSX/nasm

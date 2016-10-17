@@ -443,7 +443,7 @@ BOOL Is64BitOs ();
 BOOL IsServerOS ();
 BOOL IsHiddenOSRunning (void);
 BOOL EnableWow64FsRedirection (BOOL enable);
-BOOL RestartComputer (void);
+BOOL RestartComputer (BOOL bShutdown);
 void Applink (char *dest, BOOL bSendOS, char *extraOutput);
 wchar_t *RelativePath2Absolute (wchar_t *szFileName);
 void HandleDriveNotReadyError (HWND hwnd);
@@ -513,6 +513,7 @@ BOOL CopyTextToClipboard (const wchar_t* txtValue);
 BOOL LaunchElevatedProcess (HWND hwndDlg, const wchar_t* szModPath, const wchar_t* args);
 BOOL GetFreeDriveLetter(WCHAR* pCh);
 BOOL RaisePrivileges(void);
+BOOL DeleteDirectory (const wchar_t* szDirName);
 
 #ifdef __cplusplus
 }
