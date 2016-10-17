@@ -1,3 +1,12 @@
+veracrypt (1.19+repack-0vanir1) unstable; urgency=medium
+
+  * Imported Upstream version 1.19+repack
+    - Refresh patches.
+  * d/copyright: Correct URLs, use correct alternate license.
+  * d/control: Depend on lsb-base.
+
+ -- Unit 193 <unit193@ubuntu.com>  Mon, 17 Oct 2016 18:54:06 -0400
+
 veracrypt (1.18-0vanir1) unstable; urgency=medium
 
   * Imported Upstream version 1.18
