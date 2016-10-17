@@ -18,6 +18,7 @@ Architecture: any
 Depends: dmsetup,
          dosfstools,
          kmod,
+         lsb-base,
          sudo,
          ${misc:Depends},
          ${shlibs:Depends}
