@@ -249,6 +249,7 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 #if !defined(DEVICE_DRIVER) 
 	VirtualLock (&keyInfo, sizeof (keyInfo));
 	VirtualLock (&dk, sizeof (dk));
+	VirtualLock (&header, sizeof (header));
 #endif
 #endif //  !defined(_UEFI)
 
@@ -571,10 +572,12 @@ err:
 ret:
 	burn (&keyInfo, sizeof (keyInfo));
 	burn (dk, sizeof(dk));
+	burn (header, sizeof(header));
 
 #if !defined(DEVICE_DRIVER) && !defined(_UEFI)
 	VirtualUnlock (&keyInfo, sizeof (keyInfo));
 	VirtualUnlock (&dk, sizeof (dk));
+	VirtualUnlock (&header, sizeof (header));
 #endif
 
 #if !defined(_UEFI)
@@ -619,9 +622,6 @@ void ComputeBootloaderFingerprint (byte *bootLoaderBuf, unsigned int bootLoaderS
 
 	WHIRLPOOL_add (bootLoaderBuf + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &whirlpool);
 	sha512_hash (bootLoaderBuf + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &sha2);
-
-	WHIRLPOOL_add (bootLoaderBuf + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)), &whirlpool);
-	sha512_hash (bootLoaderBuf + TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1, (TC_MAX_MBR_BOOT_CODE_SIZE - (TC_BOOT_SECTOR_USER_CONFIG_OFFSET + 1)), &sha2);
 
 	WHIRLPOOL_add (bootLoaderBuf + TC_SECTOR_SIZE_BIOS, (bootLoaderSize - TC_SECTOR_SIZE_BIOS), &whirlpool);
 	sha512_hash (bootLoaderBuf + TC_SECTOR_SIZE_BIOS, (bootLoaderSize - TC_SECTOR_SIZE_BIOS), &sha2);
@@ -867,7 +867,8 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 #endif
 		{
 			crypto_close (cryptoInfo);
-			return ERR_CIPHER_INIT_WEAK_KEY;
+			retVal = ERR_CIPHER_INIT_WEAK_KEY;
+			goto err;
 		}
 	}
 	else
@@ -909,7 +910,8 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 #endif
 	{
 		crypto_close (cryptoInfo);
-		return ERR_CIPHER_INIT_WEAK_KEY; 
+		retVal = ERR_CIPHER_INIT_WEAK_KEY; 
+		goto err;
 	}
 
 	if (password)
@@ -958,7 +960,8 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 #endif
 		{
 			crypto_close (cryptoInfo);
-			return ERR_CIPHER_INIT_WEAK_KEY; 
+			retVal = ERR_CIPHER_INIT_WEAK_KEY; 
+			goto err;
 		}
 	}
 
@@ -1042,14 +1045,15 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 	if (retVal != ERR_SUCCESS)
 	{
 		crypto_close (cryptoInfo);
-		return retVal;
+		goto err;
 	}
 
 	// Mode of operation
 	if (!EAInitMode (cryptoInfo))
 	{
 		crypto_close (cryptoInfo);
-		return ERR_OUTOFMEMORY;
+		retVal = ERR_OUTOFMEMORY;
+		goto err;
 	}
 
 
@@ -1066,7 +1070,7 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 	if (retVal != ERR_SUCCESS)
 	{
 		crypto_close (cryptoInfo);
-		return retVal;
+		goto err;
 	}
 
 	memcpy (cryptoInfo->master_keydata, keyInfo.master_keydata, MASTER_KEYDATA_SIZE);
@@ -1083,7 +1087,8 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 	if (!EAInitMode (cryptoInfo))
 	{
 		crypto_close (cryptoInfo);
-		return ERR_OUTOFMEMORY;
+		retVal = ERR_OUTOFMEMORY;
+		goto err;
 	}
 
 
@@ -1129,10 +1134,16 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 	}
 #endif	// #ifdef VOLFORMAT
 
+	*retInfo = cryptoInfo;
+
+err:
 	burn (dk, sizeof(dk));
 	burn (&keyInfo, sizeof (keyInfo));
+#if !defined(_UEFI)
+	VirtualUnlock (&keyInfo, sizeof (keyInfo));
+	VirtualUnlock (&dk, sizeof (dk));
+#endif // !defined(_UEFI)
 
-	*retInfo = cryptoInfo;
 	return 0;
 }
 
@@ -1239,7 +1250,7 @@ BOOL WriteEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, byte *header)
 // Writes randomly generated data to unused/reserved header areas.
 // When bPrimaryOnly is TRUE, then only the primary header area (not the backup header area) is filled with random data.
 // When bBackupOnly is TRUE, only the backup header area (not the primary header area) is filled with random data.
-int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO *cryptoInfo, uint64 dataAreaSize, BOOL bPrimaryOnly, BOOL bBackupOnly, BOOL bInPlaceEnc)
+int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO *cryptoInfo, uint64 dataAreaSize, BOOL bPrimaryOnly, BOOL bBackupOnly)
 {
 	char temporaryKey[MASTER_KEYDATA_SIZE];
 	char originalK2[MASTER_KEYDATA_SIZE];
@@ -1298,12 +1309,8 @@ int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO 
 			goto final_seq;
 		}
 
-		if (backupHeaders || !bInPlaceEnc)
-		{
-			// encrypt random data instead of existing data for better entropy, except in case of primary
-			// header of an in-place encrypted disk
-			RandgetBytesFull (hwndDlg, buf + TC_VOLUME_HEADER_EFFECTIVE_SIZE, sizeof (buf) - TC_VOLUME_HEADER_EFFECTIVE_SIZE, FALSE, TRUE);
-		}
+		// encrypt random data instead of existing data for better entropy
+		RandgetBytesFull (hwndDlg, buf + TC_VOLUME_HEADER_EFFECTIVE_SIZE, sizeof (buf) - TC_VOLUME_HEADER_EFFECTIVE_SIZE, FALSE, TRUE);
 
 		EncryptBuffer (buf + TC_VOLUME_HEADER_EFFECTIVE_SIZE, sizeof (buf) - TC_VOLUME_HEADER_EFFECTIVE_SIZE, cryptoInfo);
 

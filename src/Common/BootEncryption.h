@@ -82,6 +82,19 @@ namespace VeraCrypt
 		~Buffer () { delete[] DataPtr; }
 		byte *Ptr () const { return DataPtr; }
 		size_t Size () const { return DataSize; }
+		void Resize (size_t newSize)
+		{ 
+			if (newSize > DataSize)
+			{
+				byte *tmp = new byte[newSize];
+				if (!tmp)
+					throw bad_alloc();
+				memcpy (tmp, DataPtr, DataSize);
+				delete [] DataPtr;			
+				DataPtr = tmp;
+			}
+			DataSize = newSize;
+		}
 
 	protected:
 		byte *DataPtr;
@@ -183,17 +196,18 @@ namespace VeraCrypt
 
 		void DeleteStartExec(uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL);
 		void SetStartExec(wstring description, wstring execPath, uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL, uint32 attr = 1);
-		void SaveFile(wchar_t* name, byte* data, DWORD size);
+		void SaveFile(const wchar_t* name, byte* data, DWORD size);
 		void GetFileSize(const wchar_t* name, unsigned __int64& size);
 		void ReadFile(const wchar_t* name, byte* data, DWORD size);
 		void CopyFile(const wchar_t* name, const wchar_t* targetName);
 
-		BOOL RenameFile(wchar_t* name, wchar_t* nameNew, BOOL bForce);
-		BOOL DelFile(wchar_t* name);
-		BOOL MkDir(wchar_t* name, bool& bAlreadyExists);
-		BOOL ReadConfig (wchar_t* name, EfiBootConf& conf);
-		BOOL UpdateConfig (wchar_t* name, int pim, int hashAlgo, HWND hwndDlg);
-		BOOL WriteConfig (wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg);
+		BOOL RenameFile(const wchar_t* name, wchar_t* nameNew, BOOL bForce);
+		BOOL DelFile(const wchar_t* name);
+		BOOL MkDir(const wchar_t* name, bool& bAlreadyExists);
+		BOOL ReadConfig (const wchar_t* name, EfiBootConf& conf);
+		BOOL UpdateConfig (const wchar_t* name, int pim, int hashAlgo, HWND hwndDlg);
+		BOOL WriteConfig (const wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg);
+		BOOL DelDir(const wchar_t* name);
 
 		PSTORAGE_DEVICE_NUMBER GetStorageDeviceNumber () { return &sdn;}
 
@@ -263,7 +277,7 @@ namespace VeraCrypt
 		void RegisterSystemFavoritesService (BOOL registerService, BOOL noFileHandling);
 		void UpdateSystemFavoritesService ();
 		void RenameDeprecatedSystemLoaderBackup ();
-		bool RestartComputer (void);
+		bool RestartComputer (BOOL bShutdown = FALSE);
 		void InitialSecurityChecksForHiddenOS ();
 		void RestrictPagingFilesToSystemPartition ();
 		void SetDriverConfigurationFlag (uint32 flag, bool state);

@@ -29,8 +29,7 @@
 #include "Registry.h"
 #include "Volumes.h"
 #include "Xml.h"
-#include "XZip.h"
-#include "XUnzip.h"
+#include "zip.h"
 
 #ifdef VOLFORMAT
 #include "Format/FormatCom.h"
@@ -39,6 +38,22 @@
 #endif
 
 #include <Strsafe.h>
+
+bool ZipAdd (zip_t *z, const char* name, const unsigned char* pbData, DWORD cbData)
+{
+	zip_error_t zerr;
+	zip_source_t* zin = zip_source_buffer_create (pbData, cbData, 0, &zerr);
+	if (!zin)
+		return false;
+
+	if (-1 == zip_file_add (z, name, zin, 0))
+	{
+		zip_source_free (zin);
+		return false;
+	}
+
+	return true;
+}
 
 namespace VeraCrypt
 {
@@ -2336,7 +2351,7 @@ namespace VeraCrypt
 
 	}
 
-	void EfiBoot::SaveFile(wchar_t* name, byte* data, DWORD size) {
+	void EfiBoot::SaveFile(const wchar_t* name, byte* data, DWORD size) {
 		wstring path = EfiBootPartPath;
 		path += name;
 		File f(path, false, true);
@@ -2374,7 +2389,7 @@ namespace VeraCrypt
 		throw_sys_if (!::CopyFileW (path.c_str(), targetPath.c_str(), FALSE));
 	}
 
-	BOOL EfiBoot::RenameFile(wchar_t* name, wchar_t* nameNew, BOOL bForce) {
+	BOOL EfiBoot::RenameFile(const wchar_t* name, wchar_t* nameNew, BOOL bForce) {
 		wstring path = EfiBootPartPath;
 		path += name;
 		wstring pathNew = EfiBootPartPath;
@@ -2382,13 +2397,13 @@ namespace VeraCrypt
 		return MoveFileExW(path.c_str(), pathNew.c_str(), bForce? MOVEFILE_REPLACE_EXISTING : 0);
 	}
 
-	BOOL EfiBoot::DelFile(wchar_t* name) {
+	BOOL EfiBoot::DelFile(const wchar_t* name) {
 		wstring path = EfiBootPartPath;
 		path += name;
 		return DeleteFile(path.c_str());
 	}
 
-	BOOL EfiBoot::MkDir(wchar_t* name, bool& bAlreadyExists) {
+	BOOL EfiBoot::MkDir(const wchar_t* name, bool& bAlreadyExists) {
 		wstring path = EfiBootPartPath;
 		path += name;
 		bAlreadyExists = false;
@@ -2401,7 +2416,13 @@ namespace VeraCrypt
 		return bRet;
 	}
 
-	BOOL EfiBoot::ReadConfig (wchar_t* name, EfiBootConf& conf)
+	BOOL EfiBoot::DelDir(const wchar_t* name) {
+		wstring path = EfiBootPartPath;
+		path += name;
+		return DeleteDirectory (path.c_str());
+	}
+
+	BOOL EfiBoot::ReadConfig (const wchar_t* name, EfiBootConf& conf)
 	{
 		wstring path = EfiBootPartPath;
 		path += name;
@@ -2409,7 +2430,7 @@ namespace VeraCrypt
 		return conf.Load (path.c_str());
 	}
 
-	BOOL EfiBoot::UpdateConfig (wchar_t* name, int pim, int hashAlgo, HWND hwndDlg)
+	BOOL EfiBoot::UpdateConfig (const wchar_t* name, int pim, int hashAlgo, HWND hwndDlg)
 	{
 		BOOL bRet = FALSE;
 		EfiBootConf conf;
@@ -2446,7 +2467,7 @@ namespace VeraCrypt
 		return bRet;
 	}
 
-	BOOL EfiBoot::WriteConfig (wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg)
+	BOOL EfiBoot::WriteConfig (const wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg)
 	{
 		EfiBootConf conf;
 		wstring path = EfiBootPartPath;
@@ -2522,23 +2543,23 @@ namespace VeraCrypt
 				}
 			}
 			DWORD sizeDcsBoot;
-			byte *dcsBootImg = MapResource(L"BIN", IDR_EFI_DCSBOOT, &sizeDcsBoot);
+			byte *dcsBootImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSBOOT : IDR_EFI_DCSBOOT32, &sizeDcsBoot);
 			if (!dcsBootImg)
 				throw ErrorException(L"Out of resource DcsBoot", SRC_POS);
 			DWORD sizeDcsInt;
-			byte *dcsIntImg = MapResource(L"BIN", IDR_EFI_DCSINT, &sizeDcsInt);
+			byte *dcsIntImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSINT: IDR_EFI_DCSINT32, &sizeDcsInt);
 			if (!dcsIntImg)
 				throw ErrorException(L"Out of resource DcsInt", SRC_POS);
 			DWORD sizeDcsCfg;
-			byte *dcsCfgImg = MapResource(L"BIN", IDR_EFI_DCSCFG, &sizeDcsCfg);
+			byte *dcsCfgImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSCFG: IDR_EFI_DCSCFG32, &sizeDcsCfg);
 			if (!dcsCfgImg)
 				throw ErrorException(L"Out of resource DcsCfg", SRC_POS);
 			DWORD sizeLegacySpeaker;
-			byte *LegacySpeakerImg = MapResource(L"BIN", IDR_EFI_LEGACYSPEAKER, &sizeLegacySpeaker);
+			byte *LegacySpeakerImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_LEGACYSPEAKER: IDR_EFI_LEGACYSPEAKER32, &sizeLegacySpeaker);
 			if (!LegacySpeakerImg)
 				throw ErrorException(L"Out of resource LegacySpeaker", SRC_POS);
 			DWORD sizeBootMenuLocker;
-			byte *BootMenuLockerImg = MapResource(L"BIN", IDR_EFI_DCSBML, &sizeBootMenuLocker);
+			byte *BootMenuLockerImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSBML: IDR_EFI_DCSBML32, &sizeBootMenuLocker);
 			if (!BootMenuLockerImg)
 				throw ErrorException(L"Out of resource DcsBml", SRC_POS);
 
@@ -2552,7 +2573,7 @@ namespace VeraCrypt
 
 				EfiBootInst.MkDir(L"\\EFI\\VeraCrypt", bAlreadyExist);
 				EfiBootInst.SaveFile(L"\\EFI\\VeraCrypt\\DcsBoot.efi", dcsBootImg, sizeDcsBoot);
-				EfiBootInst.SaveFile(L"\\EFI\\Boot\\bootx64.efi", dcsBootImg, sizeDcsBoot);
+				EfiBootInst.SaveFile(Is64BitOs()? L"\\EFI\\Boot\\bootx64.efi": L"\\EFI\\Boot\\bootia32.efi", dcsBootImg, sizeDcsBoot);
 				EfiBootInst.SaveFile(L"\\EFI\\VeraCrypt\\DcsInt.dcs", dcsIntImg, sizeDcsInt);
 				EfiBootInst.SaveFile(L"\\EFI\\VeraCrypt\\DcsCfg.dcs", dcsCfgImg, sizeDcsCfg);
 				EfiBootInst.SaveFile(L"\\EFI\\VeraCrypt\\LegacySpeaker.dcs", LegacySpeakerImg, sizeLegacySpeaker);
@@ -2566,7 +2587,10 @@ namespace VeraCrypt
 
 				// move the original bootloader backup from old location (if it exists) to new location
 				// we don't force the move operation if the new location already exists
-				EfiBootInst.RenameFile (L"\\EFI\\Boot\\original_bootx64_vc_backup.efi", L"\\EFI\\Boot\\original_bootx64.vc_backup", FALSE);
+				if (Is64BitOs())
+					EfiBootInst.RenameFile (L"\\EFI\\Boot\\original_bootx64_vc_backup.efi", L"\\EFI\\Boot\\original_bootx64.vc_backup", FALSE);
+				else
+					EfiBootInst.RenameFile (L"\\EFI\\Boot\\original_bootia32_vc_backup.efi", L"\\EFI\\Boot\\original_bootia32.vc_backup", FALSE);
 
 				// Clean beta9
 				EfiBootInst.DelFile(L"\\DcsBoot.efi");
@@ -2715,49 +2739,56 @@ namespace VeraCrypt
 		{
 			// create EFI disk structure
 			DWORD sizeDcsBoot;
-			byte *dcsBootImg = MapResource(L"BIN", IDR_EFI_DCSBOOT, &sizeDcsBoot);
+			byte *dcsBootImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSBOOT: IDR_EFI_DCSBOOT32, &sizeDcsBoot);
 			if (!dcsBootImg)
 				throw ParameterIncorrect (SRC_POS);
 			DWORD sizeDcsInt;
-			byte *dcsIntImg = MapResource(L"BIN", IDR_EFI_DCSINT, &sizeDcsInt);
+			byte *dcsIntImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSINT: IDR_EFI_DCSINT32, &sizeDcsInt);
 			if (!dcsIntImg)
 				throw ParameterIncorrect (SRC_POS);
 			DWORD sizeDcsCfg;
-			byte *dcsCfgImg = MapResource(L"BIN", IDR_EFI_DCSCFG, &sizeDcsCfg);
+			byte *dcsCfgImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSCFG: IDR_EFI_DCSCFG32, &sizeDcsCfg);
 			if (!dcsCfgImg)
 				throw ParameterIncorrect (SRC_POS);
 			DWORD sizeLegacySpeaker;
-			byte *LegacySpeakerImg = MapResource(L"BIN", IDR_EFI_LEGACYSPEAKER, &sizeLegacySpeaker);
+			byte *LegacySpeakerImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_LEGACYSPEAKER: IDR_EFI_LEGACYSPEAKER32, &sizeLegacySpeaker);
 			if (!LegacySpeakerImg)
 				throw ParameterIncorrect (SRC_POS);
 			DWORD sizeBootMenuLocker;
-			byte *BootMenuLockerImg = MapResource(L"BIN", IDR_EFI_DCSBML, &sizeBootMenuLocker);
+			byte *BootMenuLockerImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSBML: IDR_EFI_DCSBML32, &sizeBootMenuLocker);
 			if (!BootMenuLockerImg)
 				throw ParameterIncorrect (SRC_POS);
 			DWORD sizeDcsRescue;
-			byte *DcsRescueImg = MapResource(L"BIN", IDR_EFI_DCSRE, &sizeDcsRescue);
+			byte *DcsRescueImg = MapResource(L"BIN", Is64BitOs()? IDR_EFI_DCSRE: IDR_EFI_DCSRE32, &sizeDcsRescue);
 			if (!DcsRescueImg)
 				throw ParameterIncorrect (SRC_POS);
 
-			unsigned int maxRescueZipSize = 4 * 1024 * 1024;
-			ZRESULT res;
-			HZIP hz = CreateZip (0, maxRescueZipSize, ZIP_MEMORY);
-			if (!hz)
+			char szTmpPath[MAX_PATH + 1], szTmpFilePath[MAX_PATH + 1];
+			if (!GetTempPathA (MAX_PATH, szTmpPath))
+				throw SystemException (SRC_POS);
+			if (!GetTempFileNameA (szTmpPath, "_vrd", 0, szTmpFilePath))
+				throw SystemException (SRC_POS);
+
+			finally_do_arg (char*, szTmpFilePath,  { DeleteFileA (finally_arg);});
+
+			int ierr;
+			zip_t* z = zip_open (szTmpFilePath, ZIP_CREATE | ZIP_TRUNCATE | ZIP_CHECKCONS, &ierr);
+			if (!z)
 				throw ParameterIncorrect (SRC_POS);
 
-			finally_do_arg (HZIP, hz, { CloseZip (finally_arg); });
+			finally_do_arg (zip_t**, &z, { if (*finally_arg) zip_discard (*finally_arg);});
 
-			if (ZR_OK != ZipAdd (hz, L"EFI/Boot/bootx64.efi", DcsRescueImg, sizeDcsRescue, ZIP_MEMORY))
+			if (!ZipAdd (z, Is64BitOs()? "EFI/Boot/bootx64.efi": "EFI/Boot/bootia32.efi", DcsRescueImg, sizeDcsRescue))
 				throw ParameterIncorrect (SRC_POS);
-			if (ZR_OK !=ZipAdd (hz, L"EFI/VeraCrypt/DcsBml.dcs", BootMenuLockerImg, sizeBootMenuLocker, ZIP_MEMORY))
+			if (!ZipAdd (z, "EFI/VeraCrypt/DcsBml.dcs", BootMenuLockerImg, sizeBootMenuLocker))
 				throw ParameterIncorrect (SRC_POS);
-			if (ZR_OK != ZipAdd (hz, L"EFI/VeraCrypt/DcsBoot.efi", dcsBootImg, sizeDcsBoot, ZIP_MEMORY))
+			if (!ZipAdd (z, "EFI/VeraCrypt/DcsBoot.efi", dcsBootImg, sizeDcsBoot))
 				throw ParameterIncorrect (SRC_POS);
-			if (ZR_OK != ZipAdd (hz, L"EFI/VeraCrypt/DcsCfg.dcs", dcsCfgImg, sizeDcsCfg, ZIP_MEMORY))
+			if (!ZipAdd (z, "EFI/VeraCrypt/DcsCfg.dcs", dcsCfgImg, sizeDcsCfg))
 				throw ParameterIncorrect (SRC_POS);
-			if (ZR_OK != ZipAdd (hz, L"EFI/VeraCrypt/DcsInt.dcs", dcsIntImg, sizeDcsInt, ZIP_MEMORY))
+			if (!ZipAdd (z, "EFI/VeraCrypt/DcsInt.dcs", dcsIntImg, sizeDcsInt))
 				throw ParameterIncorrect (SRC_POS);
-			if (ZR_OK != ZipAdd (hz, L"EFI/VeraCrypt/LegacySpeaker.dcs", LegacySpeakerImg, sizeLegacySpeaker, ZIP_MEMORY))
+			if (!ZipAdd (z, "EFI/VeraCrypt/LegacySpeaker.dcs", LegacySpeakerImg, sizeLegacySpeaker))
 				throw ParameterIncorrect (SRC_POS);
 
 			Buffer volHeader(TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE);
@@ -2778,20 +2809,21 @@ namespace VeraCrypt
 				bootDevice.Read (volHeader.Ptr (), TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE);
 			}
 
-			if (ZR_OK != ZipAdd (hz, L"EFI/VeraCrypt/svh_bak", volHeader.Ptr (), TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE, ZIP_MEMORY))
+			if (!ZipAdd (z, "EFI/VeraCrypt/svh_bak", volHeader.Ptr (), TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE))
 				throw ParameterIncorrect (SRC_POS);
 
 			// Original system loader
-			res = ZR_WRITE;
+			Buffer fileBuf (0);
+			bool bLoadAdded = false;
 			try
 			{
 				DWORD fileSize = 0;
 				File sysBakFile (GetSystemLoaderBackupPath(), true);
 				sysBakFile.CheckOpened (SRC_POS);
 				sysBakFile.GetFileSize(fileSize);
-				Buffer fileBuf ((DWORD) fileSize);
+				fileBuf.Resize ((DWORD) fileSize);
 				DWORD sizeLoader = sysBakFile.Read (fileBuf.Ptr (), fileSize);
-				res = ZipAdd (hz, L"EFI/Boot/original_bootx64.vc_backup", fileBuf.Ptr (), sizeLoader, ZIP_MEMORY);				
+				bLoadAdded = ZipAdd (z, Is64BitOs()? "EFI/Boot/original_bootx64.vc_backup": "EFI/Boot/original_bootia32.vc_backup", fileBuf.Ptr (), sizeLoader);				
 			}
 			catch (Exception &e)
 			{
@@ -2799,10 +2831,11 @@ namespace VeraCrypt
 				Warning ("SYS_LOADER_UNAVAILABLE_FOR_RESCUE_DISK", ParentWindow);
 			}
 
-			if (res != ZR_OK)
+			if (!bLoadAdded)
 				throw ParameterIncorrect (SRC_POS);			
 
 			EfiBootConf conf;
+			Buffer propBuf (0);
 			wstring dcsPropFileName = GetTempPathString() + L"_dcsproprescue";
 			finally_do_arg (wstring, dcsPropFileName, { DeleteFileW (finally_arg.c_str()); });
 			if (conf.Save(dcsPropFileName.c_str(), ParentWindow))
@@ -2811,24 +2844,40 @@ namespace VeraCrypt
 				File propFile (dcsPropFileName, true, false);
 				propFile.CheckOpened (SRC_POS);
 				propFile.GetFileSize(fileSize);
-				Buffer propBuf (fileSize);
+				propBuf.Resize (fileSize);
 				DWORD sizeDcsProp = propFile.Read (propBuf.Ptr (), fileSize);
 
-				if (ZR_OK != ZipAdd (hz, L"EFI/VeraCrypt/DcsProp", propBuf.Ptr (), sizeDcsProp, ZIP_MEMORY))
+				if (!ZipAdd (z, "EFI/VeraCrypt/DcsProp", propBuf.Ptr (), sizeDcsProp))
 					throw ParameterIncorrect (SRC_POS);
 			}
 			else
 				throw ParameterIncorrect (SRC_POS);
 
-			void* pZipContent = NULL;
-			unsigned long ulZipSize = 0;
-			if (ZR_OK != ZipGetMemory (hz, &pZipContent, &ulZipSize))
+			// flush the zip content to the temporary file
+			if (zip_close (z) < 0)
 				throw ParameterIncorrect (SRC_POS);
-			
+
+			z = NULL;
+
+			// read the zip data from the temporary file
+			FILE* ftmpFile = fopen (szTmpFilePath, "rb");
+			if (!ftmpFile)
+				throw ParameterIncorrect (SRC_POS);
+
+			finally_do_arg (FILE*, ftmpFile, { fclose (finally_arg); });
+
+			unsigned long ulZipSize = (unsigned long) _filelength (_fileno (ftmpFile));
 			RescueZipData = new byte[ulZipSize];
 			if (!RescueZipData)
 				throw bad_alloc();
-			memcpy (RescueZipData, pZipContent, ulZipSize);
+
+			if (ulZipSize != fread (RescueZipData, 1, ulZipSize, ftmpFile))
+			{
+				delete [] RescueZipData;
+				RescueZipData = NULL;
+				throw ParameterIncorrect (SRC_POS);
+			}
+
 			RescueZipSize = ulZipSize;
 
 			if (!isoImagePath.empty())
@@ -2989,7 +3038,7 @@ namespace VeraCrypt
 
 		if (bIsGPT)
 		{
-			const wchar_t* efiFiles[] = {
+			const wchar_t* efi64Files[] = {
 				L"EFI/Boot/bootx64.efi",
 				L"EFI/VeraCrypt/DcsBml.dcs",
 				L"EFI/VeraCrypt/DcsBoot.efi",
@@ -2999,12 +3048,30 @@ namespace VeraCrypt
 				L"EFI/VeraCrypt/svh_bak",
 				L"EFI/Boot/original_bootx64.vc_backup"
 			};
+			
+			const wchar_t* efi32Files[] = {
+				L"EFI/Boot/bootia32.efi",
+				L"EFI/VeraCrypt/DcsBml.dcs",
+				L"EFI/VeraCrypt/DcsBoot.efi",
+				L"EFI/VeraCrypt/DcsCfg.dcs",
+				L"EFI/VeraCrypt/DcsInt.dcs",
+				L"EFI/VeraCrypt/LegacySpeaker.dcs",
+				L"EFI/VeraCrypt/svh_bak",
+				L"EFI/Boot/original_bootia32.vc_backup"
+			};
 
-			ZRESULT res;
-			HZIP hz = OpenZip(RescueZipData, RescueZipSize, ZIP_MEMORY);
-			if (!hz)
+			zip_error_t zerr;
+			zip_source_t* zsrc = zip_source_buffer_create (RescueZipData, RescueZipSize, 0, &zerr);
+			if (!zsrc)
 				throw ParameterIncorrect (SRC_POS);
-			finally_do_arg (HZIP, hz, { CloseZip (finally_arg); });
+			zip_t* z = zip_open_from_source (zsrc, ZIP_CHECKCONS | ZIP_RDONLY, &zerr);
+			if (!z)
+			{
+				zip_source_free (zsrc);
+				throw ParameterIncorrect (SRC_POS);
+			}
+
+			finally_do_arg (zip_t*, z, { zip_close (finally_arg); });
 
 			for (WCHAR drive = L'Z'; drive >= L'C'; --drive)
 			{
@@ -3019,42 +3086,50 @@ namespace VeraCrypt
 						if (GetVolumeInformationW (rootPath, NULL, 0, NULL, NULL, NULL, szNameBuffer, ARRAYSIZE(szNameBuffer))
 								&& !wcsncmp (szNameBuffer, L"FAT", 3))
 						{
-							int index, i;
-							ZIPENTRYW ze;							
-							for (i = 0; i < ARRAYSIZE(efiFiles); i++)
+							int i;		
+							const wchar_t** efiFiles = Is64BitOs()? efi64Files: efi32Files;
+							int efiFilesSize = Is64BitOs()? ARRAYSIZE(efi64Files): ARRAYSIZE(efi32Files);
+							for (i = 0; i < efiFilesSize; i++)
 							{
 								bool bMatch = false;
-								res = FindZipItemW (hz, efiFiles[i], true, &index, &ze);
-								if ((res == ZR_OK) && (index >= 0))
+								zip_int64_t index = zip_name_locate (z, WideToUtf8String (efiFiles[i]).c_str(), ZIP_FL_NOCASE);
+								if (index >= 0)
 								{
-									// check that the file exists on the disk and that it has the same content
-									StringCbCopyW (szNameBuffer, sizeof (szNameBuffer), rootPath);
-									StringCbCatW (szNameBuffer, sizeof (szNameBuffer), efiFiles[i]);
-
-									try
+									zip_stat_t stat;
+									if ((0 == zip_stat_index (z, index, ZIP_FL_NOCASE, &stat)) && (stat.valid & ZIP_STAT_SIZE))
 									{
-										DWORD dwSize = 0;
-										File diskFile (szNameBuffer, true);
-										diskFile.CheckOpened (SRC_POS);
-										diskFile.GetFileSize (dwSize);
-										if (dwSize == (DWORD) ze.unc_size)
+										// check that the file exists on the disk and that it has the same content
+										StringCbCopyW (szNameBuffer, sizeof (szNameBuffer), rootPath);
+										StringCbCatW (szNameBuffer, sizeof (szNameBuffer), efiFiles[i]);
+
+										try
 										{
-											Buffer fileBuf (dwSize);
-											if (dwSize == diskFile.Read (fileBuf.Ptr (), dwSize))
+											DWORD dwSize = 0;
+											File diskFile (szNameBuffer, true);
+											diskFile.CheckOpened (SRC_POS);
+											diskFile.GetFileSize (dwSize);
+											if (dwSize == (DWORD) stat.size)
 											{
-												Buffer efiBuf (dwSize);
-												res = UnzipItem (hz, ze.index, efiBuf.Ptr (), dwSize, ZIP_MEMORY);
-												if (res == ZR_OK)
+												Buffer fileBuf (dwSize);
+												if (dwSize == diskFile.Read (fileBuf.Ptr (), dwSize))
 												{
-													bMatch = (memcmp (efiBuf.Ptr(), fileBuf.Ptr(), dwSize) == 0);
+													Buffer efiBuf (dwSize);
+													zip_file_t* zf = zip_fopen_index (z, index, 0);
+													if (zf)
+													{
+														if (0 < zip_fread (zf, efiBuf.Ptr (), stat.size))
+														{
+															bMatch = (memcmp (efiBuf.Ptr(), fileBuf.Ptr(), dwSize) == 0);
+														}
+														zip_fclose (zf);														
+													}
 												}
-											}
-										}										
+											}										
+										}
+										catch (...)
+										{
+										}
 									}
-									catch (...)
-									{
-									}
-
 								}
 								else
 								{
@@ -3066,7 +3141,7 @@ namespace VeraCrypt
 									break;
 							}
 
-							if (i == ARRAYSIZE(efiFiles))
+							if (i == efiFilesSize)
 							{
 								// All entries processed
 								return true;
@@ -3129,70 +3204,112 @@ namespace VeraCrypt
 
 				if (dwSize == rescueFile.Read (rescueData.Ptr (), dwSize))
 				{
-					ZRESULT res;
-					HZIP hzFile = OpenZip(rescueData.Ptr (), dwSize, ZIP_MEMORY);
-					if (hzFile)
+					zip_error_t zerr;
+					zip_source_t* zsrc = zip_source_buffer_create (rescueData.Ptr (), dwSize, 0, &zerr);
+					if (!zsrc)
+						return false;
+					zip_t* zFile = zip_open_from_source (zsrc, ZIP_CHECKCONS | ZIP_RDONLY, &zerr);
+					if (!zFile)
 					{
-						finally_do_arg (HZIP, hzFile, { CloseZip (finally_arg); });
-						HZIP hzMem = OpenZip(RescueZipData, RescueZipSize, ZIP_MEMORY);
-						if (hzMem)
-						{
-							finally_do_arg (HZIP, hzMem, { CloseZip (finally_arg); });
-							const wchar_t* efiFiles[] = {
-								L"EFI/Boot/bootx64.efi",
-								L"EFI/VeraCrypt/DcsBml.dcs",
-								L"EFI/VeraCrypt/DcsBoot.efi",
-								L"EFI/VeraCrypt/DcsCfg.dcs",
-								L"EFI/VeraCrypt/DcsInt.dcs",
-								L"EFI/VeraCrypt/LegacySpeaker.dcs",
-								L"EFI/VeraCrypt/svh_bak",
-								L"EFI/Boot/original_bootx64.vc_backup"
-							};
+						zip_source_free (zsrc);
+						throw ParameterIncorrect (SRC_POS);
+					}
 
-							int index, i;
-							ZIPENTRYW zeFile, zeMem;							
-							for (i = 0; i < ARRAYSIZE(efiFiles); i++)
+					finally_do_arg (zip_t*, zFile, { zip_close (finally_arg); });
+
+					zsrc = zip_source_buffer_create (RescueZipData, RescueZipSize, 0, &zerr);
+					if (!zsrc)
+						return false;
+					zip_t* zMem = zip_open_from_source (zsrc, ZIP_CHECKCONS | ZIP_RDONLY, &zerr);
+					if (!zMem)
+					{
+						zip_source_free (zsrc);
+						throw ParameterIncorrect (SRC_POS);
+					}
+
+					finally_do_arg (zip_t*, zMem, { zip_close (finally_arg); });
+
+					const wchar_t* efi64Files[] = {
+						L"EFI/Boot/bootx64.efi",
+						L"EFI/VeraCrypt/DcsBml.dcs",
+						L"EFI/VeraCrypt/DcsBoot.efi",
+						L"EFI/VeraCrypt/DcsCfg.dcs",
+						L"EFI/VeraCrypt/DcsInt.dcs",
+						L"EFI/VeraCrypt/LegacySpeaker.dcs",
+						L"EFI/VeraCrypt/svh_bak",
+						L"EFI/Boot/original_bootx64.vc_backup"
+					};
+					
+					const wchar_t* efi32Files[] = {
+						L"EFI/Boot/bootia32.efi",
+						L"EFI/VeraCrypt/DcsBml.dcs",
+						L"EFI/VeraCrypt/DcsBoot.efi",
+						L"EFI/VeraCrypt/DcsCfg.dcs",
+						L"EFI/VeraCrypt/DcsInt.dcs",
+						L"EFI/VeraCrypt/LegacySpeaker.dcs",
+						L"EFI/VeraCrypt/svh_bak",
+						L"EFI/Boot/original_bootia32.vc_backup"
+					};
+
+					int i;
+					zip_stat_t statMem, statFile;
+					zip_int64_t indexMem, indexFile;
+					const wchar_t** efiFiles = Is64BitOs()? efi64Files: efi32Files;
+					int efiFilesSize = Is64BitOs()? ARRAYSIZE(efi64Files): ARRAYSIZE(efi32Files);
+					for (i = 0; i < efiFilesSize; i++)
+					{
+						bool bMatch = false;
+						indexMem = zip_name_locate (zMem, WideToUtf8String (efiFiles[i]).c_str(), ZIP_FL_NOCASE);
+						if (indexMem >= 0)
+						{									
+							if ((0 == zip_stat_index (zMem, indexMem, ZIP_FL_NOCASE, &statMem)) && (statMem.valid & ZIP_STAT_SIZE))
 							{
-								bool bMatch = false;
-								res = FindZipItemW (hzMem, efiFiles[i], true, &index, &zeMem);
-								if ((res == ZR_OK) && (index >= 0))
+								indexFile = zip_name_locate (zFile, WideToUtf8String (efiFiles[i]).c_str(), ZIP_FL_NOCASE);
+								if (indexFile >= 0)
 								{
-									res = FindZipItemW (hzFile, efiFiles[i], true, &index, &zeFile);
-									if ((res == ZR_OK) && (index >= 0) && (zeMem.unc_size == zeFile.unc_size))
+									if ((0 == zip_stat_index (zFile, indexFile, ZIP_FL_NOCASE, &statFile)) && (statFile.valid & ZIP_STAT_SIZE))
 									{
-										Buffer fileBuf (zeFile.unc_size);
-										Buffer memBuf (zeFile.unc_size);
-
-										res = UnzipItem (hzMem, zeMem.index, memBuf.Ptr (), zeMem.unc_size, ZIP_MEMORY);
-										if (res == ZR_OK)
+										if (statMem.size == statFile.size)
 										{
-											res = UnzipItem (hzFile, zeFile.index, fileBuf.Ptr (), zeFile.unc_size, ZIP_MEMORY);
-											if (res == ZR_OK)
+											Buffer fileBuf ((size_t) statFile.size);
+											Buffer memBuf ((size_t) statMem.size);
+
+											zip_file_t* zfMem = zip_fopen_index (zMem, indexMem, 0);
+											if (zfMem)
 											{
-												bMatch = (memcmp (memBuf.Ptr (), fileBuf.Ptr (), zeMem.unc_size) == 0);
+												if (0 < zip_fread (zfMem, memBuf.Ptr (), statMem.size))
+												{
+													zip_file_t* zfFile = zip_fopen_index (zFile, indexFile, 0);
+													if (zfFile)
+													{
+														if (0 < zip_fread (zfFile, fileBuf.Ptr (), statFile.size))
+														{
+															bMatch = (memcmp (memBuf.Ptr(), fileBuf.Ptr(), (size_t) statFile.size) == 0);
+														}
+														zip_fclose (zfFile);
+													}															
+												}
+												zip_fclose (zfMem);														
 											}
 										}
 									}
-
 								}
-								else
-								{
-									// entry not found in our internal Rescue ZIP image. Skip it.
-									bMatch = true;
-								}
-
-								if (!bMatch)
-									break;
 							}
-
-							if (i == ARRAYSIZE(efiFiles))
-							{
-								// All entries processed
-								return true;
-							}
-
-
 						}
+						else
+						{
+							// entry not found in our internal Rescue ZIP image. Skip it.
+							bMatch = true;
+						}
+
+						if (!bMatch)
+							break;
+					}
+
+					if (i == efiFilesSize)
+					{
+						// All entries processed
+						return true;
 					}
 				}
 			}
@@ -3319,11 +3436,11 @@ namespace VeraCrypt
 
 			EfiBootInst.MountBootPartition(0);			
 
-			EfiBootInst.GetFileSize(L"\\EFI\\Boot\\bootx64.efi", loaderSize);
+			EfiBootInst.GetFileSize(Is64BitOs()? L"\\EFI\\Boot\\bootx64.efi" : L"\\EFI\\Boot\\bootia32.efi", loaderSize);
 
 			std::vector<byte> bootLoaderBuf ((size_t) loaderSize);
 
-			EfiBootInst.ReadFile(L"\\EFI\\Boot\\bootx64.efi", &bootLoaderBuf[0], (DWORD) loaderSize);
+			EfiBootInst.ReadFile(Is64BitOs()? L"\\EFI\\Boot\\bootx64.efi": L"\\EFI\\Boot\\bootia32.efi", &bootLoaderBuf[0], (DWORD) loaderSize);
 
 			// Prevent VeraCrypt EFI loader from being backed up
 			for (size_t i = 0; i < (size_t) loaderSize - (wcslen (VC_EFI_BOOTLOADER_NAME) * 2); ++i)
@@ -3336,8 +3453,16 @@ namespace VeraCrypt
 				}
 			}
 
-			EfiBootInst.CopyFile(L"\\EFI\\Boot\\bootx64.efi", GetSystemLoaderBackupPath().c_str());
-			EfiBootInst.CopyFile(L"\\EFI\\Boot\\bootx64.efi", L"\\EFI\\Boot\\original_bootx64.vc_backup");
+			if (Is64BitOs())
+			{
+				EfiBootInst.CopyFile(L"\\EFI\\Boot\\bootx64.efi", GetSystemLoaderBackupPath().c_str());
+				EfiBootInst.CopyFile(L"\\EFI\\Boot\\bootx64.efi", L"\\EFI\\Boot\\original_bootx64.vc_backup");
+			}
+			else
+			{
+				EfiBootInst.CopyFile(L"\\EFI\\Boot\\bootia32.efi", GetSystemLoaderBackupPath().c_str());
+				EfiBootInst.CopyFile(L"\\EFI\\Boot\\bootia32.efi", L"\\EFI\\Boot\\original_bootia32.vc_backup");
+			}
 		}
 		else
 		{
@@ -3386,7 +3511,10 @@ namespace VeraCrypt
 			EfiBootInst.MountBootPartition(0);			
 
 			EfiBootInst.DeleteStartExec();
-			EfiBootInst.RenameFile(L"\\EFI\\Boot\\original_bootx64.vc_backup", L"\\EFI\\Boot\\bootx64.efi", TRUE);
+			if (Is64BitOs())
+				EfiBootInst.RenameFile(L"\\EFI\\Boot\\original_bootx64.vc_backup", L"\\EFI\\Boot\\bootx64.efi", TRUE);
+			else
+				EfiBootInst.RenameFile(L"\\EFI\\Boot\\original_bootia32.vc_backup", L"\\EFI\\Boot\\bootia32.efi", TRUE);
 
 			EfiBootInst.DelFile(L"\\DcsBoot.efi");
 			EfiBootInst.DelFile(L"\\DcsInt.efi");
@@ -3401,6 +3529,7 @@ namespace VeraCrypt
 			EfiBootInst.DelFile(L"\\EFI\\VeraCrypt\\DcsBml.dcs");
 			EfiBootInst.DelFile(L"\\EFI\\VeraCrypt\\DcsBoot");
 			EfiBootInst.DelFile(L"\\EFI\\VeraCrypt\\DcsProp");
+			EfiBootInst.DelDir (L"\\EFI\\VeraCrypt");
 		}
 		else
 		{
@@ -3863,9 +3992,6 @@ namespace VeraCrypt
 			throw ErrorException ("FEATURE_REQUIRES_INSTALLATION", SRC_POS);
 
 		SystemDriveConfiguration config = GetSystemDriveConfiguration ();
-
-		if (config.SystemPartition.IsGPT && !Is64BitOs())
-			throw ErrorException ("GPT_BOOT_DRIVE_UNSUPPORTED", SRC_POS);
 
 		if (SystemDriveIsDynamic())
 			throw ErrorException ("SYSENC_UNSUPPORTED_FOR_DYNAMIC_DISK", SRC_POS);
@@ -4486,8 +4612,8 @@ namespace VeraCrypt
 		}
 	}
 
-	bool BootEncryption::RestartComputer (void)
+	bool BootEncryption::RestartComputer (BOOL bShutdown)
 	{
-		return (::RestartComputer() != FALSE);
+		return (::RestartComputer(bShutdown) != FALSE);
 	}
 }

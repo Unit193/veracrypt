@@ -13,7 +13,7 @@
 #include "Platform/Platform.h"
 #include "Cipher.h"
 #include "Crypto/Aes.h"
-#include "Crypto/Serpent.h"
+#include "Crypto/SerpentFast.h"
 #include "Crypto/Twofish.h"
 #include "Crypto/Camellia.h"
 #include "Crypto/GostCipher.h"
@@ -21,8 +21,8 @@
 
 #ifdef TC_AES_HW_CPU
 #	include "Crypto/Aes_hw_cpu.h"
-#	include "Crypto/cpu.h"
 #endif
+#include "Crypto/cpu.h"
 
 namespace VeraCrypt
 {
@@ -224,6 +224,55 @@ namespace VeraCrypt
 	{
 		serpent_set_key (key, ScheduledKey);
 	}
+	
+	void CipherSerpent::EncryptBlocks (byte *data, size_t blockCount) const
+	{
+		if (!Initialized)
+			throw NotInitialized (SRC_POS);
+
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE
+		if ((blockCount >= 4)
+			&& IsHwSupportAvailable())
+		{
+			serpent_encrypt_blocks (data, data, blockCount, ScheduledKey.Ptr());
+		}
+		else
+#endif
+			Cipher::EncryptBlocks (data, blockCount);
+	}
+	
+	void CipherSerpent::DecryptBlocks (byte *data, size_t blockCount) const
+	{
+		if (!Initialized)
+			throw NotInitialized (SRC_POS);
+
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE
+		if ((blockCount >= 4)
+			&& IsHwSupportAvailable())
+		{
+			serpent_decrypt_blocks (data, data, blockCount, ScheduledKey.Ptr());
+		}
+		else
+#endif
+			Cipher::DecryptBlocks (data, blockCount);
+	}
+	
+	bool CipherSerpent::IsHwSupportAvailable () const
+	{
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE
+		static bool state = false;
+		static bool stateValid = false;
+
+		if (!stateValid)
+		{
+			state = HasSSE2() ? true : false;
+			stateValid = true;
+		}
+		return state;
+#else
+		return false;
+#endif
+	}
 
 
 	// Twofish
@@ -286,7 +335,28 @@ namespace VeraCrypt
 
 	void CipherGost89::SetCipherKey (const byte *key)
 	{
-		gost_set_key (key, (gost_kds *) ScheduledKey.Ptr());
+		gost_set_key (key, (gost_kds *) ScheduledKey.Ptr(), 1);
+	}
+	
+	// GOST89 with static SBOX
+	void CipherGost89StaticSBOX::Decrypt (byte *data) const
+	{
+		gost_decrypt (data, data, (gost_kds *) ScheduledKey.Ptr(), 1);
+	}
+
+	void CipherGost89StaticSBOX::Encrypt (byte *data) const
+	{
+		gost_encrypt (data, data, (gost_kds *) ScheduledKey.Ptr(), 1);
+	}
+
+	size_t CipherGost89StaticSBOX::GetScheduledKeySize () const
+	{
+		return GOST_KS;
+	}
+
+	void CipherGost89StaticSBOX::SetCipherKey (const byte *key)
+	{
+		gost_set_key (key, (gost_kds *) ScheduledKey.Ptr(), 0);
 	}
 
 	// Kuznyechik
