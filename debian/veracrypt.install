@@ -1,3 +1,4 @@
-src/Main/veracrypt               usr/bin
-debian/veracrypt.desktop         usr/share/applications
+src/Main/veracrypt               usr/bin/
+debian/veracrypt.desktop         usr/share/applications/
+debian/veracrypt.xml             usr/share/mime/packages/
 veracrypt.xpm                    usr/share/pixmaps/
