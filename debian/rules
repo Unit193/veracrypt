@@ -11,7 +11,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 	dh  $@ --sourcedirectory=src
 
 override_dh_auto_build:
-	dh_auto_build -- VERBOSE=1
+	dh_auto_build -- VERBOSE=1 NOSTRIP=1
 	unset DISPLAY && src/Main/veracrypt --text --help 2>/dev/null | debian/veracrypt_help_to_troff.pl > veracrypt.1
 	convert -resize 32x32 src/Resources/Icons/VeraCrypt-48x48.xpm veracrypt.xpm
 
