@@ -1,3 +1,11 @@
+veracrypt (1.19+repack-0vanir2) unstable; urgency=medium
+
+  * d/rules: Disable strip during build as it prevents dbgsym autogeneration.
+  * d/veracrypt.install, d/veracrypt.desktop, d/veracrypt.xml:
+    - Give '.hc' and '.tc' mimetypes, and associate them with VeraCrypt.
+
+ -- Unit 193 <unit193@ubuntu.com>  Thu, 16 Feb 2017 17:08:41 -0500
+
 veracrypt (1.19+repack-0vanir1) unstable; urgency=medium
 
   * Imported Upstream version 1.19+repack
