@@ -22,7 +22,7 @@ if [ -r /etc/default/veracrypt ]; then
         . /etc/default/veracrypt
 fi
 
-case "${veracrypt_SHUTDOWN_UNMOUNT}" in
+case "${VERACRYPT_SHUTDOWN_UNMOUNT}" in
 [Nn]*)
         exit 0
         ;;
