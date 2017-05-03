@@ -16,13 +16,15 @@ Homepage: https://veracrypt.codeplex.com/
 Package: veracrypt
 Architecture: any
 Depends: dmsetup,
-         dosfstools,
          kmod,
          lsb-base,
          sudo,
          ${misc:Depends},
          ${shlibs:Depends}
-Recommends: xdg-utils
+Recommends:
+ exfat-utils,
+ ntfs-3g,
+ xdg-utils
 Description: Cross-platform on-the-fly encryption
  VeraCrypt provides cross-platform on-the-fly encryption for Linux, MacOS X and
  Windows. It can encrypt filesystems stored either within a file or on disk
