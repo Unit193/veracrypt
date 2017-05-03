@@ -1,0 +1,19 @@
+#!/bin/sh
+
+test -d /run/systemd/system && exit 0
+
+VERACRYPT_SUSPEND_UNMOUNT=yes
+
+. /etc/default/veracrypt
+
+case "${VERACRYPT_SUSPEND_UNMOUNT}" in
+[Nn]*)
+	exit 0
+	;;
+esac
+
+case "$1" in
+	suspend|hibernate)
+		/usr/bin/veracrypt --dismount
+		;;
+esac

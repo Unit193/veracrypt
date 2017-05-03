@@ -4,3 +4,6 @@
 # It probably isn't necessary to do this, but it shouldn't hurt.
 
 VERACRYPT_SHUTDOWN_UNMOUNT="yes"
+
+# If enabled, the following option calls 'veracrypt -d' during suspend and hibernate.
+VERACRYPT_SUSPEND_UNMOUNT="yes"
