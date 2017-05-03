@@ -1,6 +1,6 @@
-src/Main/veracrypt               usr/bin/
 debian/30veracrypt               usr/lib/pm-utils/sleep.d/
 debian/veracrypt                 lib/systemd/system-sleep/
 debian/veracrypt.desktop         usr/share/applications/
 debian/veracrypt.xml             usr/share/mime/packages/
+src/Main/veracrypt               usr/bin/
 veracrypt.xpm                    usr/share/pixmaps/

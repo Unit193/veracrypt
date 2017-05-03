@@ -3,24 +3,25 @@ Section: non-free/utils
 Priority: optional
 Maintainer: Unit 193 <unit193@ubuntu.com>
 Build-Depends: debhelper (>= 9),
-               imagemagick,
-               libappindicator-dev,
-               libfuse-dev,
-               libwxgtk3.0-dev,
-               makeself,
-               nasm (>= 2.08.01) [any-i386 any-amd64],
-               pkg-config
+ imagemagick,
+ libappindicator-dev,
+ libfuse-dev,
+ libwxgtk3.0-dev,
+ makeself,
+ nasm (>= 2.08.01) [any-i386 any-amd64],
+ pkg-config
 Standards-Version: 3.9.8
 Homepage: https://veracrypt.codeplex.com/
 
 Package: veracrypt
 Architecture: any
-Depends: dmsetup,
-         kmod,
-         lsb-base,
-         sudo,
-         ${misc:Depends},
-         ${shlibs:Depends}
+Depends:
+ dmsetup,
+ kmod,
+ lsb-base,
+ sudo,
+ ${misc:Depends},
+ ${shlibs:Depends}
 Recommends:
  exfat-utils,
  ntfs-3g,
