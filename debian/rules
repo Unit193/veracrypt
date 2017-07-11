@@ -16,14 +16,7 @@ override_dh_auto_build:
 	unset DISPLAY && src/Main/veracrypt --text --help 2>/dev/null | debian/veracrypt_help_to_troff.pl > veracrypt.1
 
 override_dh_clean:
-	dh_clean veracrypt.1 user_guide.pdf
-
-override_dh_install:
-	cp "src/Release/Setup Files/VeraCrypt User Guide.pdf" user_guide.pdf
-	dh_install
-
-override_dh_compress:
-	dh_compress -Xuser_guide.pdf
+	dh_clean veracrypt.1
 
 override_dh_installinit:
 	dh_installinit --no-start -- stop 10 0 1 6 .
