@@ -1,42 +1,32 @@
-From: Stefan Sundin <stefan@stefansundin.com>
-Date: Fri, 12 Sept 2013
-Subject: Switch from systray to application indicator
+From: Stefan Sundin <stefan@stefansundin.com>, Unit 193 <unit193@ubuntu.com>
+Date: Fri, 06 July 2017
+Subject: Add support for Ubuntu and Ayatana application indicators.
 
-This patch replaces the system tray icon with an application indicator applet.
+This patch adds compile-time support for application indicators.
 
 Forwarded: no
 
 Signed-off-by: Unit 193 <unit193@ubuntu.com>
 
-Index: veracrypt/src/Main/Main.make
+Index: veracrypt-1.20/src/Main/Forms/MainFrame.cpp
 ===================================================================
---- veracrypt.orig/src/Main/Main.make
-+++ veracrypt/src/Main/Main.make
-@@ -154,7 +154,7 @@ endif
- 
- $(APPNAME): $(LIBS) $(OBJS)
- 	@echo Linking $@
--	$(CXX) -o $(APPNAME) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) $(LFLAGS)
-+	$(CXX) -o $(APPNAME) $(OBJS) $(LIBS) $(FUSE_LIBS) $(WX_LIBS) $(LFLAGS) $(shell pkg-config --libs appindicator-0.1)
- 
- ifeq "$(TC_BUILD_CONFIG)" "Release"
- ifndef NOSTRIP
-Index: veracrypt/src/Main/Forms/MainFrame.cpp
-===================================================================
---- veracrypt.orig/src/Main/Forms/MainFrame.cpp
-+++ veracrypt/src/Main/Forms/MainFrame.cpp
-@@ -46,6 +46,7 @@ namespace VeraCrypt
+--- veracrypt-1.20.orig/src/Main/Forms/MainFrame.cpp
++++ veracrypt-1.20/src/Main/Forms/MainFrame.cpp
+@@ -46,6 +46,9 @@ namespace VeraCrypt
  	DEFINE_EVENT_TYPE(wxEVT_COMMAND_SHOW_WARNING)
  
  	MainFrame::MainFrame (wxWindow* parent) : MainFrameBase (parent),
++#ifdef HAVE_INDICATORS
 +		indicator (NULL),
++#endif
  		ListItemRightClickEventPending (false),
  		SelectedItemIndex (-1),
  		SelectedSlotNumber (0),
-@@ -1552,6 +1553,30 @@ namespace VeraCrypt
+@@ -1552,6 +1555,32 @@ namespace VeraCrypt
  		}
  	}
  
++#ifdef HAVE_INDICATORS
 +	void MainFrame::SetBusy (bool busy)
 +	{
 +		gtk_widget_set_sensitive(indicator_item_mountfavorites, !busy);
@@ -61,16 +51,19 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
 +		self->SetBusy(false);
 +	}
 +
++#endif
  	void MainFrame::ShowTaskBarIcon (bool show)
  	{
  		if (!show && mTaskBarIcon->IsIconInstalled())
-@@ -1561,8 +1586,43 @@ namespace VeraCrypt
+@@ -1561,8 +1590,47 @@ namespace VeraCrypt
  		else if (show && !mTaskBarIcon->IsIconInstalled())
  		{
  #ifndef TC_MACOSX
--			mTaskBarIcon->SetIcon (Resources::GetVeraCryptIcon(), L"VeraCrypt");
-+			//mTaskBarIcon->SetIcon (Resources::GetVeraCryptIcon(), L"VeraCrypt");
++#ifndef HAVE_INDICATORS
+ 			mTaskBarIcon->SetIcon (Resources::GetVeraCryptIcon(), L"VeraCrypt");
  #endif
++#endif
++#ifdef HAVE_INDICATORS
 +			if (indicator == NULL) {
 +				indicator = app_indicator_new ("veracrypt", "veracrypt-indicator", APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
 +				app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
@@ -106,30 +99,38 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
 +				gtk_widget_show_all (menu);
 +				app_indicator_set_menu (indicator, GTK_MENU (menu));
 +			}
++#endif
  		}
  	}
  
-Index: veracrypt/src/Main/Forms/MainFrame.h
+Index: veracrypt-1.20/src/Main/Forms/MainFrame.h
 ===================================================================
---- veracrypt.orig/src/Main/Forms/MainFrame.h
-+++ veracrypt/src/Main/Forms/MainFrame.h
-@@ -13,6 +13,10 @@
+--- veracrypt-1.20.orig/src/Main/Forms/MainFrame.h
++++ veracrypt-1.20/src/Main/Forms/MainFrame.h
+@@ -13,6 +13,16 @@
  #ifndef TC_HEADER_Main_Forms_MainFrame
  #define TC_HEADER_Main_Forms_MainFrame
  
++#ifdef HAVE_INDICATORS
 +#define GSocket GlibGSocket
++#ifdef UBUNTU_INDICATOR
 +#include <libappindicator/app-indicator.h>
++#elif AYATANA_INDICATOR
++#include <libayatana-appindicator/app-indicator.h>
++#endif
 +#undef GSocket
-+ 
++#endif
++
  #include "Forms.h"
  #include "ChangePasswordDialog.h"
  
-@@ -35,6 +39,16 @@ namespace VeraCrypt
+@@ -35,6 +45,18 @@ namespace VeraCrypt
  		static FilePath GetShowRequestFifoPath () { return Application::GetConfigFilePath (L".show-request-queue", true); }
  #endif
  
 +		void MountAllFavorites ();
 +
++#ifdef HAVE_INDICATORS
 +		AppIndicator *indicator;
 +		GtkWidget *indicator_item_showhide;
 +		GtkWidget *indicator_item_mountfavorites;
@@ -138,10 +139,11 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
 +		GtkWidget *indicator_item_exit;
 +		void SetBusy (bool busy);
 +
++#endif
  	protected:
  		enum
  		{
-@@ -68,7 +82,6 @@ namespace VeraCrypt
+@@ -68,7 +90,6 @@ namespace VeraCrypt
  		void LoadFavoriteVolumes ();
  		void LoadPreferences ();
  		void MountAllDevices ();
@@ -149,28 +151,38 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
  		void MountVolume ();
  		void OnAboutMenuItemSelected (wxCommandEvent& event);
  		void OnQuit(wxCommandEvent& event) { Close(true); }
-Index: veracrypt/src/Main/GraphicUserInterface.cpp
+Index: veracrypt-1.20/src/Main/GraphicUserInterface.cpp
 ===================================================================
---- veracrypt.orig/src/Main/GraphicUserInterface.cpp
-+++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1663,6 +1663,8 @@ namespace VeraCrypt
+--- veracrypt-1.20.orig/src/Main/GraphicUserInterface.cpp
++++ veracrypt-1.20/src/Main/GraphicUserInterface.cpp
+@@ -1663,6 +1663,10 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
 +
++#ifdef HAVE_INDICATORS
 +		gtk_menu_item_set_label ((GtkMenuItem*) ((MainFrame*) mMainFrame)->indicator_item_showhide, LangString[Gui->IsInBackgroundMode() ? "SHOW_TC" : "HIDE_TC"].mb_str());
++#endif
  	}
  
  	void GraphicUserInterface::SetListCtrlColumnWidths (wxListCtrl *listCtrl, list <int> columnWidthPermilles, bool hasVerticalScrollbar) const
-Index: veracrypt/src/Makefile
+Index: veracrypt-1.20/src/Makefile
 ===================================================================
---- veracrypt.orig/src/Makefile
-+++ veracrypt/src/Makefile
-@@ -60,6 +60,7 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
+--- veracrypt-1.20.orig/src/Makefile
++++ veracrypt-1.20/src/Makefile
+@@ -60,6 +60,15 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
  CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
  CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
  LFLAGS+=$(shell dpkg-buildflags --get LDFLAGS)
-+C_CXX_FLAGS += $(shell pkg-config --cflags appindicator-0.1)
++ifeq ($(shell pkg-config --exists appindicator-0.1 && echo $$?),0)
++	export C_CXX_FLAGS += -DHAVE_INDICATORS -DUBUNTU_INDICATOR
++	export LIBS += $(shell pkg-config --libs appindicator-0.1)
++	C_CXX_FLAGS += $(shell pkg-config --cflags appindicator-0.1)
++else ifeq ($(shell pkg-config --exists ayatana-appindicator-0.1 && echo $$?),0)
++	export C_CXX_FLAGS += -DHAVE_INDICATORS -DAYATANA_INDICATOR
++	export LIBS += $(shell pkg-config --libs ayatana-appindicator-0.1)
++	C_CXX_FLAGS += $(shell pkg-config --cflags ayatana-appindicator-0.1)
++endif
  
  export TC_BUILD_CONFIG := Release
  
