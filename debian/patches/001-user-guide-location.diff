@@ -1,5 +1,5 @@
 From: Francis Russell <francis@unchartedbackwaters.co.uk>
-Date: Mon, 14 Jan 2013 11:44 
+Date: Mon, 14 Jan 2013 11:44
 Subject: Move manual
 
 The user manual is installed in /usr/share/doc/veracrypt as opposed to
@@ -9,14 +9,14 @@ Forwarded: no
 
 Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
---- veracrypt.orig/src/Main/GraphicUserInterface.cpp
-+++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1239,7 +1239,7 @@ namespace VeraCrypt
+--- a/src/Main/GraphicUserInterface.cpp	2017-06-29 17:10:39.000000000 -0400
++++ b/src/Main/GraphicUserInterface.cpp	2017-06-30 16:30:20.842509262 -0400
+@@ -1232,7 +1232,7 @@
  #elif defined (TC_MACOSX)
- 			docPath += L"/../Resources/VeraCrypt User Guide.pdf";
+ 			htmlPath += L"/../Resources/doc/HTML/";
  #elif defined (TC_UNIX)
--			docPath = L"/usr/share/veracrypt/doc/VeraCrypt User Guide.pdf";
-+			docPath = L"/usr/share/doc/veracrypt/user_guide.pdf";
+-			htmlPath = L"/usr/share/veracrypt/doc/HTML/";
++			htmlPath = L"/usr/share/doc/veracrypt/HTML/";
  #else
- #	error TC_RESOURCE_DIR undefined
+ 			localFile = false;
  #endif

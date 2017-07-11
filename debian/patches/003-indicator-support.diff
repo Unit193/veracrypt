@@ -12,7 +12,7 @@ Index: veracrypt/src/Main/Main.make
 ===================================================================
 --- veracrypt.orig/src/Main/Main.make
 +++ veracrypt/src/Main/Main.make
-@@ -135,7 +135,7 @@ endif
+@@ -154,7 +154,7 @@ endif
  
  $(APPNAME): $(LIBS) $(OBJS)
  	@echo Linking $@
@@ -153,7 +153,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/GraphicUserInterface.cpp
 +++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1649,6 +1649,8 @@ namespace VeraCrypt
+@@ -1663,6 +1663,8 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
