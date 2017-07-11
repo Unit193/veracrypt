@@ -1,8 +1,8 @@
 Document: veracrypt
 Title: VeraCrypt User's Guide
-Author: TrueCrypt Foundation
+Author: Mounir IDRASSI
 Abstract: This is the user manual for VeraCrypt, an encryption tool.
 Section: System/Security
 
-Format: PDF
-Files: /usr/share/doc/veracrypt/user_guide.pdf
+Format: HTML
+Files: /usr/share/doc/veracrypt/HTML/
