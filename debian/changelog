@@ -1,3 +1,32 @@
+veracrypt (1.21-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.21
+    - Refresh patches.
+  * Run wrap-and-sort.
+  * Bump standards-version to 4.0.0.
+  * d/30veracrypt, d/veracrypt, d/veracrypt.(install,default):
+    - Dismount all volumes on suspend.
+  * d/compat, d/control: Bump debhelper to compat 10.
+  * d/control:
+    - Update homepage.
+    - Switch build-depend from nasm to yasm.
+    - Drop dep on dosfstools, recommend exfat-utils and ntfs-3g.
+    - Drop build-depend on makeself and imagemagick.
+  * d/copyright: Update copyright information and years.
+  * d/p/003-indicator-support.diff: Extend to compile with Ayatana indicators.
+  * d/p/004-fixup-install.diff: Fix the install target so we can use it.
+  * d/rules:
+    - Pass '--as-needed' to LDFLAGS.
+    - Drop imagemagick rules to convert the xpm.
+    - The pdf user guide no longer exists, drop rules tweaking it.
+  * d/veracrypt.desktop: Correctly pass the file to open.
+  * d/veracrypt.docs: Drop user_guide.pdf.
+  * d/veracrypt.doc-base: Update to note the html docs, not pdf.
+  * d/veracrypt.init: Fix a case mismatch.
+  * d/veracrypt.install: Drop veracrypt(,.xpm), upstream has an install target.
+
+ -- Unit 193 <unit193@ubuntu.com>  Mon, 10 Jul 2017 20:44:46 -0400
+
 veracrypt (1.19+repack-0vanir2) unstable; urgency=medium
 
   * d/rules: Disable strip during build as it prevents dbgsym autogeneration.
