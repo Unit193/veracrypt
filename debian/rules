@@ -14,10 +14,9 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 override_dh_auto_build:
 	dh_auto_build -- VERBOSE=1 NOSTRIP=1
 	unset DISPLAY && src/Main/veracrypt --text --help 2>/dev/null | debian/veracrypt_help_to_troff.pl > veracrypt.1
-	convert -resize 32x32 src/Resources/Icons/VeraCrypt-48x48.xpm veracrypt.xpm
 
 override_dh_clean:
-	dh_clean veracrypt.1 user_guide.pdf veracrypt.xpm
+	dh_clean veracrypt.1 user_guide.pdf
 
 override_dh_install:
 	cp "src/Release/Setup Files/VeraCrypt User Guide.pdf" user_guide.pdf
