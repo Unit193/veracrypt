@@ -5,4 +5,5 @@ Abstract: This is the user manual for VeraCrypt, an encryption tool.
 Section: System/Security
 
 Format: HTML
-Files: /usr/share/doc/veracrypt/HTML/Documentation.html
+Index: /usr/share/doc/veracrypt/HTML/Documentation.html
+Files: /usr/share/doc/veracrypt/HTML/*.html
