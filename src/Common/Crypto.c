@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -247,6 +247,14 @@ void EncipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 #endif
 	}
 #endif
+#if CRYPTOPP_BOOL_X64
+   else if (cipher == TWOFISH)	{
+			twofish_encrypt_blocks(ks, data, data, (uint32) blockCount);
+	}
+	else if (cipher == CAMELLIA)	{
+			camellia_encrypt_blocks(ks, data, data, (uint32) blockCount);
+	}
+#endif
 	else if (cipher == GOST89)	{
 			gost_encrypt(data, data, ks, (int)blockCount);
 	}
@@ -342,6 +350,14 @@ void DecipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 #endif
 	}
 #endif
+#if CRYPTOPP_BOOL_X64
+   else if (cipher == TWOFISH)	{
+			twofish_decrypt_blocks(ks, data, data, (uint32) blockCount);
+	}
+	else if (cipher == CAMELLIA)	{
+			camellia_decrypt_blocks(ks, data, data, (uint32) blockCount);
+	}
+#endif
 	else if (cipher == GOST89)	{
 			gost_decrypt(data, data, ks, (int)blockCount);
 	}
@@ -417,6 +433,10 @@ BOOL CipherSupportsIntraDataUnitParallelization (int cipher)
 		|| (cipher == GOST89)
 #if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
 		|| (cipher == SERPENT && HasSSE2())
+#endif
+#if CRYPTOPP_BOOL_X64
+		|| (cipher == TWOFISH)
+		|| (cipher == CAMELLIA)
 #endif
 		;
 }
@@ -749,16 +769,17 @@ Hash *HashGet (int id)
 	return 0;
 }
 
-
+#ifdef _WIN32
 int HashGetIdByName (wchar_t *name)
 {
 	int i;
 	for (i = 0; Hashes[i].Id != 0; i++)
-		if (wcscmp (Hashes[i].Name, name) == 0)
+		if (_wcsicmp (Hashes[i].Name, name) == 0)
 			return Hashes[i].Id;
 
 	return 0;
 }
+#endif
 
 const wchar_t *HashGetName (int hashId)
 {
@@ -1135,20 +1156,20 @@ static BOOL HwEncryptionDisabled = FALSE;
 
 BOOL IsAesHwCpuSupported ()
 {
+#ifdef TC_WINDOWS_BOOT_AES
 	static BOOL state = FALSE;
 	static BOOL stateValid = FALSE;
 
 	if (!stateValid)
 	{
-#ifdef TC_WINDOWS_BOOT_AES
 		state = is_aes_hw_cpu_supported() ? TRUE : FALSE;
-#else
-		state = g_hasAESNI ? TRUE : FALSE;
-#endif
 		stateValid = TRUE;
 	}
 
 	return state && !HwEncryptionDisabled;
+#else
+	return (HasAESNI() && !HwEncryptionDisabled)? TRUE : FALSE;
+#endif
 }
 
 void EnableHwEncryption (BOOL enable)

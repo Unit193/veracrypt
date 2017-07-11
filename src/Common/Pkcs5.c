@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -99,6 +99,18 @@ void hmac_sha256
 	char* buf = hmac.k;
 	int b;
 	char key[SHA256_DIGESTSIZE];
+#if defined (DEVICE_DRIVER)
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+#ifdef _WIN64
+	XSTATE_SAVE SaveState;
+	if (g_isIntel && HasSAVX())
+		saveStatus = KeSaveExtendedProcessorState(XSTATE_MASK_GSSE, &SaveState);
+#else
+	KFLOATING_SAVE floatingPointState;	
+	if (HasSSE2())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+#endif
     /* If the key is longer than the hash algorithm block size,
 	   let key = sha256(key), as per HMAC specifications. */
 	if (lk > SHA256_BLOCKSIZE)
@@ -139,6 +151,16 @@ void hmac_sha256
 	sha256_hash ((unsigned char *) buf, SHA256_BLOCKSIZE, ctx);
 
 	hmac_sha256_internal(d, ld, &hmac);
+
+#if defined (DEVICE_DRIVER)
+	if (NT_SUCCESS (saveStatus))
+#ifdef _WIN64
+		KeRestoreExtendedProcessorState(&SaveState);
+#else
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+#endif
+
 	/* Prevent leaks */
 	burn(&hmac, sizeof(hmac));
 	burn(key, sizeof(key));
@@ -204,6 +226,18 @@ void derive_key_sha256 (char *pwd, int pwd_len, char *salt, int salt_len, uint32
 	int b, l, r;
 #ifndef TC_WINDOWS_BOOT
 	char key[SHA256_DIGESTSIZE];
+#if defined (DEVICE_DRIVER)
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+#ifdef _WIN64
+	XSTATE_SAVE SaveState;
+	if (g_isIntel && HasSAVX())
+		saveStatus = KeSaveExtendedProcessorState(XSTATE_MASK_GSSE, &SaveState);
+#else
+	KFLOATING_SAVE floatingPointState;	
+	if (HasSSE2())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+#endif
     /* If the password is longer than the hash algorithm block size,
 	   let pwd = sha256(pwd), as per HMAC specifications. */
 	if (pwd_len > SHA256_BLOCKSIZE)
@@ -267,6 +301,14 @@ void derive_key_sha256 (char *pwd, int pwd_len, char *salt, int salt_len, uint32
 	derive_u_sha256 (salt, salt_len, iterations, b, &hmac);
 	memcpy (dk, hmac.u, r);
 
+#if defined (DEVICE_DRIVER)
+	if (NT_SUCCESS (saveStatus))
+#ifdef _WIN64
+		KeRestoreExtendedProcessorState(&SaveState);
+#else
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+#endif
 
 	/* Prevent possible leaks. */
 	burn (&hmac, sizeof(hmac));
@@ -327,6 +369,18 @@ void hmac_sha512
 	char* buf = hmac.k;
 	int b;
 	char key[SHA512_DIGESTSIZE];
+#if defined (DEVICE_DRIVER)
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+#ifdef _WIN64
+	XSTATE_SAVE SaveState;
+	if (g_isIntel && HasSAVX())
+		saveStatus = KeSaveExtendedProcessorState(XSTATE_MASK_GSSE, &SaveState);
+#else
+	KFLOATING_SAVE floatingPointState;	
+	if (HasSSSE3() && HasMMX())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+#endif
 
     /* If the key is longer than the hash algorithm block size,
 	   let key = sha512(key), as per HMAC specifications. */
@@ -369,6 +423,15 @@ void hmac_sha512
 
 	hmac_sha512_internal (d, ld, &hmac);
 
+#if defined (DEVICE_DRIVER)
+	if (NT_SUCCESS (saveStatus))
+#ifdef _WIN64
+		KeRestoreExtendedProcessorState(&SaveState);
+#else
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+#endif
+
 	/* Prevent leaks */
 	burn (&hmac, sizeof(hmac));
 	burn (key, sizeof(key));
@@ -408,6 +471,18 @@ void derive_key_sha512 (char *pwd, int pwd_len, char *salt, int salt_len, uint32
 	char* buf = hmac.k;
 	int b, l, r;
 	char key[SHA512_DIGESTSIZE];
+#if defined (DEVICE_DRIVER)
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+#ifdef _WIN64
+	XSTATE_SAVE SaveState;
+	if (g_isIntel && HasSAVX())
+		saveStatus = KeSaveExtendedProcessorState(XSTATE_MASK_GSSE, &SaveState);
+#else
+	KFLOATING_SAVE floatingPointState;	
+	if (HasSSSE3() && HasMMX())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+#endif
 
     /* If the password is longer than the hash algorithm block size,
 	   let pwd = sha512(pwd), as per HMAC specifications. */
@@ -471,6 +546,14 @@ void derive_key_sha512 (char *pwd, int pwd_len, char *salt, int salt_len, uint32
 	derive_u_sha512 (salt, salt_len, iterations, b, &hmac);
 	memcpy (dk, hmac.u, r);
 
+#if defined (DEVICE_DRIVER)
+	if (NT_SUCCESS (saveStatus))
+#ifdef _WIN64
+		KeRestoreExtendedProcessorState(&SaveState);
+#else
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+#endif
 
 	/* Prevent possible leaks. */
 	burn (&hmac, sizeof(hmac));
@@ -750,7 +833,7 @@ void hmac_whirlpool
 	char key[WHIRLPOOL_DIGESTSIZE];
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
 	KFLOATING_SAVE floatingPointState;
-	NTSTATUS saveStatus = STATUS_SUCCESS;
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
 	if (HasISSE())
 		saveStatus = KeSaveFloatingPointState (&floatingPointState);
 #endif
@@ -796,7 +879,7 @@ void hmac_whirlpool
 	hmac_whirlpool_internal(d, ld, &hmac);
 
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	if (NT_SUCCESS (saveStatus) && HasISSE())
+	if (NT_SUCCESS (saveStatus))
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 	/* Prevent leaks */
@@ -838,7 +921,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 	int b, l, r;
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
 	KFLOATING_SAVE floatingPointState;
-	NTSTATUS saveStatus = STATUS_SUCCESS;
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
 	if (HasISSE())
 		saveStatus = KeSaveFloatingPointState (&floatingPointState);
 #endif
@@ -905,7 +988,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 	memcpy (dk, hmac.u, r);
 
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	if (NT_SUCCESS (saveStatus) && HasISSE())
+	if (NT_SUCCESS (saveStatus))
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 
@@ -965,7 +1048,7 @@ void hmac_streebog
 	CRYPTOPP_ALIGN_DATA(16) char key[STREEBOG_DIGESTSIZE];
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
 	KFLOATING_SAVE floatingPointState;
-	NTSTATUS saveStatus = STATUS_SUCCESS;
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
 	if (HasSSE2() || HasSSE41())
 		saveStatus = KeSaveFloatingPointState (&floatingPointState);
 #endif
@@ -1011,7 +1094,7 @@ void hmac_streebog
 	hmac_streebog_internal(d, ld, &hmac);
 
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	if (NT_SUCCESS (saveStatus) && (HasSSE2() || HasSSE41()))
+	if (NT_SUCCESS (saveStatus))
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 	/* Prevent leaks */
@@ -1053,7 +1136,7 @@ void derive_key_streebog (char *pwd, int pwd_len, char *salt, int salt_len, uint
 	int b, l, r;
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
 	KFLOATING_SAVE floatingPointState;
-	NTSTATUS saveStatus = STATUS_SUCCESS;
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
 	if (HasSSE2() || HasSSE41())
 		saveStatus = KeSaveFloatingPointState (&floatingPointState);
 #endif
@@ -1120,7 +1203,7 @@ void derive_key_streebog (char *pwd, int pwd_len, char *salt, int salt_len, uint
 	memcpy (dk, hmac.u, r);
 
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	if (NT_SUCCESS (saveStatus) && (HasSSE2() || HasSSE41()))
+	if (NT_SUCCESS (saveStatus))
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 
@@ -1207,6 +1290,31 @@ int get_pkcs5_iteration_count (int pkcs5_prf_id, int pim, BOOL truecryptMode, BO
 		TC_THROW_FATAL_EXCEPTION;	// Unknown/wrong ID
 	}
 	return 0;
+}
+
+int is_pkcs5_prf_supported (int pkcs5_prf_id, BOOL truecryptMode, PRF_BOOT_TYPE bootType)
+{
+   if (pkcs5_prf_id == 0) // auto-detection always supported
+      return 1;
+
+   if (truecryptMode)
+   {
+      if (  (bootType == PRF_BOOT_GPT) 
+         || (bootType == PRF_BOOT_MBR && pkcs5_prf_id != RIPEMD160) 
+         || (bootType == PRF_BOOT_NO && pkcs5_prf_id != SHA512 && pkcs5_prf_id != WHIRLPOOL && pkcs5_prf_id != RIPEMD160)
+         )
+         return 0;
+   }
+   else
+   {
+      if (  (bootType == PRF_BOOT_MBR && pkcs5_prf_id != RIPEMD160 && pkcs5_prf_id != SHA256)
+         || (bootType != PRF_BOOT_MBR && (pkcs5_prf_id < FIRST_PRF_ID || pkcs5_prf_id > LAST_PRF_ID))
+         )
+         return 0;
+   }
+
+   return 1;
+
 }
 
 #endif //!TC_WINDOWS_BOOT

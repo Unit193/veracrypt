@@ -9,7 +9,7 @@
  or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -284,6 +284,7 @@ void LoadSettings (HWND hwndDlg)
 	bPreserveTimestamp = defaultMountOptions.PreserveTimestamp = ConfigReadInt ("PreserveTimestamps", TRUE);
 	bShowDisconnectedNetworkDrives = ConfigReadInt ("ShowDisconnectedNetworkDrives", FALSE);
 	bHideWaitingDialog = ConfigReadInt ("HideWaitingDialog", FALSE);
+	bUseSecureDesktop = ConfigReadInt ("UseSecureDesktop", FALSE);
 	defaultMountOptions.Removable =	ConfigReadInt ("MountVolumesRemovable", FALSE);
 	defaultMountOptions.ReadOnly =	ConfigReadInt ("MountVolumesReadOnly", FALSE);
 	defaultMountOptions.ProtectHiddenVolume = FALSE;
@@ -427,13 +428,13 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			HWND hComboBox = GetDlgItem (hwndDlg, IDC_PKCS5_PRF_ID);
 			SendMessage (hComboBox, CB_RESETCONTENT, 0, 0);
 
-			nIndex = SendMessageW (hComboBox, CB_ADDSTRING, 0, (LPARAM) GetString ("AUTODETECTION"));
-			SendMessage (hComboBox, CB_SETITEMDATA, nIndex, (LPARAM) 0);
+			nIndex =(int) SendMessageW (hComboBox, CB_ADDSTRING, 0, (LPARAM) GetString ("AUTODETECTION"));
+			SendMessage (hComboBox, CB_SETITEMDATA, (WPARAM) nIndex, (LPARAM) 0);
 
 			for (i = FIRST_PRF_ID; i <= LAST_PRF_ID; i++)
 			{
-				nIndex = SendMessage (hComboBox, CB_ADDSTRING, 0, (LPARAM) get_pkcs5_prf_name(i));
-				SendMessage (hComboBox, CB_SETITEMDATA, nIndex, (LPARAM) i);
+				nIndex = (int) SendMessage (hComboBox, CB_ADDSTRING, 0, (LPARAM) get_pkcs5_prf_name(i));
+				SendMessage (hComboBox, CB_SETITEMDATA, (WPARAM) nIndex, (LPARAM) i);
 			}
 
 			/* make autodetection the default */
@@ -501,7 +502,7 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			HWND hComboBox = GetDlgItem (hwndDlg, IDC_PKCS5_PRF_ID);
 			SendMessage (hComboBox, CB_RESETCONTENT, 0, 0);
 
-			int i, nIndex = SendMessageW (hComboBox, CB_ADDSTRING, 0, (LPARAM) GetString ("AUTODETECTION"));
+			int i, nIndex = (int) SendMessageW (hComboBox, CB_ADDSTRING, 0, (LPARAM) GetString ("AUTODETECTION"));
 			SendMessage (hComboBox, CB_SETITEMDATA, nIndex, (LPARAM) 0);
 
 			BOOL bIsGPT = FALSE;
@@ -516,8 +517,8 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 			{
 				if (bIsGPT || HashForSystemEncryption(i))
 				{
-					nIndex = SendMessage (hComboBox, CB_ADDSTRING, 0, (LPARAM) get_pkcs5_prf_name(i));
-					SendMessage (hComboBox, CB_SETITEMDATA, nIndex, (LPARAM) i);
+					nIndex = (int) SendMessage (hComboBox, CB_ADDSTRING, 0, (LPARAM) get_pkcs5_prf_name(i));
+					SendMessage (hComboBox, CB_SETITEMDATA, (WPARAM) nIndex, (LPARAM) i);
 				}
 			}
 
@@ -676,7 +677,7 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 					KeyFilesApply (hwndDlg, &mountOptions.ProtectedHidVolPassword, hidVolProtKeyFilesParam.FirstKeyFile, PasswordDlgVolume);
 
 				if (GetPassword (hwndDlg, IDC_PASSWORD, (LPSTR) szXPwd->Text, MAX_PASSWORD + 1, TRUE))
-					szXPwd->Length = strlen ((char *) szXPwd->Text);
+					szXPwd->Length = (unsigned __int32) (strlen ((char *) szXPwd->Text));
 				else
 					return 1;
 
@@ -684,11 +685,11 @@ BOOL CALLBACK ExtcvPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARA
 				*pkcs5 = (int) SendMessage (GetDlgItem (hwndDlg, IDC_PKCS5_PRF_ID), CB_GETITEMDATA, SendMessage (GetDlgItem (hwndDlg, IDC_PKCS5_PRF_ID), CB_GETCURSEL, 0, 0), 0);
 				*truecryptMode = GetCheckBox (hwndDlg, IDC_TRUECRYPT_MODE);
 
-				*pim = GetPim (hwndDlg, IDC_PIM);
+				*pim = GetPim (hwndDlg, IDC_PIM, 0);
 
-				/* SHA-256 is not supported by TrueCrypt */
+				/* check that PRF is supported in TrueCrypt Mode */
 				if (	(*truecryptMode)
-					&& ((*pkcs5 == SHA256) || (mountOptions.ProtectHiddenVolume && mountOptions.ProtectedHidVolPkcs5Prf == SHA256))
+					&& ((!is_pkcs5_prf_supported(*pkcs5, TRUE, PRF_BOOT_NO)) || (mountOptions.ProtectHiddenVolume && !is_pkcs5_prf_supported(mountOptions.ProtectedHidVolPkcs5Prf, TRUE, PRF_BOOT_NO)))
 					)
 				{
 					Error ("ALGO_NOT_SUPPORTED_FOR_TRUECRYPT_MODE", hwndDlg);
@@ -802,7 +803,7 @@ int RestoreVolumeHeader (HWND hwndDlg, char *lpszVolume)
 
 int ExtcvAskVolumePassword (HWND hwndDlg, const wchar_t* fileName, Password *password, int *pkcs5, int *pim, BOOL* truecryptMode, char *titleStringId, BOOL enableMountOptions)
 {
-	int result;
+	INT_PTR result;
 	PasswordDlgParam dlgParam;
 
 	PasswordDialogTitleStringId = titleStringId;
@@ -815,7 +816,7 @@ int ExtcvAskVolumePassword (HWND hwndDlg, const wchar_t* fileName, Password *pas
 
 	StringCbCopyW (PasswordDlgVolume, sizeof(PasswordDlgVolume), fileName);
 
-	result = DialogBoxParamW (hInst,
+	result = SecureDesktopDialogBoxParam (hInst,
 		MAKEINTRESOURCEW (IDD_PASSWORD_DLG), hwndDlg,
 		(DLGPROC) ExtcvPasswordDlgProc, (LPARAM) &dlgParam);
 
@@ -849,7 +850,7 @@ static BOOL SelectPartition (HWND hwndDlg)
 {
 	RawDevicesDlgParam param;
 	param.pszFileName = szFileName;
-	int nResult = DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_RAWDEVICES_DLG), hwndDlg,
+	INT_PTR nResult = DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_RAWDEVICES_DLG), hwndDlg,
 		(DLGPROC) RawDevicesDlgProc, (LPARAM) & param);
 	if (nResult == IDOK)
 	{
@@ -883,6 +884,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			bPreserveTimestamp = defaultMountOptions.PreserveTimestamp = TRUE;
 			bShowDisconnectedNetworkDrives = FALSE;
 			bHideWaitingDialog = FALSE;
+			bUseSecureDesktop = FALSE;
 
 			if (UsePreferences)
 			{
@@ -951,7 +953,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		if (lw == IDM_HOMEPAGE )
 		{
 			ArrowWaitCursor ();
-			ShellExecute (NULL, L"open", L"https://veracrypt.codeplex.com", NULL, NULL, SW_SHOWNORMAL);
+			ShellExecute (NULL, L"open", L"https://www.veracrypt.fr", NULL, NULL, SW_SHOWNORMAL);
 			Sleep (200);
 			NormalCursor ();
 

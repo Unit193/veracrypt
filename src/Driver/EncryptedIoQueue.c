@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -225,6 +225,47 @@ static void ReleaseFragmentBuffer (EncryptedIoQueue *queue, byte *buffer)
 	}
 }
 
+BOOL 
+UpdateBuffer(
+	byte*     buffer,
+	byte*     secRegion,
+	uint64    bufferDiskOffset,
+	uint32    bufferLength,
+	BOOL      doUpadte
+	) 
+{
+	uint64       intersectStart;
+	uint32       intersectLength;
+	uint32       i;
+	DCS_DISK_ENTRY_LIST *DeList = (DCS_DISK_ENTRY_LIST*)(secRegion + 512);
+	BOOL         updated = FALSE;
+
+	if (secRegion == NULL) return FALSE;
+	for (i = 0; i < DeList->Count; ++i) {
+		if (DeList->DE[i].Type == DE_Sectors) {
+			GetIntersection(
+				bufferDiskOffset, bufferLength,
+				DeList->DE[i].Sectors.Start, DeList->DE[i].Sectors.Start + DeList->DE[i].Sectors.Length - 1,
+				&intersectStart, &intersectLength
+				);
+			if (intersectLength != 0) {
+				updated = TRUE;
+				if(doUpadte && buffer != NULL) {
+//					Dump("Subst data\n");
+					memcpy(
+						buffer + (intersectStart - bufferDiskOffset),
+						secRegion + DeList->DE[i].Sectors.Offset + (intersectStart - DeList->DE[i].Sectors.Start),
+						intersectLength
+						);
+				} else {
+					return TRUE;
+				}
+			}
+		}
+	}
+	return updated;
+}
+
 
 static VOID CompletionThreadProc (PVOID threadArg)
 {
@@ -259,6 +300,11 @@ static VOID CompletionThreadProc (PVOID threadArg)
 					dataUnit.Value += queue->RemappedAreaDataUnitOffset;
 
 				DecryptDataUnits (request->Data + request->EncryptedOffset, &dataUnit, request->EncryptedLength / ENCRYPTION_DATA_UNIT_SIZE, queue->CryptoInfo);
+			}
+//			Dump("Read sector %lld count %d\n", request->Offset.QuadPart >> 9, request->Length >> 9);
+			// Update subst sectors
+			if((queue->SecRegionData != NULL) && (queue->SecRegionSize > 512)) {
+				UpdateBuffer(request->Data, queue->SecRegionData, request->Offset.QuadPart, request->Length, TRUE);
 			}
 
 			if (request->CompleteOriginalIrp)
@@ -592,7 +638,7 @@ static VOID MainThreadProc (PVOID threadArg)
 				{
 					UINT64_STRUCT dataUnit;
 
-					dataBuffer = (PUCHAR) MmGetSystemAddressForMdlSafe (irp->MdlAddress, HighPagePriority);
+					dataBuffer = (PUCHAR) MmGetSystemAddressForMdlSafe (irp->MdlAddress, (HighPagePriority | ExDefaultMdlProtection));
 					if (!dataBuffer)
 					{
 						TCfree (buffer);
@@ -609,6 +655,10 @@ static VOID MainThreadProc (PVOID threadArg)
 							DecryptDataUnits (buffer + (intersectStart - alignedOffset.QuadPart), &dataUnit, intersectLength / ENCRYPTION_DATA_UNIT_SIZE, queue->CryptoInfo);
 						}
 					}
+					// Update subst sectors
+ 					if((queue->SecRegionData != NULL) && (queue->SecRegionSize > 512)) {
+ 						UpdateBuffer(buffer, queue->SecRegionData, alignedOffset.QuadPart, alignedLength, TRUE);
+ 					}
 
 					memcpy (dataBuffer, buffer + (item->OriginalOffset.LowPart & (ENCRYPTION_DATA_UNIT_SIZE - 1)), item->OriginalLength);
 				}
@@ -697,9 +747,18 @@ static VOID MainThreadProc (PVOID threadArg)
 				Dump ("Preventing write to boot loader or host protected area\n");
 				CompleteOriginalIrp (item, STATUS_MEDIA_WRITE_PROTECTED, 0);
 				continue;
+			} 
+			else if (item->Write
+				&& (queue->SecRegionData != NULL) && (queue->SecRegionSize > 512)
+				&& UpdateBuffer (NULL, queue->SecRegionData, item->OriginalOffset.QuadPart, (uint32)(item->OriginalOffset.QuadPart + item->OriginalLength - 1), FALSE))
+			{
+				// Prevent inappropriately designed software from damaging important data
+				Dump ("Preventing write to the system GPT area\n");
+				CompleteOriginalIrp (item, STATUS_MEDIA_WRITE_PROTECTED, 0);
+				continue;
 			}
 
-			dataBuffer = (PUCHAR) MmGetSystemAddressForMdlSafe (irp->MdlAddress, HighPagePriority);
+			dataBuffer = (PUCHAR) MmGetSystemAddressForMdlSafe (irp->MdlAddress, (HighPagePriority | ExDefaultMdlProtection));
 
 			if (dataBuffer == NULL)
 			{

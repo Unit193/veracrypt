@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -121,6 +121,9 @@ extern BOOL bShowDisconnectedNetworkDrives;
 extern BOOL bHideWaitingDialog;
 extern BOOL bCmdHideWaitingDialog;
 extern BOOL bCmdHideWaitingDialogValid;
+extern BOOL bUseSecureDesktop;
+extern BOOL bCmdUseSecureDesktop;
+extern BOOL bCmdUseSecureDesktopValid;
 extern BOOL bStartOnLogon;
 extern BOOL bMountDevicesOnLogon;
 extern BOOL bMountFavoritesOnLogon;
@@ -235,9 +238,12 @@ typedef struct
 #define	ISO_BURNER_TOOL L"isoburn.exe"
 #define PRINT_TOOL L"notepad.exe"
 
+void InitGlobalLocks ();
+void FinalizeGlobalLocks ();
 void cleanup ( void );
 void LowerCaseCopy ( wchar_t *lpszDest , const wchar_t *lpszSource );
 void UpperCaseCopy ( wchar_t *lpszDest , size_t cbDest, const wchar_t *lpszSource );
+BOOL IsNullTerminateString (const wchar_t* str, size_t cbSize);
 void CreateFullVolumePath ( wchar_t *lpszDiskFile , size_t cbDiskFile, const wchar_t *lpszFileName , BOOL *bDevice );
 int FakeDosNameForDevice ( const wchar_t *lpszDiskFile , wchar_t *lpszDosDevice , size_t cbDosDevice, wchar_t *lpszCFDevice , size_t cbCFDevice, BOOL bNameOnly );
 int RemoveFakeDosName ( wchar_t *lpszDiskFile , wchar_t *lpszDosDevice );
@@ -303,13 +309,14 @@ void InitOSVersionInfo ();
 void InitApp ( HINSTANCE hInstance, wchar_t *lpszCommandLine );
 void FinalizeApp (void);
 void InitHelpFileName (void);
-BOOL OpenDevice (const wchar_t *lpszPath, OPEN_TEST_STRUCT *driver, BOOL detectFilesystem, BOOL matchVolumeID, const BYTE* pbVolumeID);
+BOOL OpenDevice (const wchar_t *lpszPath, OPEN_TEST_STRUCT *driver, BOOL detectFilesystem, BOOL computeVolumeID);
 void NotifyDriverOfPortableMode (void);
 int GetAvailableFixedDisks ( HWND hComboBox , char *lpszRootPath );
 int GetAvailableRemovables ( HWND hComboBox , char *lpszRootPath );
 int IsSystemDevicePath (const wchar_t *path, HWND hwndDlg, BOOL bReliableRequired);
 int IsNonSysPartitionOnSysDrive (const wchar_t *path);
 BOOL CALLBACK RawDevicesDlgProc ( HWND hwndDlg , UINT msg , WPARAM wParam , LPARAM lParam );
+BOOL CALLBACK TextEditDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 INT_PTR TextInfoDialogBox (int nID);
 BOOL CALLBACK TextInfoDialogBoxDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 char * GetLegalNotices ();
@@ -333,6 +340,7 @@ BOOL UpdateDriveCustomLabel (int driveNo, wchar_t* effectiveLabel, BOOL bSetValu
 BOOL CheckCapsLock (HWND hwnd, BOOL quiet);
 BOOL CheckFileExtension (wchar_t *fileName);
 void CorrectFileName (wchar_t* fileName);
+void CorrectURL (wchar_t* fileName);
 void IncreaseWrongPwdRetryCount (int count);
 void ResetWrongPwdRetryCount (void);
 BOOL WrongPwdRetryCountOverLimit (void);
@@ -364,6 +372,8 @@ BOOL FileExists (const wchar_t *filePathPtr);
 __int64 FindStringInFile (const wchar_t *filePath, const char *str, int strLen);
 BOOL TCCopyFile (wchar_t *sourceFileName, wchar_t *destinationFile);
 BOOL SaveBufferToFile (const char *inputBuffer, const wchar_t *destinationFile, DWORD inputLength, BOOL bAppend, BOOL bRenameIfFailed);
+typedef void (_cdecl *ProgressFn) ( HWND hwndDlg , const wchar_t *txt );
+BOOL DecompressZipToDir (const unsigned char *inputBuffer, DWORD inputLength, const wchar_t *destinationFile, ProgressFn progressFnPtr, HWND hwndDlg);
 BOOL TCFlushFile (FILE *f);
 BOOL PrintHardCopyTextUTF16 (wchar_t *text, wchar_t *title, size_t byteLen);
 void GetSpeedString (unsigned __int64 speed, wchar_t *str, size_t cbStr);
@@ -444,7 +454,7 @@ BOOL IsServerOS ();
 BOOL IsHiddenOSRunning (void);
 BOOL EnableWow64FsRedirection (BOOL enable);
 BOOL RestartComputer (BOOL bShutdown);
-void Applink (char *dest, BOOL bSendOS, char *extraOutput);
+void Applink (const char *dest);
 wchar_t *RelativePath2Absolute (wchar_t *szFileName);
 void HandleDriveNotReadyError (HWND hwnd);
 BOOL CALLBACK CloseTCWindowsEnum( HWND hwnd, LPARAM lParam);
@@ -457,7 +467,7 @@ BOOL SelectMultipleFilesNext (wchar_t *lpszFileName, size_t cbFileName);
 void OpenOnlineHelp ();
 BOOL GetPartitionInfo (const wchar_t *deviceName, PPARTITION_INFORMATION rpartInfo);
 BOOL GetDeviceInfo (const wchar_t *deviceName, DISK_PARTITION_INFO_STRUCT *info);
-BOOL GetDriveGeometry (const wchar_t *deviceName, PDISK_GEOMETRY diskGeometry);
+BOOL GetDriveGeometry (const wchar_t *deviceName, PDISK_GEOMETRY_EX diskGeometry);
 BOOL GetPhysicalDriveGeometry (int driveNumber, PDISK_GEOMETRY diskGeometry);
 BOOL IsVolumeDeviceHosted (const wchar_t *lpszDiskFile);
 int CompensateXDPI (int val);
@@ -495,7 +505,7 @@ BOOL VolumePathExists (const wchar_t *volumePath);
 BOOL IsWindowsIsoBurnerAvailable ();
 BOOL LaunchWindowsIsoBurner (HWND hwnd, const wchar_t *isoPath);
 BOOL IsApplicationInstalled (const wchar_t *appName);
-int GetPim (HWND hwndDlg, UINT ctrlId);
+int GetPim (HWND hwndDlg, UINT ctrlId, int defaultPim);
 void SetPim (HWND hwndDlg, UINT ctrlId, int pim);
 BOOL GetPassword (HWND hwndDlg, UINT ctrlID, char* passValue, int bufSize, BOOL bShowError);
 void SetPassword (HWND hwndDlg, UINT ctrlID, char* passValue);
@@ -514,12 +524,15 @@ BOOL LaunchElevatedProcess (HWND hwndDlg, const wchar_t* szModPath, const wchar_
 BOOL GetFreeDriveLetter(WCHAR* pCh);
 BOOL RaisePrivileges(void);
 BOOL DeleteDirectory (const wchar_t* szDirName);
+INT_PTR SecureDesktopDialogBoxParam (HINSTANCE, LPCWSTR, HWND, DLGPROC, LPARAM);
 
 #ifdef __cplusplus
 }
 
 #include <vector>
 #include <string>
+
+typedef std::vector<unsigned char> ByteArray;
 
 struct HostDevice
 {
@@ -534,11 +547,34 @@ struct HostDevice
 		HasUnencryptedFilesystem (false),
 		Removable (false),
 		Size (0),
-		SystemNumber((uint32) -1)
+		SystemNumber((uint32) -1),
+		HasVolumeIDs (false)
 	{
+		ZeroMemory (VolumeIDs, sizeof (VolumeIDs));
 	}
 
-	~HostDevice () { }
+	HostDevice (const HostDevice& device)
+		:
+		Bootable (device.Bootable),
+		ContainsSystem (device.ContainsSystem),
+		DynamicVolume (device.DynamicVolume),
+		Floppy (device.Floppy),
+		IsPartition (device.IsPartition),
+		IsVirtualPartition (device.IsVirtualPartition),
+		HasUnencryptedFilesystem (device.HasUnencryptedFilesystem),
+		MountPoint (device.MountPoint),
+		Name (device.Name),
+		Path (device.Path),
+		Removable (device.Removable),
+		Size (device.Size),
+		SystemNumber (device.SystemNumber),	
+		HasVolumeIDs (device.HasVolumeIDs),
+		Partitions (device.Partitions)
+	{
+		memcpy (VolumeIDs, device.VolumeIDs, sizeof (VolumeIDs));
+	}
+
+	~HostDevice () {}
 
 	bool Bootable;
 	bool ContainsSystem;
@@ -553,6 +589,8 @@ struct HostDevice
 	bool Removable;
 	uint64 Size;
 	uint32 SystemNumber;
+	BYTE VolumeIDs[TC_VOLUME_TYPE_COUNT][VOLUME_ID_SIZE];
+	bool HasVolumeIDs;
 
 	std::vector <HostDevice> Partitions;
 };
@@ -583,10 +621,13 @@ bool HexWideStringToArray (const wchar_t* hexStr, std::vector<byte>& arr);
 std::wstring FindDeviceByVolumeID (const BYTE volumeID [VOLUME_ID_SIZE]);
 void RegisterDriverInf (bool registerFilter, const std::string& filter, const std::string& filterReg, HWND ParentWindow, HKEY regKey);
 std::wstring GetTempPathString ();
+void CorrectFileName (std::wstring& fileName);
 inline std::wstring AppendSrcPos (const wchar_t* msg, const char* srcPos)
 {
 	return std::wstring (msg? msg : L"") + L"\n\nSource: " + SingleStringToWide (srcPos);
 }
+void UpdateMountableHostDeviceList ();
+INT_PTR TextEditDialogBox (BOOL readOnly, HWND parent, const WCHAR* Title, std::string& text);
 
 // Display a wait dialog while calling the provided callback with the given parameter
 typedef void (CALLBACK* WaitThreadProc)(void* pArg, HWND hWaitDlg);
