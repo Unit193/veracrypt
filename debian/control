@@ -3,11 +3,9 @@ Section: non-free/utils
 Priority: optional
 Maintainer: Unit 193 <unit193@ubuntu.com>
 Build-Depends: debhelper (>= 10),
- imagemagick,
  libappindicator-dev,
  libfuse-dev,
  libwxgtk3.0-dev,
- makeself,
  pkg-config,
  yasm [any-i386 any-amd64]
 Standards-Version: 4.0.0
