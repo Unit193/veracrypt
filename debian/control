@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 10),
  makeself,
  pkg-config,
  yasm [any-i386 any-amd64]
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Homepage: https://veracrypt.fr/
 
 Package: veracrypt
