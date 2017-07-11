@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -22,6 +22,8 @@ namespace VeraCrypt
 		FavoriteVolume()
 			:
 			Pim (0),
+			Pkcs5 (-1),
+			TrueCryptMode (-1),
 			DisableHotkeyMount (false),
 			DisconnectedDevice (false),
 			MountOnLogOn (false),
@@ -41,6 +43,8 @@ namespace VeraCrypt
 		wstring VolumePathId;
 		wstring Label;
 		int Pim;
+		int Pkcs5;
+		int TrueCryptMode;
 		BYTE VolumeID[VOLUME_ID_SIZE];
 
 		bool DisableHotkeyMount;

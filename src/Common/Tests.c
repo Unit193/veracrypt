@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -583,8 +583,8 @@ BOOL RunHashTest (HashFunction fn, HashTestVector* vector, BOOL bUseSSE)
 	BOOL bRet = TRUE;
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
 	KFLOATING_SAVE floatingPointState;
-	NTSTATUS saveStatus = STATUS_SUCCESS;
-	if (bUseSSE && (HasSSE2() || HasSSE41()))
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+	if (bUseSSE)
 		saveStatus = KeSaveFloatingPointState (&floatingPointState);
 #endif
 	while (vector[i].hexInput && vector[i].hexOutput)
@@ -601,7 +601,7 @@ BOOL RunHashTest (HashFunction fn, HashTestVector* vector, BOOL bUseSSE)
 	}
 
 #if defined (DEVICE_DRIVER) && !defined (_WIN64)
-	if (NT_SUCCESS (saveStatus) && bUseSSE && (HasSSE2() || HasSSE41()))
+	if (NT_SUCCESS (saveStatus))
 		KeRestoreFloatingPointState (&floatingPointState);
 #endif
 
@@ -1355,18 +1355,45 @@ BOOL AutoTestAlgorithms (void)
 {
 	BOOL result = TRUE;
 	BOOL hwEncryptionEnabled = IsHwEncryptionEnabled();
+#if defined (_MSC_VER) && !defined (_UEFI)
+	BOOL exceptionCatched = FALSE;
+	__try
+	{
+#endif
+		EnableHwEncryption (FALSE);
 
-	EnableHwEncryption (FALSE);
+		if (!DoAutoTestAlgorithms())
+			result = FALSE;
 
-	if (!DoAutoTestAlgorithms())
-		result = FALSE;
+		EnableHwEncryption (TRUE);
 
-	EnableHwEncryption (TRUE);
+		if (!DoAutoTestAlgorithms())
+			result = FALSE;
 
-	if (!DoAutoTestAlgorithms())
-		result = FALSE;
+		EnableHwEncryption (hwEncryptionEnabled);
+#if defined (_MSC_VER) && !defined (_UEFI)
+	}
+    __except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		exceptionCatched = TRUE;
+	}
 
-	EnableHwEncryption (hwEncryptionEnabled);
+	if (exceptionCatched)
+	{
+		/* unexepected exception raised. Disable all CPU extended feature and try again */
+		EnableHwEncryption (hwEncryptionEnabled);
+		DisableCPUExtendedFeatures ();
+		__try
+		{
+			result = DoAutoTestAlgorithms();
+		}
+	    __except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			/* exception still occuring. Report failure. */
+			result = FALSE;
+		}
+	}
+#endif
 	return result;
 }
 
@@ -1508,7 +1535,7 @@ BOOL test_pkcs5 ()
 		return FALSE;
 
 	/* STREEBOG hash tests */
-	if (RunHashTest (StreebogHash, Streebog512TestVectors, TRUE) == FALSE)
+	if (RunHashTest (StreebogHash, Streebog512TestVectors, (HasSSE2() || HasSSE41())? TRUE : FALSE) == FALSE)
 		return FALSE;
 
 	/* PKCS-5 test 1 with HMAC-SHA-256 used as the PRF (https://tools.ietf.org/html/draft-josefsson-scrypt-kdf-00) */

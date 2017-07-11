@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2016 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2017 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -133,14 +133,15 @@ BOOL CheckPasswordCharEncoding (HWND hPassword, Password *ptrPw)
 }
 
 
-BOOL CheckPasswordLength (HWND hwndDlg, unsigned __int32 passwordLength, int pim, BOOL bForBoot, BOOL bSkipPasswordWarning, BOOL bSkipPimWarning)
+BOOL CheckPasswordLength (HWND hwndDlg, unsigned __int32 passwordLength, int pim, BOOL bForBoot, int bootPRF, BOOL bSkipPasswordWarning, BOOL bSkipPimWarning)
 {
-	BOOL bCustomPimSmall = ((pim != 0) && (pim < (bForBoot? 98 : 485)))? TRUE : FALSE;
+	BOOL bootPimCondition = (bForBoot && (bootPRF != SHA512 && bootPRF != WHIRLPOOL))? TRUE : FALSE;
+	BOOL bCustomPimSmall = ((pim != 0) && (pim < (bootPimCondition? 98 : 485)))? TRUE : FALSE;
 	if (passwordLength < PASSWORD_LEN_WARNING)
 	{
 		if (bCustomPimSmall)
 		{
-			Error (bForBoot? "BOOT_PIM_REQUIRE_LONG_PASSWORD": "PIM_REQUIRE_LONG_PASSWORD", hwndDlg);
+			Error (bootPimCondition? "BOOT_PIM_REQUIRE_LONG_PASSWORD": "PIM_REQUIRE_LONG_PASSWORD", hwndDlg);
 			return FALSE;
 		}
 
@@ -157,7 +158,7 @@ BOOL CheckPasswordLength (HWND hwndDlg, unsigned __int32 passwordLength, int pim
 	}
 #endif
 
-	if ((pim != 0) && (pim > (bForBoot? 98 : 485)))
+	if ((pim != 0) && (pim > (bootPimCondition? 98 : 485)))
 	{
 		// warn that mount/boot will take more time
 		Warning ("PIM_LARGE_WARNING", hwndDlg);
@@ -186,7 +187,7 @@ int ChangePwd (const wchar_t *lpszVolume, Password *oldPassword, int old_pkcs5, 
 	BOOL bTimeStampValid = FALSE;
 	LARGE_INTEGER headerOffset;
 	BOOL backupHeader;
-	DISK_GEOMETRY driveInfo;
+	DISK_GEOMETRY_EX driveInfo;
 
 	if (oldPassword->Length == 0 || newPassword->Length == 0) return -1;
 
@@ -239,7 +240,7 @@ int ChangePwd (const wchar_t *lpszVolume, Password *oldPassword, int old_pkcs5, 
 			DWORD dwResult;
 			BOOL bResult;
 
-			bResult = DeviceIoControl (dev, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0,
+			bResult = DeviceIoControl (dev, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, NULL, 0,
 				&driveInfo, sizeof (driveInfo), &dwResult, NULL);
 
 			if (!bResult)
@@ -253,8 +254,7 @@ int ChangePwd (const wchar_t *lpszVolume, Password *oldPassword, int old_pkcs5, 
 			}
 			else
 			{
-				hostSize = driveInfo.Cylinders.QuadPart * driveInfo.BytesPerSector *
-					driveInfo.SectorsPerTrack * driveInfo.TracksPerCylinder;
+				hostSize = driveInfo.DiskSize.QuadPart;
 			}
 
 			if (hostSize == 0)

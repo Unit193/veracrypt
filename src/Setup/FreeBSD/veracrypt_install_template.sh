@@ -1,3 +1,126 @@
+#
+# Derived from source code of TrueCrypt 7.1a, which is
+# Copyright (c) 2008-2012 TrueCrypt Developers Association and which is governed
+# by the TrueCrypt License 3.0.
+#
+# Modifications and additions to the original source code (contained in this file)
+# and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+# and are governed by the Apache License 2.0 the full text of which is
+# contained in the file License.txt included in VeraCrypt binary and source
+# code distribution packages.
+#
+
+PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin/X11
+
+PACKAGE_DIR=$(dirname $(mktemp))
+PACKAGE=$PACKAGE_DIR/$PACKAGE_NAME
+umask 022
+
+
+# Terminal setup
+
+TTY=0
+tty >/dev/null 2>/dev/null && TTY=1
+
+GUI=0
+XMESSAGE=0
+XTERM=0
+GTERM=0
+KTERM=0
+
+
+case $PACKAGE_TYPE in
+	tar)
+		PACKAGE_INSTALLER=tar
+		PACKAGE_INSTALLER_OPTS='-C / -xpzvf'
+		;;
+esac
+
+
+if [ -n "$DISPLAY" -a "$INSTALLER_TYPE" != "console" ]
+then
+	GUI=1
+	which xmessage >/dev/null 2>/dev/null && XMESSAGE=1
+	which xterm >/dev/null 2>/dev/null && XTERM=1
+	which gnome-terminal >/dev/null 2>/dev/null && GTERM=1
+	which konsole >/dev/null 2>/dev/null && KTERM=1
+fi
+
+if [ $TTY -eq 0 ]
+then
+	[ $GUI -eq 0 ] && echo 'Error: Terminal required' >&2 && exit 1
+
+	if [ $XMESSAGE -eq 0 ] || ([ $XTERM -eq 0 ] && [ $GTERM -eq 0 ] && [ $KTERM -eq 0 ])
+	then
+		which gnome-terminal && exec gnome-terminal -e "$0"
+		which konsole && exec konsole -e "$0"
+		which xterm && exec xterm -e "$0"
+
+		[ $XMESSAGE -eq 1 ] && show_exit_message 'Error: Terminal required'
+		exit 1
+	fi
+fi
+
+if [ $XMESSAGE -eq 0 ] || ([ $XTERM -eq 0 ] && [ $GTERM -eq 0 ] && [ $KTERM -eq 0 ])
+then
+	GUI=0
+	XMESSAGE=0
+	XTERM=0
+	GTERM=0
+	KTERM=0
+fi
+
+
+show_message()
+{
+	if [ $GUI -eq 1 ]
+	then
+		if [ $XMESSAGE -eq 1 ]
+		then
+			xmessage -center -buttons OK -default OK "$*"
+		else
+			if [ $TTY -eq 1 ]
+			then
+				echo "$*"
+			else
+				if [ $XTERM -eq 1 ]
+				then
+					xterm -T 'VeraCrypt Setup' -e sh -c "echo $*; read A"
+				else
+					if [ $GTERM -eq 1 ]
+					then
+						gnome-terminal --title='VeraCrypt Setup' -e "sh -c \"echo $*; read A\""
+					else
+						if [ $KTERM -eq 1 ]
+						then
+							konsole --title 'VeraCrypt Setup' --caption 'VeraCrypt Setup' -e sh -c "echo $*; read A"
+						fi
+					fi
+				fi
+			fi
+		fi
+	else
+		echo "$*"
+	fi
+}
+
+show_exit_message()
+{
+	show_message "$*"
+
+	if [ $XMESSAGE -eq 0 ]
+	then
+		printf 'Press Enter to exit... '
+		read A
+	fi
+}
+
+# License extraction
+
+trap 'rm -f $LICENSE $PACKAGE; exit 1' HUP INT QUIT TERM
+LICENSE=$(mktemp)
+
+cat >$LICENSE <<_LICENSE_END
 VeraCrypt License
 Software distributed under this license is distributed on an "AS
 IS" BASIS WITHOUT WARRANTIES OF ANY KIND. THE AUTHORS AND
@@ -21,180 +144,190 @@ other names confusingly similar to the name VeraCrypt (e.g.,
 Vera-Crypt, Vera Crypt, VerKrypt, etc.)
 ____________________________________________________________
 
-							Apache License
-					   Version 2.0, January 2004
-					https://www.apache.org/licenses/
+Apache License
+Version 2.0, January 2004
+https://www.apache.org/licenses/
 
 TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 1. Definitions.
 
-  "License" shall mean the terms and conditions for use, reproduction,
-  and distribution as defined by Sections 1 through 9 of this document.
+"License" shall mean the terms and conditions for use,
+reproduction, and distribution as defined by Sections 1 through
+9 of this document.
 
-  "Licensor" shall mean the copyright owner or entity authorized by
-  the copyright owner that is granting the License.
+"Licensor" shall mean the copyright owner or entity authorized
+by the copyright owner that is granting the License.
 
-  "Legal Entity" shall mean the union of the acting entity and all
-  other entities that control, are controlled by, or are under common
-  control with that entity. For the purposes of this definition,
-  "control" means (i) the power, direct or indirect, to cause the
-  direction or management of such entity, whether by contract or
-  otherwise, or (ii) ownership of fifty percent (50%) or more of the
-  outstanding shares, or (iii) beneficial ownership of such entity.
+"Legal Entity" shall mean the union of the acting entity and all
+other entities that control, are controlled by, or are under
+common control with that entity. For the purposes of this
+definition, "control" means (i) the power, direct or indirect,
+to cause the direction or management of such entity, whether by
+contract or otherwise, or (ii) ownership of fifty percent (50%)
+or more of the outstanding shares, or (iii) beneficial ownership
+of such entity.
 
-  "You" (or "Your") shall mean an individual or Legal Entity
-  exercising permissions granted by this License.
+"You" (or "Your") shall mean an individual or Legal Entity
+exercising permissions granted by this License.
 
-  "Source" form shall mean the preferred form for making modifications,
-  including but not limited to software source code, documentation
-  source, and configuration files.
+"Source" form shall mean the preferred form for making
+modifications, including but not limited to software source
+code, documentation source, and configuration files.
 
-  "Object" form shall mean any form resulting from mechanical
-  transformation or translation of a Source form, including but
-  not limited to compiled object code, generated documentation,
-  and conversions to other media types.
+"Object" form shall mean any form resulting from mechanical
+transformation or translation of a Source form, including but
+not limited to compiled object code, generated documentation,
+and conversions to other media types.
 
-  "Work" shall mean the work of authorship, whether in Source or
-  Object form, made available under the License, as indicated by a
-  copyright notice that is included in or attached to the work
-  (an example is provided in the Appendix below).
+"Work" shall mean the work of authorship, whether in Source or
+Object form, made available under the License, as indicated by
+a copyright notice that is included in or attached to the work
+(an example is provided in the Appendix below).
 
-  "Derivative Works" shall mean any work, whether in Source or Object
-  form, that is based on (or derived from) the Work and for which the
-  editorial revisions, annotations, elaborations, or other modifications
-  represent, as a whole, an original work of authorship. For the purposes
-  of this License, Derivative Works shall not include works that remain
-  separable from, or merely link (or bind by name) to the interfaces of,
-  the Work and Derivative Works thereof.
+"Derivative Works" shall mean any work, whether in Source or
+Object form, that is based on (or derived from) the Work and
+for which the editorial revisions, annotations, elaborations, or
+other modifications represent, as a whole, an original work of
+authorship. For the purposes of this License, Derivative Works
+shall not include works that remain separable from, or merely
+link (or bind by name) to the interfaces of, the Work and
+Derivative Works thereof.
 
-  "Contribution" shall mean any work of authorship, including
-  the original version of the Work and any modifications or additions
-  to that Work or Derivative Works thereof, that is intentionally
-  submitted to Licensor for inclusion in the Work by the copyright owner
-  or by an individual or Legal Entity authorized to submit on behalf of
-  the copyright owner. For the purposes of this definition, "submitted"
-  means any form of electronic, verbal, or written communication sent
-  to the Licensor or its representatives, including but not limited to
-  communication on electronic mailing lists, source code control systems,
-  and issue tracking systems that are managed by, or on behalf of, the
-  Licensor for the purpose of discussing and improving the Work, but
-  excluding communication that is conspicuously marked or otherwise
-  designated in writing by the copyright owner as "Not a Contribution."
+"Contribution" shall mean any work of authorship, including
+the original version of the Work and any modifications or
+additions to that Work or Derivative Works thereof, that is
+intentionally submitted to Licensor for inclusion in the Work by
+the copyright owner or by an individual or Legal Entity
+authorized to submit on behalf of the copyright owner. For the
+purposes of this definition, "submitted" means any form
+of electronic, verbal, or written communication sent to the
+Licensor or its representatives, including but not limited to
+communication on electronic mailing lists, source code control
+systems, and issue tracking systems that are managed by, or on
+behalf of, the Licensor for the purpose of discussing and
+improving the Work, but excluding communication that is
+conspicuously marked or otherwise designated in writing by the
+copyright owner as "Not a Contribution."
 
-  "Contributor" shall mean Licensor and any individual or Legal Entity
-  on behalf of whom a Contribution has been received by Licensor and
-  subsequently incorporated within the Work.
+"Contributor" shall mean Licensor and any individual or Legal
+Entity on behalf of whom a Contribution has been received by
+Licensor and subsequently incorporated within the Work.
 
-2. Grant of Copyright License. Subject to the terms and conditions of
-  this License, each Contributor hereby grants to You a perpetual,
-  worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-  copyright license to reproduce, prepare Derivative Works of,
-  publicly display, publicly perform, sublicense, and distribute the
-  Work and such Derivative Works in Source or Object form.
+2. Grant of Copyright License. Subject to the terms and
+conditions of this License, each Contributor hereby grants to
+You a perpetual, worldwide, non-exclusive, no-charge,
+royalty-free, irrevocable copyright license to reproduce,
+prepare Derivative Works of, publicly display, publicly perform,
+sublicense, and distribute the Work and such Derivative Works
+in Source or Object form.
 
-3. Grant of Patent License. Subject to the terms and conditions of
-  this License, each Contributor hereby grants to You a perpetual,
-  worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-  (except as stated in this section) patent license to make, have made,
-  use, offer to sell, sell, import, and otherwise transfer the Work,
-  where such license applies only to those patent claims licensable
-  by such Contributor that are necessarily infringed by their
-  Contribution(s) alone or by combination of their Contribution(s)
-  with the Work to which such Contribution(s) was submitted. If You
-  institute patent litigation against any entity (including a
-  cross-claim or counterclaim in a lawsuit) alleging that the Work
-  or a Contribution incorporated within the Work constitutes direct
-  or contributory patent infringement, then any patent licenses
-  granted to You under this License for that Work shall terminate
-  as of the date such litigation is filed.
+3. Grant of Patent License. Subject to the terms and conditions
+of this License, each Contributor hereby grants to You a
+perpetual, worldwide, non-exclusive, no-charge, royalty-free,
+irrevocable(except as stated in this section) patent license
+to make, have made, use, offer to sell, sell, import, and
+otherwise transfer the Work, where such license applies only
+to those patent claims licensable by such Contributor that are
+necessarily infringed by their Contribution(s) alone or by
+combination of their Contribution(s) with the Work to which such
+Contribution(s) was submitted. If You institute patent
+litigation against any entity (including a cross-claim or
+counterclaim in a lawsuit) alleging that the Work or a
+Contribution incorporated within the Work constitutes direct or
+contributory patent infringement, then any patent licenses
+granted to You under this License for that Work shall terminate
+as of the date such litigation is filed.
 
-4. Redistribution. You may reproduce and distribute copies of the
-  Work or Derivative Works thereof in any medium, with or without
-  modifications, and in Source or Object form, provided that You
-  meet the following conditions:
+4. Redistribution. You may reproduce and distribute copies of
+the Work or Derivative Works thereof in any medium, with or
+without modifications, and in Source or Object form, provided
+that You meet the following conditions:
 
-  (a) You must give any other recipients of the Work or
-	  Derivative Works a copy of this License; and
+(a) You must give any other recipients of the Work or Derivative
+    Works a copy of this License; and
+(b) You must cause any modified files to carry prominent notices
+    stating that You changed the files; and
+(c) You must retain, in the Source form of any Derivative Works
+    that You distribute, all copyright, patent, trademark, and
+    attribution notices from the Source form of the Work,
+    excluding those notices that do not pertain to any part of
+    the Derivative Works; and
+(d) If the Work includes a "NOTICE" text file as part of its
+    distribution, then any Derivative Works that You distribute
+    must include a readable copy of the attribution notices
+    contained within such NOTICE file, excluding those notices
+    that do not pertain to any part of the Derivative Works, in
+    at least one of the following places: within a NOTICE text
+    file distributed as part of the Derivative Works; within the
+    Source form or documentation, if provided along with the
+    Derivative Works; or, within a display generated by the
+    Derivative Works, if and wherever such third-party notices
+    normally appear. The contents of the NOTICE file are for
+    informational purposes only and do not modify the License.
+    You may add Your own attribution notices within Derivative
+    Works that You distribute, alongside or as an addendum to
+    the NOTICE text from the Work, provided that such additional
+    attribution notices cannot be construed as modifying
+    the License.
 
-  (b) You must cause any modified files to carry prominent notices
-	  stating that You changed the files; and
+You may add Your own copyright statement to Your modifications
+and may provide additional or different license terms
+and conditions for use, reproduction, or distribution of
+Your modifications, or for any such Derivative Works as a whole,
+provided Your use, reproduction, and distribution of the Work
+otherwise complies with the conditions stated in this License.
 
-  (c) You must retain, in the Source form of any Derivative Works
-	  that You distribute, all copyright, patent, trademark, and
-	  attribution notices from the Source form of the Work,
-	  excluding those notices that do not pertain to any part of
-	  the Derivative Works; and
+5. Submission of Contributions. Unless You explicitly state
+otherwise, any Contribution intentionally submitted for
+inclusion in the Work by You to the Licensor shall be under the
+terms and conditions of this License, without any additional
+terms or conditions. Notwithstanding the above, nothing herein
+shall supersede or modify the terms of any separate license
+agreement you may have executed with Licensor regarding such
+Contributions.
 
-  (d) If the Work includes a "NOTICE" text file as part of its
-	  distribution, then any Derivative Works that You distribute must
-	  include a readable copy of the attribution notices contained
-	  within such NOTICE file, excluding those notices that do not
-	  pertain to any part of the Derivative Works, in at least one
-	  of the following places: within a NOTICE text file distributed
-	  as part of the Derivative Works; within the Source form or
-	  documentation, if provided along with the Derivative Works; or,
-	  within a display generated by the Derivative Works, if and
-	  wherever such third-party notices normally appear. The contents
-	  of the NOTICE file are for informational purposes only and
-	  do not modify the License. You may add Your own attribution
-	  notices within Derivative Works that You distribute, alongside
-	  or as an addendum to the NOTICE text from the Work, provided
-	  that such additional attribution notices cannot be construed
-	  as modifying the License.
-
-  You may add Your own copyright statement to Your modifications and
-  may provide additional or different license terms and conditions
-  for use, reproduction, or distribution of Your modifications, or
-  for any such Derivative Works as a whole, provided Your use,
-  reproduction, and distribution of the Work otherwise complies with
-  the conditions stated in this License.
-
-5. Submission of Contributions. Unless You explicitly state otherwise,
-  any Contribution intentionally submitted for inclusion in the Work
-  by You to the Licensor shall be under the terms and conditions of
-  this License, without any additional terms or conditions.
-  Notwithstanding the above, nothing herein shall supersede or modify
-  the terms of any separate license agreement you may have executed
-  with Licensor regarding such Contributions.
-
-6. Trademarks. This License does not grant permission to use the trade
-  names, trademarks, service marks, or product names of the Licensor,
-  except as required for reasonable and customary use in describing the
-  origin of the Work and reproducing the content of the NOTICE file.
+6. Trademarks. This License does not grant permission to use the
+trade names, trademarks, service marks, or product names of the
+Licensor, except as required for reasonable and customary use in
+describing the origin of the Work and reproducing the content of
+the NOTICE file.
 
 7. Disclaimer of Warranty. Unless required by applicable law or
-  agreed to in writing, Licensor provides the Work (and each
-  Contributor provides its Contributions) on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-  implied, including, without limitation, any warranties or conditions
-  of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-  PARTICULAR PURPOSE. You are solely responsible for determining the
-  appropriateness of using or redistributing the Work and assume any
-  risks associated with Your exercise of permissions under this License.
+agreed to in writing, Licensor provides the Work (and each
+Contributor provides its Contributions) on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied, including, without limitation, any warranties or
+conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY,
+or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible
+for determining the appropriateness of using or redistributing
+the Work and assume any risks associated with Your exercise of
+permissions under this License.
 
-8. Limitation of Liability. In no event and under no legal theory,
-  whether in tort (including negligence), contract, or otherwise,
-  unless required by applicable law (such as deliberate and grossly
-  negligent acts) or agreed to in writing, shall any Contributor be
-  liable to You for damages, including any direct, indirect, special,
-  incidental, or consequential damages of any character arising as a
-  result of this License or out of the use or inability to use the
-  Work (including but not limited to damages for loss of goodwill,
-  work stoppage, computer failure or malfunction, or any and all
-  other commercial damages or losses), even if such Contributor
-  has been advised of the possibility of such damages.
+8. Limitation of Liability. In no event and under no legal
+theory, whether in tort (including negligence), contract,
+or otherwise, unless required by applicable law (such as
+deliberate and grossly negligent acts) or agreed to in writing,
+shall any Contributor be liable to You for damages, including
+any direct, indirect, special, incidental, or consequential
+damages of any character arising as a result of this License or
+out of the use or inability to use the Work (including but not
+limited to damages for loss of goodwill, work stoppage, computer
+failure or malfunction, or any and all other commercial damages
+or losses), even if such Contributor has been advised of the
+possibility of such damages.
 
-9. Accepting Warranty or Additional Liability. While redistributing
-  the Work or Derivative Works thereof, You may choose to offer,
-  and charge a fee for, acceptance of support, warranty, indemnity,
-  or other liability obligations and/or rights consistent with this
-  License. However, in accepting such obligations, You may act only
-  on Your own behalf and on Your sole responsibility, not on behalf
-  of any other Contributor, and only if You agree to indemnify,
-  defend, and hold each Contributor harmless for any liability
-  incurred by, or claims asserted against, such Contributor by reason
-  of your accepting any such warranty or additional liability.
+9. Accepting Warranty or Additional Liability. While
+redistributing the Work or Derivative Works thereof, You may
+choose to offer, and charge a fee for, acceptance of support,
+warranty, indemnity, or other liability obligations and/or
+rights consistent with this License. However, in accepting such
+obligations, You may act only on Your own behalf and on Your
+sole responsibility, not on behalf of any other Contributor,
+and only if You agree to indemnify, defend, and hold each
+Contributor harmless for any liability incurred by, or claims
+asserted against, such Contributor by reason of your accepting
+any such warranty or additional liability.
 ____________________________________________________________
 
 TrueCrypt License Version 3.0
@@ -679,94 +812,289 @@ warranties in respect of its properties, including, but not
 limited to, correctness and/or fitness for purpose.
 ____________________________________________________________
 
-Copyright (C) 1995-2013 Jean-loup Gailly and Mark Adler
+Copyright (C) 2002-2004 Mark Adler, all rights reserved
+version 1.8, 9 Jan 2004
 
-  This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
-  arising from the use of this software.
+This software is provided 'as-is', without any express or
+implied warranty.  In no event will the author be held liable
+for any damages arising from the use of this software.
 
-  Permission is granted to anyone to use this software for any purpose,
-  including commercial applications, and to alter it and redistribute it
-  freely, subject to the following restrictions:
+Permission is granted to anyone to use this software for any
+purpose, including commercial applications, and to alter it and
+redistribute it freely, subject to the following restrictions:
 
-  1. The origin of this software must not be misrepresented; you must not
-     claim that you wrote the original software. If you use this software
-     in a product, an acknowledgment in the product documentation would be
-     appreciated but is not required.
-  2. Altered source versions must be plainly marked as such, and must not be
-     misrepresented as being the original software.
-  3. This notice may not be removed or altered from any source distribution.
-
-  Jean-loup Gailly        Mark Adler
-  jloup@gzip.org          madler@alumni.caltech.edu
+1. The origin of this software must not be misrepresented; you
+   must not claim that you wrote the original software. If you
+   use this software in a product, an acknowledgment in the
+   product documentation would be appreciated but is not
+   required.
+2. Altered source versions must be plainly marked as such, and
+   must not be misrepresented as being the original software.
+3. This notice may not be removed or altered from any source
+   distribution.
 ____________________________________________________________
-Copyright (C) 1999-2016 Dieter Baron and Thomas Klausner
+_LICENSE_END
 
-The authors can be contacted at <libzip@nih.at>
+[ $? -ne 0 ] && show_exit_message 'Error while extracting license' && exit 1
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
 
-1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
+# Task selection
 
-2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
+INSTALL=-1
 
-3. The names of the authors may not be used to endorse or promote
-  products derived from this software without specific prior
-  written permission.
+if [ $XMESSAGE -eq 1 ]
+then
 
-THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS
-OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-____________________________________________________________
-Copyright (c) 2013, Alexey Degtyarev. All rights reserved.
+	cat <<_END | xmessage -center -file - -buttons "Exit:1,Extract .$PACKAGE_TYPE Package File:20,Install VeraCrypt:10" -default 'Install VeraCrypt'
+VeraCrypt $VERSION Setup
+====================
+ VeraCrypt is a free disk encryption software brought to you by IDRIX
+ (http://www.idrix.fr) and that is based on TrueCrypt.
+ It is a software system for establishing and maintaining an
+ on-the-fly-encrypted volume (data storage device). On-the-fly encryption
+ means that data are automatically encrypted or decrypted right before they
+ are loaded or saved, without any user intervention. No data stored on an
+ encrypted volume can be read (decrypted) without using the correct
+ password/keyfile(s) or correct encryption keys. Entire file system is
+ encrypted (e.g., file names, folder names, contents of every file,
+ free space, meta data, etc).
 
-____________________________________________________________
-Copyright (c) 2016. Disk Cryptography Services for EFI (DCS), Alex Kolotnikov
-This program and the accompanying materials are licensed and made available 
-under the terms and conditions of the GNU Lesser General Public License, 
-version 3.0 (LGPL-3.0).
+Please select one of the below options:
 
-The full text of the license may be found at https://opensource.org/licenses/LGPL-3.0
-____________________________________________________________
-Copyright (c) 1999-2013,2014,2015,2016 Jack Lloyd. 
+_END
 
-All rights reserved.
+	SEL=$?
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
+	case $SEL in
+		1)	exit 1
+			;;
+		10)	INSTALL=1
+			;;
+		20)	INSTALL=0
+			;;
+	esac
 
-1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
+else
 
-2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
+	while [ $INSTALL -eq -1 ]
+	do
+		clear
+		cat <<_MENU_END
+VeraCrypt $VERSION Setup
+____________________
 
-THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS
-OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-____________________________________________________________
+
+Installation options:
+
+ 1) Install $PACKAGE_NAME
+ 2) Extract package file $PACKAGE_NAME and place it to $PACKAGE_DIR
+
+_MENU_END
+
+		printf 'To select, enter 1 or 2: '
+
+		read SEL
+		[ -z "$SEL" ] && SEL=1
+
+		case $SEL in
+			1)	INSTALL=1
+				;;
+			2)	INSTALL=0
+				;;
+		esac
+	done
+
+fi
+
+
+# Administrator privileges check
+
+SUDO=sudo
+
+if [ $INSTALL -eq 1 -a $(id -u) -ne 0 ]
+then
+	if ! which $SUDO >/dev/null 2>/dev/null
+	then
+		show_exit_message "Error: Administrator privileges required ($SUDO command is not installed)"
+		rm -f $LICENSE
+		exit 1
+	fi
+else
+	unset SUDO
+fi
+
+[ -n "$SUDO" -a $GUI -eq 1 ] && which gksudo >/dev/null 2>/dev/null && SUDO="gksudo -D 'VeraCrypt Setup' --"
+[ -n "$SUDO" -a $GUI -eq 1 ] && which kdesudo >/dev/null 2>/dev/null && SUDO="kdesudo -d --comment 'VeraCrypt Setup' --"
+
+
+# License agreement
+
+if [ $XMESSAGE -eq 1 ]
+then
+
+# GUI license agreement
+
+	cat <<_END | cat - $LICENSE | xmessage -center -file - -buttons 'I accept and agree to be bound by the license terms:10,I do not accept:20'
+
+Before you can use, extract, or install VeraCrypt, you must accept these
+license terms.
+
+IMPORTANT: By clicking the left button below this text field, you accept
+these license terms and agree to be bound by and to comply with them.
+Press Page Down key or use the scroll bar to see the rest of the license.
+
+
+
+_END
+
+	SEL=$?
+
+	rm -f $LICENSE
+	if [ $SEL -ne 10 ]
+	then
+		show_exit_message 'Installation/extraction aborted'
+		exit 1
+	fi
+
+else
+
+# Console license agreement
+
+printf '\nBefore you can use, extract, or install VeraCrypt, you must accept the\n'
+printf 'terms of the VeraCrypt License.\n\nPress Enter to display the license terms... '
+read A
+
+MORE=more
+HASLESS=0
+which less >/dev/null 2>/dev/null && HASLESS=1
+if [ $HASLESS -eq 1 ]
+then
+	MORE='less -E -X'
+fi
+	cat <<_END | cat - $LICENSE | $MORE
+
+Press Enter or space bar to see the rest of the license.
+
+
+_END
+	if [ $? -ne 0 ]
+	then
+		if [ $HASLESS -eq 1 ]
+		then
+# use less without -X as it is not supported by some versions (busybox case)
+			MORE='less -E'
+			cat <<_END | cat - $LICENSE | $MORE
+
+Press Enter or space bar to see the rest of the license.
+
+
+_END
+			[ $? -ne 0 ] && exit 1
+		else
+			exit 1
+		fi
+	fi
+
+	rm -f $LICENSE
+
+	ACCEPTED=0
+	while [ $ACCEPTED -eq 0 ]
+	do
+		printf '\n\nDo you accept and agree to be bound by the license terms? (yes/no): '
+
+		read SEL
+
+		case $SEL in
+			y|Y|yes|YES)
+				ACCEPTED=1
+				;;
+			n|N|no|NO)
+				exit 0
+				;;
+		esac
+	done
+fi
+
+
+# Package extraction
+
+[ $GUI -eq 0 ] && echo
+
+if ! tail -n +$PACKAGE_START "$0" >$PACKAGE
+then
+	show_exit_message "Error: Extraction to $PACKAGE failed"
+	exit 1
+fi
+
+
+# Package installation
+
+if [ "$PACKAGE_TYPE" = "tar" ]
+then
+	if ! which fusermount >/dev/null 2>/dev/null || ! which dmsetup >/dev/null 2>/dev/null
+	then
+		show_message "$(cat <<_INFO
+Requirements for Running VeraCrypt:
+-----------------------------------
+
+ - FUSE library and tools
+ - device mapper tools
+
+_INFO
+)"
+		[ $GUI -eq 0 ] && echo && echo Press Enter to continue... && read A
+	fi
+
+	show_message "$(cat <<_INFO
+Uninstalling VeraCrypt:
+-----------------------
+
+To uninstall VeraCrypt, please run 'veracrypt-uninstall.sh'.
+
+_INFO
+)"
+	[ $GUI -eq 0 ] && echo
+fi
+
+if [ $INSTALL -eq 1 ]
+then
+
+	INSTALLED=0
+
+	if [ $GUI -eq 1 ]
+	then
+		if [ $XTERM -eq 1 ]
+		then
+			exec xterm -T 'VeraCrypt Setup' -e sh -c "echo Installing package...; $SUDO $PACKAGE_INSTALLER $PACKAGE_INSTALLER_OPTS $PACKAGE; rm -f $PACKAGE; echo; echo Press Enter to exit...; read A"
+		else
+			if [ $GTERM -eq 1 ]
+			then
+				exec gnome-terminal --title='VeraCrypt Setup' -e "sh -c \"echo Installing package...; $SUDO $PACKAGE_INSTALLER $PACKAGE_INSTALLER_OPTS $PACKAGE; rm -f $PACKAGE; echo; echo Press Enter to exit...; read A\""
+			else
+				if [ $KTERM -eq 1 ]
+				then
+					exec konsole --title 'VeraCrypt Setup' --caption 'VeraCrypt Setup' -e sh -c "echo Installing package...; $SUDO $PACKAGE_INSTALLER $PACKAGE_INSTALLER_OPTS $PACKAGE; rm -f $PACKAGE; echo; echo Press Enter to exit...; read A"
+				fi
+			fi
+		fi
+	else
+		echo 'Installing package...'
+		$SUDO $PACKAGE_INSTALLER $PACKAGE_INSTALLER_OPTS $PACKAGE && INSTALLED=1
+
+		if [ $INSTALLED -eq 1 ]
+		then
+			show_exit_message ''
+		fi
+	fi
+
+	rm -f $PACKAGE
+	if [ $INSTALLED -ne 1 ]
+	then
+		show_exit_message 'Error: VeraCrypt installation failed'
+		exit 1
+	fi
+else
+	show_exit_message "Installation package '$PACKAGE_NAME' extracted and placed in '$PACKAGE_DIR'"
+fi
+
+exit 0

@@ -42,7 +42,11 @@
 #define __STDC_LIMIT_MACROS
 
 #ifdef _WIN32
+#ifdef ZIP_STATIC
+#define ZIP_EXTERN
+#else
 #define ZIP_EXTERN __declspec(dllexport)
+#endif
 /* for dup(), close(), etc. */
 #include <io.h>
 #endif
@@ -100,6 +104,12 @@ typedef char bool;
 #endif
 #if !defined(HAVE__SETMODE) && defined(HAVE_SETMODE)
 #define _setmode	setmode
+#endif
+#if !defined(HAVE_STRTOLL) && defined(HAVE__STRTOI64)
+#define strtoll		_strtoi64
+#endif
+#if !defined(HAVE_STRTOULL) && defined(HAVE__STRTOUI64)
+#define strtoull	_strtoui64
 #endif
 #endif
 
