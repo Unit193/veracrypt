@@ -1,0 +1,52 @@
+Description: Fixup the install target so it's usable.
+ - Use a path that works from the top src dir.
+ - Inverse 'doc' and 'veracrypt' in /usr/share/veracrypt/doc/
+ - Don't install the uninstall script nor extra License.txt file.
+ - Use our own veracrypt.desktop file.
+Author: Unit 193 <unit193@ubuntu.com>
+
+Origin: vendor
+Forwarded: no
+Last-Update: 2017-07-10
+
+--- veracrypt-1.21.orig/src/Main/Main.make
++++ veracrypt-1.21/src/Main/Main.make
+@@ -223,25 +223,25 @@ endif
+ 
+ ifeq "$(PLATFORM)" "Linux"
+ prepare: $(APPNAME)
+-	rm -fr $(PWD)/Setup/Linux/usr
+-	mkdir -p $(PWD)/Setup/Linux/usr/bin
+-	mkdir -p $(PWD)/Setup/Linux/usr/share/$(APPNAME)/doc/HTML
+-	cp $(PWD)/Main/$(APPNAME) $(PWD)/Setup/Linux/usr/bin/$(APPNAME)
+-	cp $(PWD)/Setup/Linux/$(APPNAME)-uninstall.sh $(PWD)/Setup/Linux/usr/bin/$(APPNAME)-uninstall.sh
+-	chmod +x $(PWD)/Setup/Linux/usr/bin/$(APPNAME)-uninstall.sh
+-	cp $(PWD)/License.txt $(PWD)/Setup/Linux/usr/share/$(APPNAME)/doc/License.txt
+-	cp $(PWD)/../doc/html/* "$(PWD)/Setup/Linux/usr/share/$(APPNAME)/doc/HTML"
++	rm -fr $(CURDIR)/../Setup/Linux/usr
++	mkdir -p $(CURDIR)/../Setup/Linux/usr/bin
++	mkdir -p $(CURDIR)/../Setup/Linux/usr/share/doc/$(APPNAME)/HTML
++	cp $(CURDIR)/$(APPNAME) $(CURDIR)/../Setup/Linux/usr/bin/$(APPNAME)
++#	cp $(CURDIR)/../Setup/Linux/$(APPNAME)-uninstall.sh $(CURDIR)/../Setup/Linux/usr/bin/$(APPNAME)-uninstall.sh
++#	chmod +x $(CURDIR)/../Setup/Linux/usr/bin/$(APPNAME)-uninstall.sh
++#	cp $(CURDIR)/../License.txt $(CURDIR)/../Setup/Linux/usr/share/doc/$(APPNAME)/License.txt
++	cp $(CURDIR)/../../doc/html/* "$(CURDIR)/../Setup/Linux/usr/share/doc/$(APPNAME)/HTML"
+ 
+ ifndef TC_NO_GUI
+-	mkdir -p $(PWD)/Setup/Linux/usr/share/applications
+-	mkdir -p $(PWD)/Setup/Linux/usr/share/pixmaps
+-	cp $(PWD)/Resources/Icons/VeraCrypt-256x256.xpm $(PWD)/Setup/Linux/usr/share/pixmaps/$(APPNAME).xpm
+-	cp $(PWD)/Setup/Linux/$(APPNAME).desktop $(PWD)/Setup/Linux/usr/share/applications/$(APPNAME).desktop
++#	mkdir -p $(CURDIR)/../Setup/Linux/usr/share/applications
++	mkdir -p $(CURDIR)/../Setup/Linux/usr/share/pixmaps
++	cp $(CURDIR)/../Resources/Icons/VeraCrypt-256x256.xpm $(CURDIR)/../Setup/Linux/usr/share/pixmaps/$(APPNAME).xpm
++#	cp $(CURDIR)/../Setup/Linux/$(APPNAME).desktop $(CURDIR)/../Setup/Linux/usr/share/applications/$(APPNAME).desktop
+ endif
+ 
+ 
+ install: prepare
+-	cp -R $(CURDIR)/Setup/Linux/usr $(DESTDIR)/.
++	cp -R $(CURDIR)/../Setup/Linux/usr $(DESTDIR)/
+ 
+ ifeq "$(TC_BUILD_CONFIG)" "Release"
+ package: prepare
