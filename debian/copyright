@@ -4,8 +4,40 @@ Source: https://sourceforge.net/projects/veracrypt/
 
 Files: *
 Copyright: 2003-2011, TrueCrypt Developers Association
-	   2013-2016, IDRIX
+	   2013-2017, IDRIX
 License: TC-3.0 or Apache-2.0
+Comment:
+ Modifications and additions to the original source code are copyright IDRIX
+ and are governed by the Apache License 2.0.
+
+Files: src/Main/Forms/VolumePimWizardPage.*
+Copyright: 2015-2016 Mounir IDRASSI
+License: Apache-2.0
+
+Files: src/Crypto/CamelliaSmall.c
+Copyright: 2006-2015, ARM Limited
+License: Apache-2.0
+
+Files: src/Crypto/sha512_avx2_x64.asm
+       src/Crypto/sha256_avx1_x64.asm
+       src/Crypto/sha512_sse4_x64.asm
+       src/Crypto/sha256_avx2_x64.asm
+       src/Crypto/sha256_sse4_x64.asm
+       src/Crypto/sha512_avx1_x64.asm
+Copyright: 2012, Intel Corporation
+License: BSD-3-Clause
+
+Files: src/Crypto/sha512-x86-nayuki.S src/Crypto/sha256-x86-nayuki.S
+Copyright: 2014 Project Nayuki
+License: Expat
+
+Files: src/Crypto/sha512-x64-nayuki.S
+Copyright: 2017 Project Nayuki
+License: Expat
+
+Files: src/Crypto/Twofish_x64.S src/Crypto/Camellia_aesni_x64.S src/Crypto/Camellia_x64.S
+Copyright: 2011-2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+License: ISC
 
 Files:	src/Common/Apidrvr.h
 	src/Common/Cache.*
@@ -35,6 +67,10 @@ Files:	src/Common/Apidrvr.h
 Copyright: 1998-2000, Paul Le Roux
 License: E4M
 
+Files:  src/Common/libzip/*
+Copyright: 1999-2014, Dieter Baron and Thomas Klausner
+License: BSD-3-Clause
+
 Files:	src/Common/GfMul.c
 	src/Common/GfMul.h
 	src/Crypto/Aescrypt.c
@@ -54,12 +90,16 @@ Files:	src/Common/GfMul.c
 Copyright: 1998-2007, Brian Gladman, Worcester, UK
 License: BSD-3-Clause
 
+Files: src/Common/zlib/*
+Copyright: 1995-2013, Jean-loup Gailly and Mark Adler
+License: zlib
+
 Files: src/Boot/Windows/Decompressor.c
 Copyright: 2002-2004, Mark Adler
 License: zlib
 
 Files: debian/*
-Copyright: 2013-2016, Unit 193 <unit193@ubuntu.com>
+Copyright: 2013-2017, Unit 193 <unit193@ubuntu.com>
 License: BSD-3-Clause
 
 
@@ -552,6 +592,37 @@ License: BSD-3-clause
  warranties in respect of its properties, including, but not
  limited to, correctness and/or fitness for purpose.
 
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the "Software"),
+ to deal in the Software without restriction, including without limitation
+ the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+ NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: ISC
+ Permission to use, copy, modify, and distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 License: zlib
  This software is provided 'as-is', without any express or
