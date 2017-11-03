@@ -1,3 +1,3 @@
 version=3
 opts=pgpsigurlmangle=s/$/.sig/ \
-http://sf.net/veracrypt/[Vv]era[Cc]rypt_([\d\w\._-]+)_[Ss]ource\.tar\.(?:gz|bz2|xz)
+https://sf.net/veracrypt/[Vv]era[Cc]rypt_([\d\w\._-]+)_[Ss]ource\.tar\.(?:gz|bz2|xz)
