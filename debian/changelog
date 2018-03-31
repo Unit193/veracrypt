@@ -1,3 +1,19 @@
+veracrypt (1.22-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.22
+    - d/p/005-fix-ftbfs-gcc-7.diff: Drop, applied upstream.
+    - Refresh remaining patches.
+  * Update Standards-Version to 4.1.3.
+  * d/copyright:
+    - Add a comment as to why this is a 'non-free' package.
+    - Update years.
+  * d/compat, d/control: Bump dh compat to 11.
+  * d/p/003-indicator-support.diff: Correct the indicator icon name.
+  * d/s/lintian-overrides: Override notes about pre-built windows files.
+  * d/veracrypt.docs: Install src/NOTICE.
+
+ -- Unit 193 <unit193@ubuntu.com>  Fri, 30 Mar 2018 22:38:27 -0400
+
 veracrypt (1.21-0vanir2) unstable; urgency=medium
 
   * Update Standards-Version to 4.1.1.
