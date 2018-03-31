@@ -1,6 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: veracrypt
 Source: https://sourceforge.net/projects/veracrypt/
+Comment: TC-3.0 license is distribution encumbered.
 
 Files: *
 Copyright: 2003-2011, TrueCrypt Developers Association
