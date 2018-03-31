@@ -8,10 +8,10 @@ Forwarded: no
 
 Signed-off-by: Unit 193 <unit193@ubuntu.com>
 
-Index: veracrypt-1.20/src/Main/Forms/MainFrame.cpp
+Index: veracrypt/src/Main/Forms/MainFrame.cpp
 ===================================================================
---- veracrypt-1.20.orig/src/Main/Forms/MainFrame.cpp
-+++ veracrypt-1.20/src/Main/Forms/MainFrame.cpp
+--- veracrypt.orig/src/Main/Forms/MainFrame.cpp
++++ veracrypt/src/Main/Forms/MainFrame.cpp
 @@ -46,6 +46,9 @@ namespace VeraCrypt
  	DEFINE_EVENT_TYPE(wxEVT_COMMAND_SHOW_WARNING)
  
@@ -103,10 +103,10 @@ Index: veracrypt-1.20/src/Main/Forms/MainFrame.cpp
  		}
  	}
  
-Index: veracrypt-1.20/src/Main/Forms/MainFrame.h
+Index: veracrypt/src/Main/Forms/MainFrame.h
 ===================================================================
---- veracrypt-1.20.orig/src/Main/Forms/MainFrame.h
-+++ veracrypt-1.20/src/Main/Forms/MainFrame.h
+--- veracrypt.orig/src/Main/Forms/MainFrame.h
++++ veracrypt/src/Main/Forms/MainFrame.h
 @@ -13,6 +13,16 @@
  #ifndef TC_HEADER_Main_Forms_MainFrame
  #define TC_HEADER_Main_Forms_MainFrame
@@ -151,11 +151,11 @@ Index: veracrypt-1.20/src/Main/Forms/MainFrame.h
  		void MountVolume ();
  		void OnAboutMenuItemSelected (wxCommandEvent& event);
  		void OnQuit(wxCommandEvent& event) { Close(true); }
-Index: veracrypt-1.20/src/Main/GraphicUserInterface.cpp
+Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
---- veracrypt-1.20.orig/src/Main/GraphicUserInterface.cpp
-+++ veracrypt-1.20/src/Main/GraphicUserInterface.cpp
-@@ -1663,6 +1663,10 @@ namespace VeraCrypt
+--- veracrypt.orig/src/Main/GraphicUserInterface.cpp
++++ veracrypt/src/Main/GraphicUserInterface.cpp
+@@ -1677,6 +1677,10 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
@@ -166,10 +166,10 @@ Index: veracrypt-1.20/src/Main/GraphicUserInterface.cpp
  	}
  
  	void GraphicUserInterface::SetListCtrlColumnWidths (wxListCtrl *listCtrl, list <int> columnWidthPermilles, bool hasVerticalScrollbar) const
-Index: veracrypt-1.20/src/Makefile
+Index: veracrypt/src/Makefile
 ===================================================================
---- veracrypt-1.20.orig/src/Makefile
-+++ veracrypt-1.20/src/Makefile
+--- veracrypt.orig/src/Makefile
++++ veracrypt/src/Makefile
 @@ -60,6 +60,15 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
  CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
  CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
