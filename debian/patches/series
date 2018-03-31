@@ -2,4 +2,3 @@
 002-build-flags.diff
 003-indicator-support.diff
 004-fixup-install.diff
-005-fix-ftbfs-gcc-7.diff
