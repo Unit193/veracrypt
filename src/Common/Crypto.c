@@ -87,6 +87,11 @@ static EncryptionAlgorithm EncryptionAlgorithms[] =
 	{ { AES, SERPENT,				0 }, { XTS, 0 },	1, 1 },
 	{ { AES, TWOFISH, SERPENT,	0 }, { XTS, 0 },	1, 1 },
 	{ { SERPENT, TWOFISH,		0 }, { XTS, 0 },	1, 1 },
+	{ { KUZNYECHIK, CAMELLIA,		0 }, { XTS, 0 },	0, 1 },
+	{ { TWOFISH, KUZNYECHIK,		0 }, { XTS, 0 },	0, 1 },
+	{ { SERPENT, CAMELLIA,		0 }, { XTS, 0 },	0, 1 },
+	{ { AES, KUZNYECHIK,		0 }, { XTS, 0 },	0, 1 },
+	{ { CAMELLIA, SERPENT, KUZNYECHIK,	0 }, { XTS, 0 },	0, 1 },
 	{ { 0,							0 }, { 0,    0},	0, 0 }		// Must be all-zero
 
 #else // TC_WINDOWS_BOOT
@@ -255,6 +260,20 @@ void EncipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 			camellia_encrypt_blocks(ks, data, data, (uint32) blockCount);
 	}
 #endif
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
+	else if (cipher == KUZNYECHIK
+			&& HasSSE2()
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+			&& (blockCount >= 4) && NT_SUCCESS (KeSaveFloatingPointState (&floatingPointState))
+#endif
+		)
+	{
+		kuznyechik_encrypt_blocks (data, data, blockCount, ks);
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+	}
+#endif
 	else if (cipher == GOST89)	{
 			gost_encrypt(data, data, ks, (int)blockCount);
 	}
@@ -358,6 +377,20 @@ void DecipherBlocks (int cipher, void *dataPtr, void *ks, size_t blockCount)
 			camellia_decrypt_blocks(ks, data, data, (uint32) blockCount);
 	}
 #endif
+#if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
+	else if (cipher == KUZNYECHIK			
+			&& HasSSE2()
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+			&& (blockCount >= 4) && NT_SUCCESS (KeSaveFloatingPointState (&floatingPointState))
+#endif
+		)
+	{
+		kuznyechik_decrypt_blocks (data, data, blockCount, ks);
+#if defined (TC_WINDOWS_DRIVER) && !defined (_WIN64)
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+	}
+#endif
 	else if (cipher == GOST89)	{
 			gost_decrypt(data, data, ks, (int)blockCount);
 	}
@@ -393,17 +426,13 @@ const wchar_t *CipherGetName (int cipherId)
    Cipher* pCipher = CipherGet (cipherId);
    return  pCipher? pCipher -> Name : L"";
 }
-#endif
 
 int CipherGetBlockSize (int cipherId)
 {
-#ifdef TC_WINDOWS_BOOT
-	return CipherGet (cipherId) -> BlockSize;
-#else
    Cipher* pCipher = CipherGet (cipherId);
    return pCipher? pCipher -> BlockSize : 0;
-#endif
 }
+#endif
 
 int CipherGetKeySize (int cipherId)
 {
@@ -433,6 +462,7 @@ BOOL CipherSupportsIntraDataUnitParallelization (int cipher)
 		|| (cipher == GOST89)
 #if CRYPTOPP_BOOL_SSE2_INTRINSICS_AVAILABLE && !defined (_UEFI)
 		|| (cipher == SERPENT && HasSSE2())
+		|| (cipher == KUZNYECHIK && HasSSE2())
 #endif
 #if CRYPTOPP_BOOL_X64
 		|| (cipher == TWOFISH)
@@ -451,6 +481,7 @@ int EAGetFirst ()
 	return 1;
 }
 
+#ifndef TC_WINDOWS_BOOT
 // Returns number of EAs
 int EAGetCount (void)
 {
@@ -462,6 +493,7 @@ int EAGetCount (void)
 	}
 	return count;
 }
+#endif
 
 int EAGetNext (int previousEA)
 {
@@ -593,6 +625,8 @@ int EAGetKeySize (int ea)
 }
 
 
+#ifndef TC_WINDOWS_BOOT
+
 // Returns the first mode of operation of EA
 int EAGetFirstMode (int ea)
 {
@@ -611,9 +645,6 @@ int EAGetNextMode (int ea, int previousModeId)
 
 	return 0;
 }
-
-
-#ifndef TC_WINDOWS_BOOT
 
 // Returns the name of the mode of operation of the whole EA
 wchar_t *EAGetModeName (int ea, int mode, BOOL capitalLetters)
@@ -645,38 +676,7 @@ int EAGetKeyScheduleSize (int ea)
 	return size;
 }
 
-
-// Returns the largest key size needed by an EA for the specified mode of operation
-int EAGetLargestKeyForMode (int mode)
-{
-	int ea, key = 0;
-
-	for (ea = EAGetFirst (); ea != 0; ea = EAGetNext (ea))
-	{
-		if (!EAIsModeSupported (ea, mode))
-			continue;
-
-		if (EAGetKeySize (ea) >= key)
-			key = EAGetKeySize (ea);
-	}
-	return key;
-}
-
-
-// Returns the largest key needed by any EA for any mode
-int EAGetLargestKey ()
-{
-	int ea, key = 0;
-
-	for (ea = EAGetFirst (); ea != 0; ea = EAGetNext (ea))
-	{
-		if (EAGetKeySize (ea) >= key)
-			key = EAGetKeySize (ea);
-	}
-
-	return key;
-}
-
+#ifndef TC_WINDOWS_BOOT
 
 // Returns number of ciphers in EA
 int EAGetCipherCount (int ea)
@@ -687,6 +687,7 @@ int EAGetCipherCount (int ea)
 	return i - 1;
 }
 
+#endif
 
 int EAGetFirstCipher (int ea)
 {
@@ -732,18 +733,16 @@ int EAGetPreviousCipher (int ea, int previousCipherId)
 	return 0;
 }
 
-
+#ifndef TC_WINDOWS_BOOT
 int EAIsFormatEnabled (int ea)
 {
 	return EncryptionAlgorithms[ea].FormatEnabled;
 }
 
-#ifndef TC_WINDOWS_BOOT
 int EAIsMbrSysEncEnabled (int ea)
 {
 	return EncryptionAlgorithms[ea].MbrSysEncEnabled;
 }
-#endif
 
 // Returns TRUE if the mode of operation is supported for the encryption algorithm
 BOOL EAIsModeSupported (int ea, int testedMode)
@@ -758,7 +757,6 @@ BOOL EAIsModeSupported (int ea, int testedMode)
 	return FALSE;
 }
 
-#ifndef TC_WINDOWS_BOOT
 Hash *HashGet (int id)
 {
 	int i;
@@ -808,6 +806,22 @@ BOOL HashForSystemEncryption (int hashId)
    Hash* pHash = HashGet(hashId);
    return pHash? pHash -> SystemEncryption : FALSE;
 
+}
+
+// Returns the largest key size needed by an EA for the specified mode of operation
+int EAGetLargestKeyForMode (int mode)
+{
+	int ea, key = 0;
+
+	for (ea = EAGetFirst (); ea != 0; ea = EAGetNext (ea))
+	{
+		if (!EAIsModeSupported (ea, mode))
+			continue;
+
+		if (EAGetKeySize (ea) >= key)
+			key = EAGetKeySize (ea);
+	}
+	return key;
 }
 
 // Returns the maximum number of bytes necessary to be generated by the PBKDF2 (PKCS #5)

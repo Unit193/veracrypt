@@ -173,7 +173,7 @@ typedef struct
 #ifdef TC_WINDOWS_BOOT
 #define MAX_EXPANDED_KEY	VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), CAMELLIA_KS)
 #else
-#define MAX_EXPANDED_KEY	VC_MAX(VC_MAX(VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), GOST_KS), CAMELLIA_KS), KUZNYECHIK_KS)
+#define MAX_EXPANDED_KEY	VC_MAX(VC_MAX(VC_MAX(VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), GOST_KS), CAMELLIA_KS + KUZNYECHIK_KS + SERPENT_KS), KUZNYECHIK_KS + TWOFISH_KS), AES_KS + KUZNYECHIK_KS)
 #endif
 #endif
 
@@ -354,8 +354,8 @@ int EAGetFirstCipher (int ea);
 int EAGetLastCipher (int ea);
 int EAGetNextCipher (int ea, int previousCipherId);
 int EAGetPreviousCipher (int ea, int previousCipherId);
-int EAIsFormatEnabled (int ea);
 #ifndef TC_WINDOWS_BOOT
+int EAIsFormatEnabled (int ea);
 int EAIsMbrSysEncEnabled (int ea);
 #endif
 BOOL EAIsModeSupported (int ea, int testedMode);

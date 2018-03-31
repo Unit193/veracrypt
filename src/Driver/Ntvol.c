@@ -68,6 +68,10 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 	Extension->HostMaximumPhysicalPages = 17;
 	Extension->HostAlignmentMask = 0;
 
+	/* default values for non-SSD drives */
+	Extension->IncursSeekPenalty = TRUE;
+	Extension->TrimEnabled = FALSE;
+
 	RtlInitUnicodeString (&FullFileName, pwszMountVolume);
 	InitializeObjectAttributes (&oaFileAttributes, &FullFileName, OBJ_CASE_INSENSITIVE | (forceAccessCheck ? OBJ_FORCE_ACCESS_CHECK : 0) | OBJ_KERNEL_HANDLE, NULL, NULL);
 	KeInitializeEvent (&Extension->keVolumeEvent, NotificationEvent, FALSE);
@@ -89,7 +93,7 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 		LARGE_INTEGER diskLengthInfo;
 		DISK_GEOMETRY_EX dg;
 		STORAGE_PROPERTY_QUERY storagePropertyQuery = {0};
-		STORAGE_DESCRIPTOR_HEADER storageHeader = {0};
+		byte* dgBuffer;
 
 		ntStatus = IoGetDeviceObjectPointer (&FullFileName,
 			FILE_READ_DATA | FILE_READ_ATTRIBUTES,
@@ -99,9 +103,49 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 		if (!NT_SUCCESS (ntStatus))
 			goto error;
 
-		ntStatus = TCSendHostDeviceIoControlRequest (DeviceObject, Extension, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, (char *) &dg, sizeof (dg));
-		if (!NT_SUCCESS (ntStatus))
+		dgBuffer = TCalloc (256);
+		if (!dgBuffer)
+		{
+			ntStatus = STATUS_INSUFFICIENT_RESOURCES;
 			goto error;
+		}
+
+		ntStatus = TCSendHostDeviceIoControlRequest (DeviceObject, Extension, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, (char *) dgBuffer, 256);
+		if (!NT_SUCCESS (ntStatus))
+		{
+			DISK_GEOMETRY geo;
+			ntStatus = TCSendHostDeviceIoControlRequest (DeviceObject, Extension, IOCTL_DISK_GET_DRIVE_GEOMETRY, (char *) &geo, sizeof (geo));
+			if (!NT_SUCCESS (ntStatus))
+			{
+				TCfree (dgBuffer);
+				goto error;
+			}
+			memset (&dg, 0, sizeof (dg));
+			memcpy (&dg.Geometry, &geo, sizeof (geo));
+			dg.DiskSize.QuadPart = geo.Cylinders.QuadPart * geo.SectorsPerTrack * geo.TracksPerCylinder * geo.BytesPerSector;
+
+			if (OsMajorVersion >= 6)
+			{
+				STORAGE_READ_CAPACITY storage = {0};
+				NTSTATUS lStatus;
+
+				storage.Version = sizeof (STORAGE_READ_CAPACITY);
+				storage.Size = sizeof (STORAGE_READ_CAPACITY);
+				lStatus = TCSendHostDeviceIoControlRequest (DeviceObject, Extension,
+					IOCTL_STORAGE_READ_CAPACITY,
+					(char*)  &storage, sizeof (STORAGE_READ_CAPACITY));
+				if (	NT_SUCCESS(lStatus)
+					&& (storage.Size == sizeof (STORAGE_READ_CAPACITY))
+					)
+				{
+					dg.DiskSize.QuadPart = storage.DiskLength.QuadPart;
+				}
+			}
+		}
+		else
+			memcpy (&dg, dgBuffer, sizeof (DISK_GEOMETRY_EX));
+
+		TCfree (dgBuffer);
 
 		lDiskLength.QuadPart = dg.DiskSize.QuadPart;
 		Extension->HostBytesPerSector = dg.Geometry.BytesPerSector;
@@ -110,54 +154,57 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 		/* IOCTL_STORAGE_QUERY_PROPERTY supported only on Vista and above */
 		if (OsMajorVersion >= 6)
 		{
+			STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR alignmentDesc = {0};
+			STORAGE_ADAPTER_DESCRIPTOR adapterDesc = {0};
+			DEVICE_SEEK_PENALTY_DESCRIPTOR penaltyDesc = {0};
+			DEVICE_TRIM_DESCRIPTOR trimDesc = {0};
+
 			storagePropertyQuery.PropertyId = StorageAccessAlignmentProperty;
 			storagePropertyQuery.QueryType = PropertyStandardQuery;
 
+			alignmentDesc.Version = sizeof (STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR);
+			alignmentDesc.Size = sizeof (STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR);
+
 			if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY,
 				(char*) &storagePropertyQuery, sizeof(storagePropertyQuery),
-				(char *) &storageHeader, sizeof (storageHeader))))
+				(char *) &alignmentDesc, sizeof (alignmentDesc))))
 			{
-				byte* outputBuffer = TCalloc (storageHeader.Size);
-				if (!outputBuffer)
-				{
-					ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-					goto error;
-				}
-
-				if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY,
-					(char*) &storagePropertyQuery, sizeof(storagePropertyQuery),
-					outputBuffer, storageHeader.Size)))
-				{
-					PSTORAGE_ACCESS_ALIGNMENT_DESCRIPTOR pStorageDescriptor = (PSTORAGE_ACCESS_ALIGNMENT_DESCRIPTOR) outputBuffer;
-					Extension->HostBytesPerPhysicalSector = pStorageDescriptor->BytesPerPhysicalSector;
-				}
-
-				TCfree (outputBuffer);			
+				Extension->HostBytesPerPhysicalSector = alignmentDesc.BytesPerPhysicalSector;
 			}
 
 			storagePropertyQuery.PropertyId = StorageAdapterProperty;
+			adapterDesc.Version = sizeof (STORAGE_ADAPTER_DESCRIPTOR);
+			adapterDesc.Size = sizeof (STORAGE_ADAPTER_DESCRIPTOR);
+
 			if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY,
 				(char*) &storagePropertyQuery, sizeof(storagePropertyQuery),
-				(char *) &storageHeader, sizeof (storageHeader))))
+				(char *) &adapterDesc, sizeof (adapterDesc))))
 			{
-				byte* outputBuffer = TCalloc (storageHeader.Size);
-				if (!outputBuffer)
-				{
-					ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-					goto error;
-				}
+				Extension->HostMaximumTransferLength = adapterDesc.MaximumTransferLength;
+				Extension->HostMaximumPhysicalPages = adapterDesc.MaximumPhysicalPages;
+				Extension->HostAlignmentMask = adapterDesc.AlignmentMask;
+			}
 
-				if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY,
-					(char*) &storagePropertyQuery, sizeof(storagePropertyQuery),
-					outputBuffer, storageHeader.Size)))
-				{
-					PSTORAGE_ADAPTER_DESCRIPTOR pStorageDescriptor = (PSTORAGE_ADAPTER_DESCRIPTOR) outputBuffer;
-					Extension->HostMaximumTransferLength = pStorageDescriptor->MaximumTransferLength;
-					Extension->HostMaximumPhysicalPages = pStorageDescriptor->MaximumPhysicalPages;
-					Extension->HostAlignmentMask = pStorageDescriptor->AlignmentMask;
-				}
+			storagePropertyQuery.PropertyId = StorageDeviceSeekPenaltyProperty;
+			penaltyDesc.Version = sizeof (DEVICE_SEEK_PENALTY_DESCRIPTOR);
+			penaltyDesc.Size = sizeof (DEVICE_SEEK_PENALTY_DESCRIPTOR);
 
-				TCfree (outputBuffer);			
+			if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY,
+				(char*) &storagePropertyQuery, sizeof(storagePropertyQuery),
+				(char *) &penaltyDesc, sizeof (penaltyDesc))))
+			{
+				Extension->IncursSeekPenalty = penaltyDesc.IncursSeekPenalty;
+			}
+
+			storagePropertyQuery.PropertyId = StorageDeviceTrimProperty;
+			trimDesc.Version = sizeof (DEVICE_TRIM_DESCRIPTOR);
+			trimDesc.Size = sizeof (DEVICE_TRIM_DESCRIPTOR);
+
+			if (NT_SUCCESS (TCSendHostDeviceIoControlRequestEx (DeviceObject, Extension, IOCTL_STORAGE_QUERY_PROPERTY,
+				(char*) &storagePropertyQuery, sizeof(storagePropertyQuery),
+				(char *) &trimDesc, sizeof (trimDesc))))
+			{
+				Extension->TrimEnabled = trimDesc.TrimEnabled;
 			}
 		}
 
@@ -692,8 +739,6 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 			// mount it (i.e. not just to protect it)
 			if (volumeType == TC_VOLUME_TYPE_NORMAL || !mount->bProtectHiddenVolume)
 			{
-				LARGE_INTEGER dataOffset;
-				ULONG dataLength;
 				// Validate sector size
 				if (bRawDevice && Extension->cryptoInfo->SectorSize != Extension->HostBytesPerSector)
 				{
@@ -710,90 +755,10 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 				Extension->NumberOfCylinders = (Extension->DiskLength / Extension->BytesPerSector) + 1;
 				Extension->PartitionType = 0;
 
-				// Try to detect the filesystem used by the volume in order to give a correct value to Extension->PartitionType
-				dataOffset.QuadPart = (LONGLONG) Extension->cryptoInfo->volDataAreaOffset;
-				dataLength = bRawDevice ? Extension->HostBytesPerSector : TC_VOLUME_HEADER_EFFECTIVE_SIZE;
-
-				Dump ("Reading first data at %I64d\n", dataOffset.QuadPart);
-
-				if (NT_SUCCESS (ZwReadFile (Extension->hDeviceFile,
-													NULL,
-													NULL,
-													NULL,
-													&IoStatusBlock,
-													readBuffer,
-													dataLength,
-													&dataOffset,
-													NULL)))
-				{
-					uint64 fsId = 0;
-					UINT64_STRUCT dataUnit;
-					
-					dataUnit.Value = Extension->cryptoInfo->volDataAreaOffset / ENCRYPTION_DATA_UNIT_SIZE;
-
-					if (Extension->cryptoInfo->bPartitionInInactiveSysEncScope)
-						dataUnit.Value += Extension->cryptoInfo->FirstDataUnitNo.Value;
-					DecryptDataUnits ((unsigned char*) readBuffer, &dataUnit, dataLength / ENCRYPTION_DATA_UNIT_SIZE, Extension->cryptoInfo);
-
-					fsId = BE64 (*(uint64 *) readBuffer);
-
-					switch (fsId)
-					{
-					case 0xEB3C904D53444F53: // FAT16/FAT12
-					case 0xEB3C906D6B66732E: // mkfs.fat
-					case 0xEB3C906D6B646F73: // mkfs.vfat/mkdosfs
-						// workaround for FAT32 formatting by TrueCrypt/VeraCrypt
-						if (memcmp (readBuffer + 0x52, "FAT32   ", 8) == 0)
-						{
-							Extension->PartitionType = PARTITION_FAT32;
-							Dump ("FAT32 detected with FAT16 header\n");
-						}
-						else
-						{
-							if (memcmp (readBuffer + 0x36, "FAT12   ", 8) == 0)
-							{
-								Extension->PartitionType = PARTITION_FAT_12;
-								Dump ("FAT12 detected\n");
-							}
-							else
-							{
-								Extension->PartitionType = PARTITION_FAT_16;
-								Dump ("FAT16 detected\n");
-							}
-						}
-						break;
-					case 0xEB58906D6B66732E: // mkfs.fat
-					case 0xEB58906D6B646F73: // mkfs.vfat/mkdosfs
-					case 0xEB58904D53444F53: // FAT32
-						Extension->PartitionType = PARTITION_FAT32;
-						Dump ("FAT32 detected\n");
-						break;
-					case 0xEB52904E54465320: // NTFS
-						Extension->PartitionType = PARTITION_IFS;
-						Dump ("NTFS detected\n");
-						break;
-					case 0xEB76904558464154: // exFAT
-						Extension->PartitionType = PARTITION_IFS;
-						Dump ("exFAT detected\n");
-						break;
-					case 0x0000005265465300: // ReFS
-						Extension->PartitionType = PARTITION_IFS;
-						Dump ("ReFS detected\n");
-						break;
-					default:
-						Dump ("Unknown FS ID (0x%.8I64x)\n", fsId);
-						break;
-					}
-
-					// erase sensitive data
-					EncryptDataUnits ((unsigned char*) readBuffer, &dataUnit, dataLength / ENCRYPTION_DATA_UNIT_SIZE, Extension->cryptoInfo);
-					burn (readBuffer, dataLength);
-				}
-
 				Extension->bRawDevice = bRawDevice;
 
 				memset (Extension->wszVolume, 0, sizeof (Extension->wszVolume));
-				if (wcsstr (pwszMountVolume, WIDE ("\\??\\UNC\\")) == pwszMountVolume)
+				if ((wcslen (pwszMountVolume) > 8)  && (0 == memcmp (pwszMountVolume, WIDE ("\\??\\UNC\\"), 8 * sizeof (WCHAR))))
 				{
 					/* UNC path */
 					RtlStringCbPrintfW (Extension->wszVolume,
