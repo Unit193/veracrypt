@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "winres.h"
 #include "..\\common\\resource.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -285,29 +285,31 @@ BEGIN
     LTEXT           "",IDT_PKCS11_LIB_HELP,16,63,286,65
 END
 
-IDD_EFI_SYSENC_SETTINGS DIALOGEX 0, 0, 374, 165
+IDD_EFI_SYSENC_SETTINGS DIALOGEX 0, 0, 375, 182
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt - System Encryption Settings"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "&Cache pre-boot authentication password in driver memory (for mounting of non-system volumes)",IDC_BOOT_LOADER_CACHE_PASSWORD,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,68,339,10
-    DEFPUSHBUTTON   "OK",IDOK,255,141,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,313,141,50,14
     GROUPBOX        "Boot Loader Screen Options",IDT_BOOT_LOADER_SCREEN_OPTIONS,8,7,355,45
-    GROUPBOX        "Security Options",IDT_SECURITY_OPTIONS,7,53,355,44
-    CONTROL         "Include PIM when caching pre-boot authentication password",IDC_BOOT_LOADER_CACHE_PIM,
-                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,16,83,340,10
     CONTROL         "Do not request PIM in the pre-boot authentication screen (PIM value is stored unencrypted on disk)",IDC_DISABLE_BOOT_LOADER_PIM_PROMPT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,20,339,9
     CONTROL         "Do not request Hash algorithm in the pre-boot authentication screen",IDC_DISABLE_BOOT_LOADER_HASH_PROMPT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,35,339,9
-    PUSHBUTTON      "Display EFI Platform Information",IDC_SHOW_PLATFORMINFO,187,112,173,14
-    PUSHBUTTON      "Edit Boot Loader Configuration",IDC_EDIT_DCSPROP,10,112,173,14
-    GROUPBOX        "Advanced Options",IDT_ADVANCED_OPTIONS,7,99,355,36
+    GROUPBOX        "Security Options",IDT_SECURITY_OPTIONS,7,53,355,61
+    CONTROL         "&Cache pre-boot authentication password in driver memory (for mounting of non-system volumes)",IDC_BOOT_LOADER_CACHE_PASSWORD,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,68,339,10
+    CONTROL         "Include PIM when caching pre-boot authentication password",IDC_BOOT_LOADER_CACHE_PIM,
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,16,83,340,10
+    CONTROL         "Block TRIM command on system partition/drive",IDC_BLOCK_SYSENC_TRIM,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,98,340,10
+    GROUPBOX        "Advanced Options",IDT_ADVANCED_OPTIONS,7,116,355,36
+    PUSHBUTTON      "Edit Boot Loader Configuration",IDC_EDIT_DCSPROP,10,129,173,14
+    PUSHBUTTON      "Display EFI Platform Information",IDC_SHOW_PLATFORMINFO,187,129,173,14
+    PUSHBUTTON      "Cancel",IDCANCEL,313,158,50,14
+    DEFPUSHBUTTON   "OK",IDOK,255,158,50,14
 END
 
-IDD_PERFORMANCE_SETTINGS DIALOGEX 0, 0, 370, 248
+IDD_PERFORMANCE_SETTINGS DIALOGEX 0, 0, 371, 253
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt - Performance Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -319,17 +321,19 @@ BEGIN
     CONTROL         "Do not use the following number of processors for encryption/decryption:",IDC_LIMIT_ENC_THREAD_POOL,
                     "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,18,103,283,11
     COMBOBOX        IDC_ENCRYPTION_FREE_CPU_COUNT,304,101,48,51,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "",IDT_LIMIT_ENC_THREAD_POOL_NOTE,18,126,334,33
     LTEXT           "More information",IDC_MORE_INFO_ON_THREAD_BASED_PARALLELIZATION,18,159,165,10,SS_NOTIFY
-    PUSHBUTTON      "&Benchmark",IDC_BENCHMARK,7,227,59,14
-    DEFPUSHBUTTON   "OK",IDOK,257,227,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,313,227,50,14
+    CONTROL         "Enable extended disk control codes support",IDC_ENABLE_EXTENDED_IOCTL_SUPPORT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,198,337,10
+    CONTROL         "Allow TRIM command for non-system SSD partition/drive",IDC_ALLOW_TRIM_NONSYS_SSD,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,212,337,10
+    PUSHBUTTON      "&Benchmark",IDC_BENCHMARK,7,232,59,14
+    DEFPUSHBUTTON   "OK",IDOK,257,232,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,314,232,50,14
     LTEXT           "Processor (CPU) in this computer supports hardware acceleration for AES:",IDT_HW_AES_SUPPORTED_BY_CPU,18,23,273,9
     GROUPBOX        "Hardware Acceleration",IDT_ACCELERATION_OPTIONS,7,6,355,74
     GROUPBOX        "Thread-Based Parallelization",IDT_PARALLELIZATION_OPTIONS,7,84,355,93
-    LTEXT           "",IDT_LIMIT_ENC_THREAD_POOL_NOTE,18,126,334,33
-    GROUPBOX        "Driver Configuration",IDT_DRIVER_OPTIONS,7,183,356,36
-    CONTROL         "Enable extended disk control codes support",IDC_ENABLE_EXTENDED_IOCTL_SUPPORT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,198,337,10
+    GROUPBOX        "Driver Configuration",IDT_DRIVER_OPTIONS,7,183,357,44
 END
 
 IDD_FAVORITE_VOLUMES DIALOGEX 0, 0, 380, 368
@@ -387,7 +391,7 @@ BEGIN
     CONTROL         "TrueCrypt Mode",IDC_TRUECRYPT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,76,10
 END
 
-IDD_SYSENC_SETTINGS DIALOGEX 0, 0, 370, 286
+IDD_SYSENC_SETTINGS DIALOGEX 0, 0, 371, 297
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt - System Encryption Settings"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -395,22 +399,24 @@ BEGIN
     CONTROL         "Do not &show any texts in the pre-boot authentication screen (except the below custom message)",IDC_DISABLE_BOOT_LOADER_OUTPUT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,20,339,9
     EDITTEXT        IDC_CUSTOM_BOOT_LOADER_MESSAGE,18,50,216,14,ES_AUTOHSCROLL
-    CONTROL         "&Cache pre-boot authentication password in driver memory (for mounting of non-system volumes)",IDC_BOOT_LOADER_CACHE_PASSWORD,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,192,339,10
-    CONTROL         "Allow pre-boot &authentication to be bypassed by pressing the Esc key (enables boot manager)",IDC_ALLOW_ESC_PBA_BYPASS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,222,340,10
-    DEFPUSHBUTTON   "OK",IDOK,257,262,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,313,262,50,14
-    LTEXT           "Display this custom message in the pre-boot authentication screen (24 characters maximum):",IDT_CUSTOM_BOOT_LOADER_MESSAGE,18,39,337,8
-    GROUPBOX        "Boot Loader Screen Options",IDT_BOOT_LOADER_SCREEN_OPTIONS,8,7,355,165
-    GROUPBOX        "Security Options",IDT_SECURITY_OPTIONS,8,177,355,75
-    LTEXT           "",IDC_CUSTOM_BOOT_LOADER_MESSAGE_HELP,18,72,337,73
-    CONTROL         "Disable ""Evil Maid"" attack detection",IDC_DISABLE_EVIL_MAID_ATTACK_DETECTION,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,237,340,10
-    CONTROL         "Include PIM when caching pre-boot authentication password",IDC_BOOT_LOADER_CACHE_PIM,
-                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,18,207,340,10
     CONTROL         "Do not request PIM in the pre-boot authentication screen (PIM value is stored unencrypted on disk)",IDC_DISABLE_BOOT_LOADER_PIM_PROMPT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,157,339,9
+    CONTROL         "&Cache pre-boot authentication password in driver memory (for mounting of non-system volumes)",IDC_BOOT_LOADER_CACHE_PASSWORD,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,192,339,10
+    CONTROL         "Include PIM when caching pre-boot authentication password",IDC_BOOT_LOADER_CACHE_PIM,
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,18,207,340,10
+    CONTROL         "Allow pre-boot &authentication to be bypassed by pressing the Esc key (enables boot manager)",IDC_ALLOW_ESC_PBA_BYPASS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,222,340,10
+    CONTROL         "Disable ""Evil Maid"" attack detection",IDC_DISABLE_EVIL_MAID_ATTACK_DETECTION,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,237,340,10
+    CONTROL         "Block TRIM command on system partition/drive",IDC_BLOCK_SYSENC_TRIM,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,251,340,10
+    PUSHBUTTON      "Cancel",IDCANCEL,314,273,50,14
+    DEFPUSHBUTTON   "OK",IDOK,257,273,50,14
+    LTEXT           "Display this custom message in the pre-boot authentication screen (24 characters maximum):",IDT_CUSTOM_BOOT_LOADER_MESSAGE,18,39,337,8
+    GROUPBOX        "Boot Loader Screen Options",IDT_BOOT_LOADER_SCREEN_OPTIONS,9,7,355,165
+    GROUPBOX        "Security Options",IDT_SECURITY_OPTIONS,9,177,355,92
+    LTEXT           "",IDC_CUSTOM_BOOT_LOADER_MESSAGE_HELP,18,72,337,73
 END
 
 /////////////////////////////////////////////////////////////////////////////
@@ -484,17 +490,17 @@ BEGIN
     IDD_EFI_SYSENC_SETTINGS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 367
+        RIGHTMARGIN, 368
         TOPMARGIN, 7
-        BOTTOMMARGIN, 155
+        BOTTOMMARGIN, 172
     END
 
     IDD_PERFORMANCE_SETTINGS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 363
+        RIGHTMARGIN, 364
         TOPMARGIN, 7
-        BOTTOMMARGIN, 241
+        BOTTOMMARGIN, 246
     END
 
     IDD_FAVORITE_VOLUMES, DIALOG
@@ -516,9 +522,9 @@ BEGIN
     IDD_SYSENC_SETTINGS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 363
+        RIGHTMARGIN, 364
         TOPMARGIN, 7
-        BOTTOMMARGIN, 276
+        BOTTOMMARGIN, 287
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -530,8 +536,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,21,5,0
- PRODUCTVERSION 1,21,5,0
+ FILEVERSION 1,22,9,0
+ PRODUCTVERSION 1,22,9,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -548,11 +554,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "IDRIX"
             VALUE "FileDescription", "VeraCrypt"
-            VALUE "FileVersion", "1.21"
+            VALUE "FileVersion", "1.22"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCrypt.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.21"
+            VALUE "ProductVersion", "1.22"
         END
     END
     BLOCK "VarFileInfo"

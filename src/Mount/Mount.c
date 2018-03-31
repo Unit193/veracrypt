@@ -51,7 +51,7 @@
 
 #include <Strsafe.h>
 
-#import <msxml6.dll>
+#import <msxml6.dll> no_auto_exclude
 
 #include <wtsapi32.h>
 
@@ -64,7 +64,8 @@ enum timer_ids
 {
 	TIMER_ID_MAIN = 0xff,
 	TIMER_ID_KEYB_LAYOUT_GUARD,
-	TIMER_ID_UPDATE_DEVICE_LIST
+	TIMER_ID_UPDATE_DEVICE_LIST,
+	TIMER_ID_CHECK_FOREGROUND
 };
 
 enum hidden_os_read_only_notif_mode
@@ -77,6 +78,7 @@ enum hidden_os_read_only_notif_mode
 #define TIMER_INTERVAL_MAIN					500
 #define TIMER_INTERVAL_KEYB_LAYOUT_GUARD	10
 #define TIMER_INTERVAL_UPDATE_DEVICE_LIST	1000
+#define TIMER_INTERVAL_CHECK_FOREGROUND		500
 
 BootEncryption			*BootEncObj = NULL;
 BootEncryptionStatus	BootEncStatus;
@@ -379,11 +381,16 @@ static void localcleanup (void)
 
 void RefreshMainDlg (HWND hwndDlg)
 {
-	int drive = (wchar_t) (HIWORD (GetSelectedLong (GetDlgItem (hwndDlg, IDC_DRIVELIST))));
+	if (Silent)
+		LoadDriveLetters (hwndDlg, NULL, 0);
+	else
+	{
+		int drive = (wchar_t) (HIWORD (GetSelectedLong (GetDlgItem (hwndDlg, IDC_DRIVELIST))));
 
-	MoveEditToCombo (GetDlgItem (hwndDlg, IDC_VOLUME), bHistory);
-	LoadDriveLetters (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST), drive);
-	EnableDisableButtons (hwndDlg);
+		MoveEditToCombo (GetDlgItem (hwndDlg, IDC_VOLUME), bHistory);
+		LoadDriveLetters (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST), drive);
+		EnableDisableButtons (hwndDlg);
+	}
 }
 
 void EndMainDlg (HWND hwndDlg)
@@ -427,63 +434,66 @@ static void InitMainDialog (HWND hwndDlg)
 	wchar_t *str;
 	int i;
 
-	/* Call the common dialog init code */
-	InitDialog (hwndDlg);
-	LocalizeDialog (hwndDlg, NULL);
-
-	SetWindowLongPtrW (hwndDlg, DWLP_USER, (LONG_PTR) (IsAdmin() ? TC_MAIN_WINDOW_FLAG_ADMIN_PRIVILEGES : 0));
-
-	DragAcceptFiles (hwndDlg, TRUE);
-
-	SendMessageW (GetDlgItem (hwndDlg, IDC_VOLUME), CB_LIMITTEXT, TC_MAX_PATH, 0);
-	SetWindowTextW (hwndDlg, (IsAdmin() && !IsBuiltInAdmin() && IsUacSupported() && !IsNonInstallMode()) ? (wstring (lpszTitle) + L" [" + GetString ("ADMINISTRATOR") + L"]").c_str() : lpszTitle);
-
-	// Help file name
-	InitHelpFileName();
-
-	// Localize menu strings
-	for (i = 40001; str = (wchar_t *)GetDictionaryValueByInt (i); i++)
+	if (!Silent)
 	{
-		info.cbSize = sizeof (info);
-		info.fMask = MIIM_TYPE;
-		info.fType = MFT_STRING;
-		info.dwTypeData = str;
-		info.cch = (UINT) wcslen (str);
+		/* Call the common dialog init code */
+		InitDialog (hwndDlg);
+		LocalizeDialog (hwndDlg, NULL);
 
-		SetMenuItemInfoW (GetMenu (hwndDlg), i, FALSE,  &info);
-	}
+		SetWindowLongPtrW (hwndDlg, DWLP_USER, (LONG_PTR) (IsAdmin() ? TC_MAIN_WINDOW_FLAG_ADMIN_PRIVILEGES : 0));
 
-	for (i = 0; popupTexts[i] != 0; i++)
-	{
-		str = GetString (popupTexts[i]);
+		DragAcceptFiles (hwndDlg, TRUE);
 
-		info.cbSize = sizeof (info);
-		info.fMask = MIIM_TYPE;
+		SendMessageW (GetDlgItem (hwndDlg, IDC_VOLUME), CB_LIMITTEXT, TC_MAX_PATH, 0);
+		SetWindowTextW (hwndDlg, (IsAdmin() && !IsBuiltInAdmin() && IsUacSupported() && !IsNonInstallMode()) ? (wstring (lpszTitle) + L" [" + GetString ("ADMINISTRATOR") + L"]").c_str() : lpszTitle);
 
-		if (strcmp (popupTexts[i], "MENU_WEBSITE") == 0)
-			info.fType = MFT_STRING | MFT_RIGHTJUSTIFY;
-		else
-			info.fType = MFT_STRING;
+		// Help file name
+		InitHelpFileName();
 
-		if (strcmp (popupTexts[i], "MENU_FAVORITES") == 0)
-			FavoriteVolumesMenu = GetSubMenu (GetMenu (hwndDlg), i);
-
-		info.dwTypeData = str;
-		info.cch = (UINT) wcslen (str);
-
-		SetMenuItemInfoW (GetMenu (hwndDlg), i, TRUE,  &info);
-	}
-
-	{
-		// disable hidden OS creation for GPT system encryption
-		if (bSystemIsGPT)
+		// Localize menu strings
+		for (i = 40001; str = (wchar_t *)GetDictionaryValueByInt (i); i++)
 		{
-			EnableMenuItem (GetMenu (hwndDlg), IDM_CREATE_HIDDEN_OS, MF_GRAYED);
-		}
-	}
+			info.cbSize = sizeof (info);
+			info.fMask = MIIM_TYPE;
+			info.fType = MFT_STRING;
+			info.dwTypeData = str;
+			info.cch = (UINT) wcslen (str);
 
-	// Disable menu item for changing system header key derivation algorithm until it's implemented
-	EnableMenuItem (GetMenu (hwndDlg), IDM_CHANGE_SYS_HEADER_KEY_DERIV_ALGO, MF_GRAYED);
+			SetMenuItemInfoW (GetMenu (hwndDlg), i, FALSE,  &info);
+		}
+
+		for (i = 0; popupTexts[i] != 0; i++)
+		{
+			str = GetString (popupTexts[i]);
+
+			info.cbSize = sizeof (info);
+			info.fMask = MIIM_TYPE;
+
+			if (strcmp (popupTexts[i], "MENU_WEBSITE") == 0)
+				info.fType = MFT_STRING | MFT_RIGHTJUSTIFY;
+			else
+				info.fType = MFT_STRING;
+
+			if (strcmp (popupTexts[i], "MENU_FAVORITES") == 0)
+				FavoriteVolumesMenu = GetSubMenu (GetMenu (hwndDlg), i);
+
+			info.dwTypeData = str;
+			info.cch = (UINT) wcslen (str);
+
+			SetMenuItemInfoW (GetMenu (hwndDlg), i, TRUE,  &info);
+		}
+
+		{
+			// disable hidden OS creation for GPT system encryption
+			if (bSystemIsGPT)
+			{
+				EnableMenuItem (GetMenu (hwndDlg), IDM_CREATE_HIDDEN_OS, MF_GRAYED);
+			}
+		}
+
+		// Disable menu item for changing system header key derivation algorithm until it's implemented
+		EnableMenuItem (GetMenu (hwndDlg), IDM_CHANGE_SYS_HEADER_KEY_DERIV_ALGO, MF_GRAYED);
+	}
 
 	try
 	{
@@ -497,31 +507,36 @@ static void InitMainDialog (HWND hwndDlg)
 	// initialize the list of devices available for mounting as early as possible
 	UpdateMountableHostDeviceList ();
 
-	// Resize the logo bitmap if the user has a non-default DPI
-	if (ScreenDPI != USER_DEFAULT_SCREEN_DPI
-		&& hbmLogoBitmapRescaled == NULL)	// If not re-called (e.g. after language pack change)
-	{
-		hbmLogoBitmapRescaled = RenderBitmap (MAKEINTRESOURCE (IDB_LOGO_288DPI),
-			GetDlgItem (hwndDlg, IDC_LOGO),
-			0, 0, 0, 0, FALSE, TRUE);
-	}
-
-	BuildTree (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST));
-
-	if (*szDriveLetter != 0)
-	{
-		SelectItem (GetDlgItem (hwndDlg, IDC_DRIVELIST), *szDriveLetter);
-
-		if(nSelectedDriveIndex > SendMessage (GetDlgItem (hwndDlg, IDC_DRIVELIST), LVM_GETITEMCOUNT, 0, 0)/2)
-			SendMessage(GetDlgItem (hwndDlg, IDC_DRIVELIST), LVM_SCROLL, 0, 10000);
-	}
+	if (Silent)
+		LoadDriveLetters (hwndDlg, NULL, 0);
 	else
 	{
-		SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM) GetDlgItem (hwndDlg, IDC_DRIVELIST), 1L);
-	}
+		// Resize the logo bitmap if the user has a non-default DPI
+		if (ScreenDPI != USER_DEFAULT_SCREEN_DPI
+			&& hbmLogoBitmapRescaled == NULL)	// If not re-called (e.g. after language pack change)
+		{
+			hbmLogoBitmapRescaled = RenderBitmap (MAKEINTRESOURCE (IDB_LOGO_288DPI),
+				GetDlgItem (hwndDlg, IDC_LOGO),
+				0, 0, 0, 0, FALSE, TRUE);
+		}
 
-	SendMessage (GetDlgItem (hwndDlg, IDC_NO_HISTORY), BM_SETCHECK, bHistory ? BST_UNCHECKED : BST_CHECKED, 0);
-	EnableDisableButtons (hwndDlg);
+		BuildTree (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST));
+
+		if (*szDriveLetter != 0)
+		{
+			SelectItem (GetDlgItem (hwndDlg, IDC_DRIVELIST), *szDriveLetter);
+
+			if(nSelectedDriveIndex > SendMessage (GetDlgItem (hwndDlg, IDC_DRIVELIST), LVM_GETITEMCOUNT, 0, 0)/2)
+				SendMessage(GetDlgItem (hwndDlg, IDC_DRIVELIST), LVM_SCROLL, 0, 10000);
+		}
+		else
+		{
+			SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM) GetDlgItem (hwndDlg, IDC_DRIVELIST), 1L);
+		}
+
+		SendMessage (GetDlgItem (hwndDlg, IDC_NO_HISTORY), BM_SETCHECK, bHistory ? BST_UNCHECKED : BST_CHECKED, 0);
+		EnableDisableButtons (hwndDlg);
+	}
 }
 
 void EnableDisableButtons (HWND hwndDlg)
@@ -1564,7 +1579,7 @@ static void LaunchVolExpander (HWND hwndDlg)
 void LoadDriveLetters (HWND hwndDlg, HWND hTree, int drive)
 {
 	// Remember the top-most visible item
-	int lastTopMostVisibleItem = ListView_GetTopIndex (hTree);
+	int lastTopMostVisibleItem = (!Silent && hTree)? ListView_GetTopIndex (hTree) : 0;
 
 	wchar_t *szDriveLetters[]=
 	{L"A:", L"B:", L"C:", L"D:",
@@ -1617,6 +1632,9 @@ void LoadDriveLetters (HWND hwndDlg, HWND hTree, int drive)
 	LastKnownLogicalDrives = dwUsedDrives = GetUsedLogicalDrives ();
 	if (dwUsedDrives == 0)
 			Warning ("DRIVELETTERS", hwndDlg);
+
+	if (Silent)
+		return;
 
 	if(drive == 0)
 		ListView_DeleteAllItems(hTree);
@@ -2915,6 +2933,8 @@ BOOL CALLBACK PasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 				SetWindowPos (hwndDlg, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 			}
+			SetFocus (GetDlgItem (hwndDlg, IDC_PASSWORD));
+			SetTimer (hwndDlg, TIMER_ID_CHECK_FOREGROUND, TIMER_INTERVAL_CHECK_FOREGROUND, NULL);
 		}
 		return 0;
 
@@ -2989,6 +3009,17 @@ BOOL CALLBACK PasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 	case WM_TIMER:
 		switch (wParam)
 		{
+		case TIMER_ID_CHECK_FOREGROUND:
+			if (hwndDlg != ::GetForegroundWindow ())
+			{
+				// we are not foreground after 500ms of creating the dialog
+				// try to force it for be foreground
+				BringToForeground (hwndDlg);
+				SetFocus (GetDlgItem (hwndDlg, IDC_PASSWORD));
+			}
+			// one shot timer: stop it
+			KillTimer (hwndDlg, TIMER_ID_CHECK_FOREGROUND);
+			return 0;
 		case TIMER_ID_KEYB_LAYOUT_GUARD:
 			if (bPrebootPasswordDlgMode)
 			{
@@ -5182,7 +5213,7 @@ retry:
 			return FALSE;
 		}
 
-		if (interact)
+		if (interact && !Silent)
 			MessageBoxW (hwndDlg, GetString ("UNMOUNT_FAILED"), lpszTitle, MB_ICONERROR);
 	}
 	else
@@ -5485,7 +5516,10 @@ static BOOL MountAllDevices (HWND hwndDlg, BOOL bPasswordPrompt)
 	param.bPasswordPrompt = bPasswordPrompt;
 	param.bRet = FALSE;
 
-	ShowWaitDialog (hwndDlg, FALSE, mountAllDevicesThreadProc, &param);
+	if (Silent)
+		mountAllDevicesThreadProc (&param, hwndDlg);
+	else
+		ShowWaitDialog (hwndDlg, FALSE, mountAllDevicesThreadProc, &param);
 
 	return param.bRet;
 }
@@ -6612,6 +6646,9 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 			ExtractCommandLine (hwndDlg, (wchar_t *) lParam);
 
+			if (Silent && !Quit)
+				Silent = FALSE;
+
 			try
 			{
 				BootEncObj->SetParentWindow (hwndDlg);
@@ -6824,10 +6861,10 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 						if (bExplore)
 							OpenVolumeExplorerWindow (szDriveLetter[0] - L'A');
 
-						RefreshMainDlg(hwndDlg);
 
 						if(!Silent)
 						{
+							RefreshMainDlg(hwndDlg);
 							// Check for problematic file extensions (exe, dll, sys)
 							if (CheckFileExtension (szFileName))
 								Warning ("EXE_FILE_EXTENSION_MOUNT_WARNING", hwndDlg);
@@ -6916,6 +6953,15 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					if (TaskBarIconMutex)
 						TaskBarIconRemove (hwndDlg);
 					exit (exitCode);
+				}
+				else
+				{
+					if (Silent)
+					{
+						Silent = FALSE;
+						InitMainDialog (hwndDlg);
+						RefreshMainDlg(hwndDlg);
+					}
 				}
 			}
 
@@ -7195,7 +7241,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 								if (IsMountedVolumeID (favorite.VolumeID))
 									continue;
 
-								std::wstring volDevPath = FindDeviceByVolumeID (favorite.VolumeID);
+								std::wstring volDevPath = FindDeviceByVolumeID (favorite.VolumeID, FALSE);
 								if (volDevPath.length() > 0)
 								{
 									favorite.Path = volDevPath;
@@ -8486,7 +8532,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					std::wstring volName;
 					WaitCursor();
 					if (FavoriteVolumes[favoriteIndex].UseVolumeID)
-						volName = FindDeviceByVolumeID (FavoriteVolumes[favoriteIndex].VolumeID);
+						volName = FindDeviceByVolumeID (FavoriteVolumes[favoriteIndex].VolumeID, FALSE);
 					else
 						volName = FavoriteVolumes[favoriteIndex].Path;
 					OpenVolumeExplorerWindow (GetMountedVolumeDriveNo ((wchar_t*) FavoriteVolumes[favoriteIndex].Path.c_str()));
@@ -8529,6 +8575,10 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		MainWindowHidden = FALSE;
 		ShowWindow (hwndDlg, SW_SHOW);
 		ShowWindow (hwndDlg, SW_RESTORE);
+		return 1;
+
+	case VC_APPMSG_CREATE_RESCUE_DISK:
+		CreateRescueDisk (hwndDlg);
 		return 1;
 
 	case WM_COPYDATA:
@@ -9475,7 +9525,7 @@ static BOOL MountFavoriteVolumeBase (HWND hwnd, const FavoriteVolume &favorite, 
 
 	if (favorite.UseVolumeID && !IsRepeatedByteArray (0, favorite.VolumeID, sizeof (favorite.VolumeID)))
 	{
-		effectiveVolumePath = FindDeviceByVolumeID (favorite.VolumeID);
+		effectiveVolumePath = FindDeviceByVolumeID (favorite.VolumeID, (ServiceMode && systemFavorites)? TRUE : FALSE);
 	}
 	else
 		effectiveVolumePath = favorite.Path;
@@ -9527,7 +9577,7 @@ static BOOL MountFavoriteVolumeBase (HWND hwnd, const FavoriteVolume &favorite, 
 			else
 				mountOptions.ProtectedHidVolPkcs5Prf = CmdVolumePkcs5;
 			mountOptions.ProtectedHidVolPim = CmdVolumePim;
-			if (DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_MOUNT_OPTIONS), hwnd, (DLGPROC) MountOptionsDlgProc, (LPARAM) &mountOptions) == IDCANCEL)
+			if (Silent || (DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_MOUNT_OPTIONS), hwnd, (DLGPROC) MountOptionsDlgProc, (LPARAM) &mountOptions) == IDCANCEL))
 			{
 				status = FALSE;
 				goto skipMount;
@@ -9641,7 +9691,7 @@ BOOL MountFavoriteVolumes (HWND hwnd, BOOL systemFavorites, BOOL logOnMount, BOO
 				{
 					if (favorite->UseVolumeID)
 					{
-						std::wstring path = FindDeviceByVolumeID (favorite->VolumeID);
+						std::wstring path = FindDeviceByVolumeID (favorite->VolumeID, TRUE);
 						if (path.empty ())
 						{
 							favorite->DisconnectedDevice = true;
@@ -9719,7 +9769,7 @@ BOOL MountFavoriteVolumes (HWND hwnd, BOOL systemFavorites, BOOL logOnMount, BOO
 					wstring resolvedPath;
 					if (favorite->UseVolumeID)
 					{
-						resolvedPath = FindDeviceByVolumeID (favorite->VolumeID);
+						resolvedPath = FindDeviceByVolumeID (favorite->VolumeID, TRUE);
 					}
 					else
 						resolvedPath = VolumeGuidPathToDevicePath (favorite->Path);
@@ -10444,15 +10494,15 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 			}
 			else
 			{
-				DISK_GEOMETRY_EX driveInfo;
+				BYTE dgBuffer[256];
 
 				bResult = DeviceIoControl (dev, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, NULL, 0,
-					&driveInfo, sizeof (driveInfo), &dwResult, NULL);
+					dgBuffer, sizeof (dgBuffer), &dwResult, NULL);
 
 				if (!bResult)
 					goto error;
 
-				hostSize = driveInfo.DiskSize.QuadPart;
+				hostSize = ((PDISK_GEOMETRY_EX) dgBuffer)->DiskSize.QuadPart;
 			}
 
 			if (hostSize == 0)
@@ -10683,6 +10733,7 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 			uint32 driverConfig = ReadDriverConfigurationFlags();
 			CheckDlgButton (hwndDlg, IDC_ENABLE_HARDWARE_ENCRYPTION, (driverConfig & TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION) ? BST_UNCHECKED : BST_CHECKED);
 			CheckDlgButton (hwndDlg, IDC_ENABLE_EXTENDED_IOCTL_SUPPORT, (driverConfig & TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL) ? BST_CHECKED : BST_UNCHECKED);
+			CheckDlgButton (hwndDlg, IDC_ALLOW_TRIM_NONSYS_SSD, (driverConfig & VC_DRIVER_CONFIG_ALLOW_NONSYS_TRIM) ? BST_CHECKED : BST_UNCHECKED);
 
 			SYSTEM_INFO sysInfo;
 			GetSystemInfo (&sysInfo);
@@ -10740,6 +10791,7 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 
 				BOOL disableHW = !IsDlgButtonChecked (hwndDlg, IDC_ENABLE_HARDWARE_ENCRYPTION);
 				BOOL enableExtendedIOCTL = IsDlgButtonChecked (hwndDlg, IDC_ENABLE_EXTENDED_IOCTL_SUPPORT);
+				BOOL allowTrimCommand = IsDlgButtonChecked (hwndDlg, IDC_ALLOW_TRIM_NONSYS_SSD);
 
 				try
 				{
@@ -10776,6 +10828,7 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION, disableHW);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL, enableExtendedIOCTL);
+					SetDriverConfigurationFlag (VC_DRIVER_CONFIG_ALLOW_NONSYS_TRIM, allowTrimCommand);
 
 					DWORD bytesReturned;
 					if (!DeviceIoControl (hDriver, TC_IOCTL_REREAD_DRIVER_CONFIG, NULL, 0, NULL, 0, &bytesReturned, NULL))
@@ -11102,6 +11155,8 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				uint16 bootLoaderVersion = 0;
 				BOOL bPasswordCacheEnabled = (driverConfig & TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD)? TRUE : FALSE;
 				BOOL bPimCacheEnabled = (driverConfig & TC_DRIVER_CONFIG_CACHE_BOOT_PIM)? TRUE : FALSE;
+				BOOL bBlockSysEncTrimEnabled = (driverConfig & VC_DRIVER_CONFIG_BLOCK_SYS_TRIM)? TRUE : FALSE;
+				BOOL bIsHiddenOS = IsHiddenOSRunning ();
 
 				if (!BootEncObj->ReadBootSectorConfig (nullptr, 0, &userConfig, &customUserMessage, &bootLoaderVersion))
 				{
@@ -11143,6 +11198,14 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				CheckDlgButton (hwndDlg, IDC_BOOT_LOADER_CACHE_PASSWORD, bPasswordCacheEnabled ? BST_CHECKED : BST_UNCHECKED);
 				EnableWindow (GetDlgItem (hwndDlg, IDC_BOOT_LOADER_CACHE_PIM), bPasswordCacheEnabled);
 				CheckDlgButton (hwndDlg, IDC_BOOT_LOADER_CACHE_PIM, (bPasswordCacheEnabled && bPimCacheEnabled)? BST_CHECKED : BST_UNCHECKED);
+				if (bIsHiddenOS)
+				{
+					// we always block TRIM command on hidden OS regardless of the configuration
+					CheckDlgButton (hwndDlg, IDC_BLOCK_SYSENC_TRIM, BST_CHECKED);
+					EnableWindow (GetDlgItem (hwndDlg, IDC_BLOCK_SYSENC_TRIM), FALSE);
+				}
+				else
+					CheckDlgButton (hwndDlg, IDC_BLOCK_SYSENC_TRIM, bBlockSysEncTrimEnabled ? BST_CHECKED : BST_UNCHECKED);
 			}
 			catch (Exception &e)
 			{
@@ -11254,10 +11317,13 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				{
 					BOOL bPasswordCacheEnabled = IsDlgButtonChecked (hwndDlg, IDC_BOOT_LOADER_CACHE_PASSWORD);
 					BOOL bPimCacheEnabled = IsDlgButtonChecked (hwndDlg, IDC_BOOT_LOADER_CACHE_PIM);
+					BOOL bBlockSysEncTrimEnabled = IsDlgButtonChecked (hwndDlg, IDC_BLOCK_SYSENC_TRIM);
 					BootEncObj->WriteBootSectorUserConfig (userConfig, customUserMessage, prop.volumePim, prop.pkcs5);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD, bPasswordCacheEnabled);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PIM, (bPasswordCacheEnabled && bPimCacheEnabled)? TRUE : FALSE);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_DISABLE_EVIL_MAID_ATTACK_DETECTION, IsDlgButtonChecked (hwndDlg, IDC_DISABLE_EVIL_MAID_ATTACK_DETECTION));
+					if (!IsHiddenOSRunning ()) /* we don't need to update TRIM config for hidden OS since it's always blocked */
+						SetDriverConfigurationFlag (VC_DRIVER_CONFIG_BLOCK_SYS_TRIM, bBlockSysEncTrimEnabled);
 				}
 				catch (Exception &e)
 				{
