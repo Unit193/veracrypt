@@ -34,8 +34,8 @@
 #else
 #define OutputPackageFile L"VeraCrypt Setup " _T(VERSION_STRING) L".exe"
 #endif
-#define MAG_START_MARKER	"TCINSTRT"
-#define MAG_END_MARKER_OBFUSCATED	"T/C/I/N/S/C/R/C"
+#define MAG_START_MARKER	"VCINSTRT"
+#define MAG_END_MARKER_OBFUSCATED	"V/C/I/N/S/C/R/C"
 #define PIPE_BUFFER_LEN	(4 * BYTES_PER_KB)
 
 unsigned char MagEndMarker [sizeof (MAG_END_MARKER_OBFUSCATED)];
@@ -57,7 +57,7 @@ void SelfExtractStartupInit (void)
 // The end marker must be included in the self-extracting exe only once, not twice (used e.g.
 // by IsSelfExtractingPackage()) and that's why MAG_END_MARKER_OBFUSCATED is obfuscated and
 // needs to be deobfuscated using this function at startup.
-static void DeobfuscateMagEndMarker (void)
+void DeobfuscateMagEndMarker (void)
 {
 	int i;
 
@@ -385,16 +385,28 @@ err:
 
 
 // Verifies the CRC-32 of the whole self-extracting package (except the digital signature areas, if present)
-BOOL VerifyPackageIntegrity (void)
+BOOL VerifySelfPackageIntegrity ()
+{
+	wchar_t path [TC_MAX_PATH];
+
+	GetModuleFileName (NULL, path, ARRAYSIZE (path));
+	return VerifyPackageIntegrity (path);
+}
+
+BOOL VerifyPackageIntegrity (const wchar_t *path)
 {
 	int fileDataEndPos = 0;
 	int fileDataStartPos = 0;
 	unsigned __int32 crc = 0;
 	unsigned char *tmpBuffer;
 	int tmpFileSize;
-	wchar_t path [TC_MAX_PATH];
 
-	GetModuleFileName (NULL, path, ARRAYSIZE (path));
+	// verify Authenticode digital signature of the exe file
+	if (!VerifyModuleSignature (path))
+	{
+		Error ("DIST_PACKAGE_CORRUPTED", NULL);
+		return FALSE;
+	}
 
 	fileDataEndPos = (int) FindStringInFile (path, MagEndMarker, strlen (MagEndMarker));
 	if (fileDataEndPos < 0)
@@ -455,7 +467,7 @@ BOOL IsSelfExtractingPackage (void)
 }
 
 
-static void FreeAllFileBuffers (void)
+void FreeAllFileBuffers (void)
 {
 	int fileNo;
 
@@ -610,7 +622,7 @@ sem_end:
 	return FALSE;
 }
 
-
+#ifdef SETUP
 void __cdecl ExtractAllFilesThread (void *hwndDlg)
 {
 	int fileNo;
@@ -644,20 +656,38 @@ void __cdecl ExtractAllFilesThread (void *hwndDlg)
 	{
 		wchar_t fileName [TC_MAX_PATH] = {0};
 		wchar_t filePath [TC_MAX_PATH] = {0};
+		BOOL bResult = FALSE, zipFile = FALSE;
 
 		// Filename
 		StringCchCopyNW (fileName, ARRAYSIZE(fileName), Decompressed_Files[fileNo].fileName, Decompressed_Files[fileNo].fileNameLength);
 		StringCchCopyW (filePath, ARRAYSIZE(filePath), DestExtractPath);
 		StringCchCatW (filePath, ARRAYSIZE(filePath), fileName);
 
+		if ((wcslen (fileName) > 4) && (0 == wcscmp (L".zip", &fileName[wcslen(fileName) - 4])))
+			zipFile = TRUE;
+
 		StatusMessageParam (hwndDlg, "EXTRACTING_VERB", filePath);
 
+		if (zipFile)
+		{
+			bResult = DecompressZipToDir (
+				Decompressed_Files[fileNo].fileContent,
+				Decompressed_Files[fileNo].fileLength,
+				DestExtractPath,
+				CopyMessage,
+				hwndDlg);
+		}
+		else
+		{
+			bResult = SaveBufferToFile (
+				(char *) Decompressed_Files[fileNo].fileContent,
+				filePath,
+				Decompressed_Files[fileNo].fileLength,
+				FALSE, FALSE);
+		}
+
 		// Write the file
-		if (!SaveBufferToFile (
-			Decompressed_Files[fileNo].fileContent,
-			filePath,
-			Decompressed_Files[fileNo].fileLength,
-			FALSE, FALSE))
+		if (!bResult)
 		{
 			wchar_t szTmp[512];
 
@@ -677,4 +707,4 @@ eaf_end:
 	else
 		PostMessage (MainDlg, TC_APPMSG_EXTRACTION_FAILURE, 0, 0);
 }
-
+#endif

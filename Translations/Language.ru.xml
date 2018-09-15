@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.22">
+  <localization prog-version= "1.23">
     <language langid="ru" name="Русский" en-name="Russian" version="1.0.3" translators="Dmitry Yerokhin" />
     <font lang="ru" class="normal" size="11" face="default" />
     <font lang="ru" class="bold" size="13" face="Arial" />
@@ -1407,7 +1407,7 @@
     <entry lang="ru" key="RESCUE_DISK_EFI_CHECK_FAILED">Невозможно проверить правильность распаковки диска восстановления.\n\nЕсли вы его уже распаковали, выньте и снова вставьте USB-флэшку; затем нажмите 'Далее', чтобы повторить попытку. Если это не поможет, используйте другую флэшку и/или другую программу для работы с Zip-архивами.\n\nЕсли вы ещё не распаковали диск восстановления, сделайте это и затем нажмите 'Далее'.\n\nЕсли вы пытались проверить диск восстановления VeraCrypt, созданный до запуска этого мастера, учтите, что такой диск нельзя использовать, поскольку он был создан с другим мастер-ключом. Нужно распаковать новый созданный Zip-образ диска восстановления.</entry>
     <entry lang="ru" key="RESCUE_DISK_EFI_NON_WIZARD_CHECK_FAILED">Невозможно проверить правильность распаковки диска восстановления.\n\nЕсли вы его уже распаковали на USB-флэшку, выньте её и снова вставьте; затем повторите попытку. Если это не поможет, используйте другую Zip-программу и/или носитель.\n\nЕсли вы пытались проверить диск восстановления VeraCrypt, созданный с другим мастер-ключом, паролем, солью и т.д., учтите, что проверка такого диска будет всегда выдавать ошибку. Чтобы создать новый диск восстановления, полностью совместимый с текущей конфигурацией, выберите 'Система' > 'Создать диск восстановления'.</entry>
     <entry lang="ru" key="RESCUE_DISK_EFI_NON_WIZARD_CREATION">Образ диска восстановления создан и сохранён в этом файле:\n%s\n\nСейчас нужно распаковать образ диска на USB-флэшку, отформатированную в FAT/FAT32.\n\nВАЖНО: Zip-файл необходимо распаковать в корневую папку USB-флэшки. Например, если флэшка имеет букву E:, то при распаковке Zip-файла на USB-флэшке должна быть создана папка E:\\EFI.\n\nПосле создания диска восстановления выберите 'Система' > 'Проверить диск восстановления', чтобы убедиться, что диск создан правильно.</entry>
-	<entry lang="ru" key="IDC_SECURE_DESKTOP_PASSWORD_ENTRY">Безопасный рабочий стол при вводе пароля</entry>
+    <entry lang="ru" key="IDC_SECURE_DESKTOP_PASSWORD_ENTRY">Безопасный рабочий стол при вводе пароля</entry>
     <entry lang="ru" key="ERR_REFS_INVALID_VOLUME_SIZE">Указанный в командной строке размер файла несовместим с выбранной файловой системой ReFS.</entry>
     <entry lang="ru" key="IDC_EDIT_DCSPROP">Правка конфигурации загрузчика</entry>
     <entry lang="ru" key="IDC_SHOW_PLATFORMINFO">Показать информацию о платформе EFI</entry>
@@ -1419,6 +1419,14 @@
     <entry lang="ru" key="AFTER_UPGRADE_RESCUE_DISK">Настоятельно рекомендуем создать новый диск восстановления VeraCrypt (который будет содержать новую версию загрузчика VeraCrypt), выбрав 'Система' > 'Создать диск восстановления'.\nСделать это сейчас?</entry>
     <entry lang="ru" key="IDC_ALLOW_TRIM_NONSYS_SSD">Разрешить команду TRIM для несистемного SSD-раздела/диска</entry>
     <entry lang="ru" key="IDC_BLOCK_SYSENC_TRIM">Блокировать команду TRIM на системном разделе/диске</entry>
+    <entry lang="ru" key="WINDOWS_EFI_BOOT_LOADER_MISSING">ОШИБКА: Не удалось обнаружить на диске системный EFI-загрузчик Windows. Операция будет прервана.</entry>
+    <entry lang="ru" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">В настоящий момент невозможно зашифровать систему, если включена безопасная загрузка (Secure Boot) и если свои ключи VeraCrypt не загружены в прошивку машины. Чтобы зашифровать систему, отключите Secure Boot в настройках BIOS.</entry>
+    <entry lang="ru" key="PASSWORD_PASTED_TRUNCATED">Скопированный текст усечён до предельно допустимой длины пароля в 64 символа</entry>
+    <entry lang="ru" key="PASSWORD_MAXLENGTH_REACHED">Достигнута максимальная длина пароля (64 символа).\nБольше ничего вводить нельзя.</entry>
+    <entry lang="ru" key="IDC_SELECT_LANGUAGE_LABEL">Выберите язык, который будет использован при установке:</entry>
+    <entry lang="ru" key="VOLUME_TOO_LARGE_FOR_HOST">ОШИБКА: Размер файлового контейнера больше, чем свободно места на диске.</entry>
+    <entry lang="ru" key="IDC_ALLOW_WINDOWS_DEFRAG">Разрешить дефрагментатору Windows обрабатывать несистемный раздел/диск</entry>
+    <entry lang="ru" key="CONFIRM_ALLOW_WINDOWS_DEFRAG">ВНИМАНИЕ: Дефрагментация несистемных разделов/дисков может способствовать утечке метаданных об их содержимом или вызывать проблемы со скрытыми томами, которые могут в них находиться.\n\nПродолжить?</entry> 
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

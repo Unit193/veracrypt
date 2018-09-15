@@ -135,6 +135,7 @@ extern OSVersionEnum nCurrentOS;
 extern int CurrentOSMajor;
 extern int CurrentOSMinor;
 extern int CurrentOSServicePack;
+extern int CurrentOSBuildNumber;
 extern BOOL RemoteSession;
 extern HANDLE hDriver;
 extern HINSTANCE hInst;
@@ -162,6 +163,9 @@ extern BOOL MountVolumesAsSystemFavorite;
 extern BOOL FavoriteMountOnArrivalInProgress;
 extern BOOL MultipleMountOperationInProgress;
 
+#ifndef SETUP
+extern BOOL bLanguageSetInSetup;
+#endif
 
 enum tc_app_msg_ids
 {
@@ -483,6 +487,7 @@ BOOL ToCustHyperlink (HWND hwndDlg, UINT ctrlId, HFONT hFont);
 void DisableCloseButton (HWND hwndDlg);
 void EnableCloseButton (HWND hwndDlg);
 void ToBootPwdField (HWND hwndDlg, UINT ctrlId);
+void ToNormalPwdField (HWND hwndDlg, UINT ctrlId);
 void AccommodateTextField (HWND hwndDlg, UINT ctrlId, BOOL bFirstUpdate, HFONT hFont);
 BOOL GetDriveLabel (int driveNo, wchar_t *label, int labelSize);
 BOOL GetSysDevicePaths (HWND hwndDlg);
@@ -525,10 +530,13 @@ BOOL TranslateVolumeID (HWND hwndDlg, wchar_t* pathValue, size_t cchPathValue);
 BOOL CopyTextToClipboard (const wchar_t* txtValue);
 BOOL LaunchElevatedProcess (HWND hwndDlg, const wchar_t* szModPath, const wchar_t* args);
 BOOL GetFreeDriveLetter(WCHAR* pCh);
-BOOL RaisePrivileges(void);
+BOOL SetPrivilege(LPTSTR szPrivilegeName, BOOL bEnable);
 BOOL DeleteDirectory (const wchar_t* szDirName);
 INT_PTR SecureDesktopDialogBoxParam (HINSTANCE, LPCWSTR, HWND, DLGPROC, LPARAM);
-
+BOOL VerifyModuleSignature (const wchar_t* path);
+void GetInstallationPath (HWND hwndDlg, wchar_t* szInstallPath, DWORD cchSize, BOOL* pbInstallPathDetermined);
+BOOL GetSetupconfigLocation (wchar_t* path, DWORD cchSize);
+BOOL BufferHasPattern (const unsigned char* buffer, size_t bufferLen, const void* pattern, size_t patternLen);
 #ifdef __cplusplus
 }
 
