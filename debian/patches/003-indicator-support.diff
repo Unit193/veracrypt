@@ -155,7 +155,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- veracrypt.orig/src/Main/GraphicUserInterface.cpp
 +++ veracrypt/src/Main/GraphicUserInterface.cpp
-@@ -1677,6 +1677,10 @@ namespace VeraCrypt
+@@ -1754,6 +1754,10 @@ namespace VeraCrypt
  		}
  
  		BackgroundMode = state;
@@ -170,7 +170,7 @@ Index: veracrypt/src/Makefile
 ===================================================================
 --- veracrypt.orig/src/Makefile
 +++ veracrypt/src/Makefile
-@@ -60,6 +60,15 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
+@@ -61,6 +61,15 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
  CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
  CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
  LFLAGS+=$(shell dpkg-buildflags --get LDFLAGS)

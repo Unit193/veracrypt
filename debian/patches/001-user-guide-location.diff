@@ -11,7 +11,7 @@ Index: veracrypt/src/Main/GraphicUserInterface.cpp
 ===================================================================
 --- a/src/Main/GraphicUserInterface.cpp	2017-06-29 17:10:39.000000000 -0400
 +++ b/src/Main/GraphicUserInterface.cpp	2017-06-30 16:30:20.842509262 -0400
-@@ -1232,7 +1232,7 @@
+@@ -1309,7 +1309,7 @@
  #elif defined (TC_MACOSX)
  			htmlPath += L"/../Resources/doc/HTML/";
  #elif defined (TC_UNIX)

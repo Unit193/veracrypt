@@ -1,5 +1,5 @@
 From: Stefan Sundin <stefan@stefansundin.com>
-Date: Fri, 12 Sept 2013 
+Date: Fri, 12 Sept 2013
 Subject: Add build flags
 
 Forwarded: no
@@ -8,7 +8,7 @@ Index: veracrypt/src/Makefile
 ===================================================================
 --- veracrypt.orig/src/Makefile
 +++ veracrypt/src/Makefile
-@@ -56,6 +56,10 @@ export WXCONFIG_CFLAGS :=
+@@ -57,6 +57,10 @@ export WXCONFIG_CFLAGS :=
  export WXCONFIG_CXXFLAGS :=
  WX_ROOT ?= ..
  

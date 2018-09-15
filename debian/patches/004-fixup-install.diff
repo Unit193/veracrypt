@@ -11,7 +11,7 @@ Last-Update: 2017-07-10
 
 --- veracrypt-1.21.orig/src/Main/Main.make
 +++ veracrypt-1.21/src/Main/Main.make
-@@ -223,25 +223,25 @@ endif
+@@ -236,25 +236,25 @@ endif
  
  ifeq "$(PLATFORM)" "Linux"
  prepare: $(APPNAME)
