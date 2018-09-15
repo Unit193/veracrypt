@@ -24,12 +24,15 @@ namespace VeraCrypt
 	Volume::Volume ()
 		: HiddenVolumeProtectionTriggered (false),
 		SystemEncryption (false),
+		VolumeDataOffset (0),
 		VolumeDataSize (0),
+		EncryptedDataSize (0),
 		TopWriteOffset (0),
 		TotalDataRead (0),
 		TotalDataWritten (0),
 		TrueCryptMode (false),
-		Pim (0)
+		Pim (0),
+		EncryptionNotCompleted (false)
 	{
 	}
 
@@ -107,8 +110,8 @@ namespace VeraCrypt
 		if (!volumeFile)
 			throw ParameterIncorrect (SRC_POS);
 
-		// TrueCrypt doesn't support SHA-256
-		if (kdf && truecryptMode && (kdf->GetName() == L"HMAC-SHA-256"))
+		// TrueCrypt doesn't support SHA-256 and Streebog
+		if (kdf && truecryptMode && (kdf->GetName() == L"HMAC-SHA-256" || kdf->GetName() == L"HMAC-Streebog"))
 			throw UnsupportedAlgoInTrueCryptMode (SRC_POS);
 
 		Protection = protection;
@@ -206,6 +209,7 @@ namespace VeraCrypt
 
 					VolumeDataOffset = layout->GetDataOffset (VolumeHostSize);
 					VolumeDataSize = layout->GetDataSize (VolumeHostSize);
+					EncryptedDataSize = header->GetEncryptedAreaLength();
 
 					Header = header;
 					Layout = layout;
@@ -215,13 +219,19 @@ namespace VeraCrypt
 					if (layout->HasDriveHeader())
 					{
 						if (header->GetEncryptedAreaLength() != header->GetVolumeDataSize())
-							throw VolumeEncryptionNotCompleted (SRC_POS);
+						{
+							EncryptionNotCompleted = true;
+							// we avoid writing data to the partition since it is only partially encrypted
+							Protection = VolumeProtection::ReadOnly;
+						}
 
 						uint64 partitionStartOffset = VolumeFile->GetPartitionDeviceStartOffset();
 
 						if (partitionStartOffset < header->GetEncryptedAreaStart()
 							|| partitionStartOffset >= header->GetEncryptedAreaStart() + header->GetEncryptedAreaLength())
 							throw PasswordIncorrect (SRC_POS);
+
+						EncryptedDataSize -= partitionStartOffset - header->GetEncryptedAreaStart();
 
 						mode.SetSectorOffset (partitionStartOffset / ENCRYPTION_DATA_UNIT_SIZE);
 					}
@@ -306,6 +316,7 @@ namespace VeraCrypt
 
 		uint64 length = buffer.Size();
 		uint64 hostOffset = VolumeDataOffset + byteOffset;
+		size_t bufferOffset = 0;
 
 		if (length % SectorSize != 0 || byteOffset % SectorSize != 0)
 			throw ParameterIncorrect (SRC_POS);
@@ -313,7 +324,30 @@ namespace VeraCrypt
 		if (VolumeFile->ReadAt (buffer, hostOffset) != length)
 			throw MissingVolumeData (SRC_POS);
 
-		EA->DecryptSectors (buffer, hostOffset / SectorSize, length / SectorSize, SectorSize);
+		// first sector can be unencrypted in some cases (e.g. windows repair)
+		// detect this case by looking for NTFS header
+		if (SystemEncryption && (hostOffset == 0) && ((BE64 (*(uint64 *) buffer.Get ())) == 0xEB52904E54465320ULL))
+		{
+			bufferOffset = (size_t) SectorSize;
+			hostOffset += SectorSize;
+			length -= SectorSize;
+		}
+
+		if (length)
+		{
+			if (EncryptionNotCompleted)
+			{
+				// if encryption is not complete, we decrypt only the encrypted sectors
+				if (hostOffset < EncryptedDataSize)
+				{
+					uint64 encryptedLength = VC_MIN (length, (EncryptedDataSize - hostOffset));
+
+					EA->DecryptSectors (buffer.GetRange (bufferOffset, encryptedLength), hostOffset / SectorSize, encryptedLength / SectorSize, SectorSize);			
+				}
+			}
+			else
+				EA->DecryptSectors (buffer.GetRange (bufferOffset, length), hostOffset / SectorSize, length / SectorSize, SectorSize);
+		}
 
 		TotalDataRead += length;
 	}

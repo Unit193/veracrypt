@@ -129,6 +129,7 @@ BOOL CacheBootPassword = FALSE;
 BOOL CacheBootPim = FALSE;
 BOOL NonAdminSystemFavoritesAccessDisabled = FALSE;
 BOOL BlockSystemTrimCommand = FALSE;
+BOOL AllowWindowsDefrag = FALSE;
 static size_t EncryptionThreadPoolFreeCpuCountLimit = 0;
 static BOOL SystemFavoriteVolumeDirty = FALSE;
 static BOOL PagingFileCreationPrevented = FALSE;
@@ -1263,8 +1264,10 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 
 	case IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS:
 		Dump ("ProcessVolumeDeviceControlIrp (IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS)\n");
-		// Vista's filesystem defragmenter fails if IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS does not succeed.
-		if (!(OsMajorVersion == 6 && OsMinorVersion == 0))
+		// Vista's, Windows 8.1 and later filesystem defragmenter fails if IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS does not succeed.
+		if (!(OsMajorVersion == 6 && OsMinorVersion == 0) 
+			&& !(IsOSAtLeast (WIN_8_1) && AllowWindowsDefrag && Extension->bRawDevice)
+			)
 		{
 			Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
 			Irp->IoStatus.Information = 0;
@@ -1272,10 +1275,24 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 		else if (ValidateIOBufferSize (Irp, sizeof (VOLUME_DISK_EXTENTS), ValidateOutput))
 		{
 			VOLUME_DISK_EXTENTS *extents = (VOLUME_DISK_EXTENTS *) Irp->AssociatedIrp.SystemBuffer;
+			
 
-			// No extent data can be returned as this is not a physical drive.
-			memset (extents, 0, sizeof (*extents));
-			extents->NumberOfDiskExtents = 0;
+			if (IsOSAtLeast (WIN_8_1))
+			{
+				// Windows 10 filesystem defragmenter works only if we report an extent with a real disk number
+				// So in the case of a VeraCrypt disk based volume, we use the disk number
+				// of the underlaying physical disk and we report a single extent 
+				extents->NumberOfDiskExtents = 1;
+				extents->Extents[0].DiskNumber = Extension->DeviceNumber;
+				extents->Extents[0].StartingOffset.QuadPart = Extension->BytesPerSector;
+				extents->Extents[0].ExtentLength.QuadPart = Extension->DiskLength;
+			}
+			else
+			{
+				// Vista: No extent data can be returned as this is not a physical drive.				
+				memset (extents, 0, sizeof (*extents));
+				extents->NumberOfDiskExtents = 0;
+			}
 
 			Irp->IoStatus.Status = STATUS_SUCCESS;
 			Irp->IoStatus.Information = sizeof (*extents);
@@ -3734,16 +3751,19 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 							IO_STATUS_BLOCK ioblock;
 							ULONG labelInfoSize = sizeof(FILE_FS_LABEL_INFORMATION) + (labelEffectiveLen * sizeof(WCHAR));
 							FILE_FS_LABEL_INFORMATION* labelInfo = (FILE_FS_LABEL_INFORMATION*) TCalloc (labelInfoSize);
-							labelInfo->VolumeLabelLength = labelEffectiveLen * sizeof(WCHAR);
-							memcpy (labelInfo->VolumeLabel, mount->wszLabel, labelInfo->VolumeLabelLength);
-
-							if (STATUS_SUCCESS == ZwSetVolumeInformationFile (volumeHandle, &ioblock, labelInfo, labelInfoSize, FileFsLabelInformation))
+							if (labelInfo)
 							{
-								mount->bDriverSetLabel = TRUE;
-								NewExtension->bDriverSetLabel = TRUE;
-							}
+								labelInfo->VolumeLabelLength = labelEffectiveLen * sizeof(WCHAR);
+								memcpy (labelInfo->VolumeLabel, mount->wszLabel, labelInfo->VolumeLabelLength);
 
-							TCfree(labelInfo);
+								if (STATUS_SUCCESS == ZwSetVolumeInformationFile (volumeHandle, &ioblock, labelInfo, labelInfoSize, FileFsLabelInformation))
+								{
+									mount->bDriverSetLabel = TRUE;
+									NewExtension->bDriverSetLabel = TRUE;
+								}
+
+								TCfree(labelInfo);
+							}
 						}
 						__except (EXCEPTION_EXECUTE_HANDLER)
 						{
@@ -4230,6 +4250,7 @@ NTSTATUS ReadRegistryConfigFlags (BOOL driverEntry)
 
 			EnableExtendedIoctlSupport = (flags & TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL)? TRUE : FALSE;
 			AllowTrimCommand = (flags & VC_DRIVER_CONFIG_ALLOW_NONSYS_TRIM)? TRUE : FALSE;
+			AllowWindowsDefrag = (flags & VC_DRIVER_CONFIG_ALLOW_WINDOWS_DEFRAG)? TRUE : FALSE;
 		}
 		else
 			status = STATUS_INVALID_PARAMETER;

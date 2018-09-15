@@ -1,4 +1,4 @@
-/*
+﻿/*
  Legal Notice: Some portions of the source code contained in this file were
  derived from the source code of TrueCrypt 7.1a, which is
  Copyright (c) 2003-2012 TrueCrypt Developers Association and which is
@@ -77,6 +77,8 @@ BOOL bForAllUsers = TRUE;
 BOOL bRegisterFileExt = TRUE;
 BOOL bAddToStartMenu = TRUE;
 BOOL bDesktopIcon = TRUE;
+
+BOOL bUserSetLanguage = FALSE;
 
 BOOL bDesktopIconStatusDetermined = FALSE;
 
@@ -387,44 +389,6 @@ void SearchAndDeleteRegistrySubString (HKEY hKey, const wchar_t *subKey, const w
 	}
 }
 
-/* Set the given privilege of the current process */
-BOOL SetPrivilege(LPTSTR szPrivilegeName, BOOL bEnable)
-{
-	TOKEN_PRIVILEGES tp;
-	LUID luid;
-	HANDLE hProcessToken;
-	BOOL bStatus = FALSE;
-
-	if ( OpenProcessToken(GetCurrentProcess(),
-			TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-			&hProcessToken) )
-	{
-		if ( LookupPrivilegeValue(
-				NULL,
-				szPrivilegeName,
-				&luid ) )
-		{
-
-			tp.PrivilegeCount = 1;
-			tp.Privileges[0].Luid = luid;
-			tp.Privileges[0].Attributes = bEnable? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_REMOVED;
-
-			// Enable the privilege
-			bStatus = AdjustTokenPrivileges(
-				hProcessToken,
-				FALSE,
-				&tp,
-				sizeof(TOKEN_PRIVILEGES),
-				(PTOKEN_PRIVILEGES) NULL,
-				(PDWORD) NULL);
-		}
-
-		CloseHandle(hProcessToken);
-	}
-
-	return bStatus;
-}
-
 /*
  * Creates a VT_LPWSTR propvariant.
  * we use our own implementation to use SHStrDupW function pointer
@@ -685,18 +649,6 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 				continue;	// Destination = target
 		}
 
-		// skip files that don't apply to the current architecture
-		if (	(Is64BitOs () && (wcscmp (szFiles[i], L"AVeraCrypt-x64.exe") == 0))
-			|| (Is64BitOs () && (wcscmp (szFiles[i], L"AVeraCryptExpander-x64.exe") == 0))
-			|| (Is64BitOs () && (wcscmp (szFiles[i], L"AVeraCrypt Format-x64.exe") == 0))
-			||	(!Is64BitOs () && (wcscmp (szFiles[i], L"AVeraCrypt-x86.exe") == 0))
-			||	(!Is64BitOs () && (wcscmp (szFiles[i], L"AVeraCryptExpander-x86.exe") == 0))
-			||	(!Is64BitOs () && (wcscmp (szFiles[i], L"AVeraCrypt Format-x86.exe") == 0))
-			)
-		{
-			continue;
-		}
-
 		if ((*szFiles[i] == L'A') || (*szFiles[i] == L'X'))
 			StringCbCopyW (szDir, sizeof(szDir), szDestDir);
 		else if (*szFiles[i] == L'D')
@@ -754,9 +706,15 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 				curFileName [wcslen (szFiles[i]) - 1] = 0;
 
 				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"Dveracrypt.sys") == 0)
+					&& ((wcscmp (szFiles[i], L"Dveracrypt.sys") == 0) || (wcscmp (szFiles[i], L"Averacrypt.sys") == 0)))
 				{
 					StringCbCopyNW (curFileName, sizeof(curFileName), FILENAME_64BIT_DRIVER, sizeof (FILENAME_64BIT_DRIVER));
+				}
+
+				if (Is64BitOs ()
+					&& wcscmp (szFiles[i], L"Averacrypt.cat") == 0)
+				{
+					StringCbCopyNW (curFileName, sizeof(curFileName), L"veracrypt-x64.cat", sizeof (L"veracrypt-x64.cat"));
 				}
 
 				if (Is64BitOs ()
@@ -766,33 +724,15 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 				}
 
 				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"AVeraCrypt-x86.exe") == 0)
-				{
-					StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCrypt.exe", sizeof (L"VeraCrypt.exe"));
-				}
-
-				if (Is64BitOs ()
 					&& wcscmp (szFiles[i], L"AVeraCryptExpander.exe") == 0)
 				{
 					StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCryptExpander-x64.exe", sizeof (L"VeraCryptExpander-x64.exe"));
 				}
 
 				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"AVeraCryptExpander-x86.exe") == 0)
-				{
-					StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCryptExpander.exe", sizeof (L"VeraCryptExpander.exe"));
-				}
-
-				if (Is64BitOs ()
 					&& wcscmp (szFiles[i], L"AVeraCrypt Format.exe") == 0)
 				{
 					StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCrypt Format-x64.exe", sizeof (L"VeraCrypt Format-x64.exe"));
-				}
-
-				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"AVeraCrypt Format-x86.exe") == 0)
-				{
-					StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCrypt Format.exe", sizeof (L"VeraCrypt Format.exe"));
 				}
 
 				if (!bDevm)
@@ -1050,6 +990,12 @@ err:
 			while (FindNextFile(h, &f) != 0);
 
 			FindClose (h);
+		}
+		
+		// remvove legacy files that are not needed anymore
+		for (i = 0; i < sizeof (szLegacyFiles) / sizeof (szLegacyFiles[0]); i++)
+		{
+			StatDeleteFile (szLegacyFiles [i], TRUE);
 		}
 
 		SetCurrentDirectory (SetupFilesDir);
@@ -2313,45 +2259,9 @@ void DoInstall (void *arg)
 
 void SetInstallationPath (HWND hwndDlg)
 {
-	HKEY hkey;
 	BOOL bInstallPathDetermined = FALSE;
-	wchar_t path[MAX_PATH+20];
-	ITEMIDLIST *itemList;
-
-	memset (InstallationPath, 0, sizeof (InstallationPath));
-
-	// Determine if VeraCrypt is already installed and try to determine its "Program Files" location
-	if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VeraCrypt", 0, KEY_READ | KEY_WOW64_32KEY, &hkey) == ERROR_SUCCESS)
-	{
-		/* Default 'UninstallString' registry strings written by VeraCrypt:
-		------------------------------------------------------------------------------------
-		5.0+	"C:\Program Files\VeraCrypt\VeraCrypt Setup.exe" /u
-		*/
-
-		wchar_t rv[MAX_PATH*4];
-		DWORD size = sizeof (rv);
-		if (RegQueryValueEx (hkey, L"UninstallString", 0, 0, (LPBYTE) &rv, &size) == ERROR_SUCCESS && wcsrchr (rv, L'/'))
-		{
-			size_t len = 0;
-
-			// Cut and paste the location (path) where VeraCrypt is installed to InstallationPath
-			if (rv[0] == L'"')
-			{
-				len = wcsrchr (rv, L'/') - rv - 2;
-				StringCchCopyNW (InstallationPath, ARRAYSIZE(InstallationPath), rv + 1, len);
-				InstallationPath [len] = 0;
-				bInstallPathDetermined = TRUE;
-
-				if (InstallationPath [wcslen (InstallationPath) - 1] != L'\\')
-				{
-					len = wcsrchr (InstallationPath, L'\\') - InstallationPath;
-					InstallationPath [len] = 0;
-				}
-			}
-
-		}
-		RegCloseKey (hkey);
-	}
+	
+	GetInstallationPath (hwndDlg, InstallationPath, ARRAYSIZE (InstallationPath), &bInstallPathDetermined);
 
 	if (bInstallPathDetermined)
 	{
@@ -2366,36 +2276,6 @@ void SetInstallationPath (HWND hwndDlg)
 			if (!IsNonInstallMode() && !bDevm)
 				bChangeMode = TRUE;
 		}
-	}
-	else
-	{
-		/* VeraCrypt is not installed or it wasn't possible to determine where it is installed. */
-
-		// Default "Program Files" path.
-		SHGetSpecialFolderLocation (hwndDlg, CSIDL_PROGRAM_FILES, &itemList);
-		SHGetPathFromIDList (itemList, path);
-
-		if (Is64BitOs())
-		{
-			// Use a unified default installation path (registry redirection of %ProgramFiles% does not work if the installation path is user-selectable)
-			wstring s = path;
-			size_t p = s.find (L" (x86)");
-			if (p != wstring::npos)
-			{
-				s = s.substr (0, p);
-				if (_waccess (s.c_str(), 0) != -1)
-					StringCbCopyW (path, sizeof (path), s.c_str());
-			}
-		}
-
-		StringCbCatW (path, sizeof(path), L"\\VeraCrypt\\");
-		StringCbCopyW (InstallationPath, sizeof(InstallationPath), path);
-	}
-
-	// Make sure the path ends with a backslash
-	if (InstallationPath [wcslen (InstallationPath) - 1] != L'\\')
-	{
-		StringCbCatW (InstallationPath, sizeof(InstallationPath), L"\\");
 	}
 }
 
@@ -2496,6 +2376,142 @@ BOOL CALLBACK UninstallDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 }
 #endif
 
+typedef struct
+{
+	LPCWSTR name;
+	int resourceid;
+	WORD langid;
+	LPCSTR internalId;
+	LPCWSTR langtag;
+} tLanguageEntry;
+
+static tLanguageEntry g_languagesEntries[] = {
+	{L"العربية", IDR_LANG_AR, LANG_ARABIC, "ar", NULL},
+	{L"Čeština", IDR_LANG_CS, LANG_CZECH, "cs", NULL},
+	{L"Deutsch", IDR_LANG_DE, LANG_GERMAN, "de", NULL},
+	{L"English", IDR_LANGUAGE, LANG_ENGLISH, "en", NULL},
+	{L"Español", IDR_LANG_ES, LANG_SPANISH, "es", NULL},
+	{L"Français", IDR_LANG_FR, LANG_FRENCH, "fr", NULL},
+	{L"Italiano", IDR_LANG_IT, LANG_ITALIAN, "it", NULL},
+	{L"日本語", IDR_LANG_JA, LANG_JAPANESE, "ja", NULL},
+	{L"Nederlands", IDR_LANG_NL, LANG_DUTCH, "nl", NULL},
+	{L"Polski", IDR_LANG_PL, LANG_POLISH, "pl", NULL},
+	{L"Română", IDR_LANG_RO, LANG_ROMANIAN, "ro", NULL},
+	{L"Русский", IDR_LANG_RU, LANG_RUSSIAN, "ru", NULL},
+	{L"Tiếng Việt", IDR_LANG_VI, LANG_VIETNAMESE, "vi", NULL},
+	{L"简体中文", IDR_LANG_ZHCN, LANG_CHINESE, "zh-cn", L"zh-CN"},
+	{L"繁體中文", IDR_LANG_ZHHK, LANG_CHINESE, "zh-hk", L"zh-HK"},
+};
+
+typedef int (WINAPI *LCIDToLocaleNameFn)(
+    LCID     Locale,
+    LPWSTR  lpName,
+    int      cchName,
+    DWORD    dwFlags);
+
+static void UpdateSelectLanguageDialog (HWND hwndDlg)
+{
+	HWND hLangList = GetDlgItem (hwndDlg, IDC_LANGUAGES_LIST);
+	LPARAM nIndex = SendMessage (hLangList, CB_GETCURSEL, 0, 0);
+	int resourceid = (int) SendMessage (hLangList, CB_GETITEMDATA, nIndex, 0);
+	BOOL bVal;
+
+	LoadLanguageFromResource (resourceid, TRUE, TRUE);
+
+	bVal = LocalizationActive;
+	LocalizationActive = TRUE;
+	LocalizeDialog (hwndDlg, "IDD_INSTL_DLG");
+	InvalidateRect (hwndDlg, NULL, FALSE);
+	LocalizationActive = bVal;
+}
+
+BOOL CALLBACK SelectLanguageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	WORD lw = LOWORD (wParam);
+
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+		{
+			char* preferredLanguage = GetPreferredLangId ();
+			if (strlen (preferredLanguage))
+			{
+				// language already selected by user in current install
+				// use it for the setup
+				for (size_t i = 0; i < ARRAYSIZE (g_languagesEntries); i++)
+				{
+					if (0 == strcmp (preferredLanguage, g_languagesEntries[i].internalId))
+					{
+						LoadLanguageFromResource (g_languagesEntries[i].resourceid, FALSE, TRUE);
+						break;
+					}
+				}
+				EndDialog (hwndDlg, IDCANCEL);
+				return FALSE;
+			}
+			else
+			{
+				// Get the default UI language
+				LCIDToLocaleNameFn LCIDToLocaleNamePtr = (LCIDToLocaleNameFn) GetProcAddress (GetModuleHandle (L"kernel32.dll"), "LCIDToLocaleName");
+				WCHAR langtag[256];
+				LANGID defaultLanguage = GetUserDefaultUILanguage ();
+				WORD langid = (WORD) (defaultLanguage & 0x03FF); // primary language ID
+
+				InitDialog (hwndDlg);
+
+				LCIDToLocaleNamePtr (MAKELCID (defaultLanguage, 0), langtag, ARRAYSIZE (langtag), 0); // language tag (e.g. "en-US")
+				int resourceid = IDR_LANGUAGE;
+				for (size_t i = 0; i < ARRAYSIZE (g_languagesEntries); i++)
+				{
+					if (g_languagesEntries[i].langid == langid)
+					{
+						if (!g_languagesEntries[i].langtag || (0 == _wcsicmp (g_languagesEntries[i].langtag, langtag)))
+						{
+							resourceid = g_languagesEntries[i].resourceid;
+							break;
+						}
+					}
+				}
+
+				for (size_t i = 0; i < ARRAYSIZE (g_languagesEntries); i++)
+				{
+					AddComboPair (GetDlgItem (hwndDlg, IDC_LANGUAGES_LIST), g_languagesEntries[i].name, g_languagesEntries[i].resourceid);
+				}
+
+				SelectAlgo (GetDlgItem (hwndDlg, IDC_LANGUAGES_LIST), &resourceid);
+
+				UpdateSelectLanguageDialog (hwndDlg);
+			}
+
+		}
+		return TRUE;
+
+	case WM_COMMAND:
+		if (CBN_SELCHANGE == HIWORD (wParam))
+		{
+			UpdateSelectLanguageDialog (hwndDlg);
+			return 1;
+		}
+
+		if (lw == IDOK)
+		{
+			bUserSetLanguage = TRUE;
+			EndDialog (hwndDlg, IDOK);
+			return 1;
+		}
+
+		if (lw == IDCANCEL)
+		{
+			SetPreferredLangId ("");
+			EndDialog (hwndDlg, IDCANCEL);
+			return 1;
+		}
+		return 0;
+	}
+
+	return 0;
+}
+
 
 int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpszCommandLine, int nCmdShow)
 {
@@ -2571,11 +2587,22 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpsz
 #ifndef PORTABLE
 		SetInstallationPath (NULL);
 #endif
-		if (!bUninstall)
+		if (bUninstall)
+		{
+			wchar_t path [TC_MAX_PATH];
+
+			GetModuleFileName (NULL, path, ARRAYSIZE (path));
+			if (!VerifyModuleSignature (path))
+			{
+				Error ("DIST_PACKAGE_CORRUPTED", NULL);
+				exit (1);
+			}
+		}
+		else
 		{
 			if (IsSelfExtractingPackage())
 			{
-				if (!VerifyPackageIntegrity())
+				if (!VerifySelfPackageIntegrity())
 				{
 					// Package corrupted
 					exit (1);
@@ -2636,6 +2663,18 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpsz
 
 		if (!bUninstall)
 		{
+			if (!bDevm && !LocalizationActive && (nCurrentOS >= WIN_VISTA))
+			{
+				BOOL bHasPreferredLanguage = (strlen (GetPreferredLangId ()) > 0)? TRUE : FALSE;
+				if ((IDCANCEL == DialogBoxParamW (hInstance, MAKEINTRESOURCEW (IDD_INSTALL_LANGUAGE), NULL, (DLGPROC) SelectLanguageDialogProc, (LPARAM) 0 ))
+					&& !bHasPreferredLanguage
+					)
+				{
+					// Language dialog cancelled by user: exit the installer
+					FinalizeApp ();
+					exit (1);
+				}
+			}
 			/* Create the main dialog for install */
 
 			DialogBoxParamW (hInstance, MAKEINTRESOURCEW (IDD_INSTL_DLG), NULL, (DLGPROC) MainDialogProc,

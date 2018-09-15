@@ -48,6 +48,7 @@
 #include "../Common/SecurityToken.h"
 #include "../Platform/Finally.h"
 #include "../Platform/ForEach.h"
+#include "../Setup/SelfExtract.h"
 
 #include <Strsafe.h>
 
@@ -536,6 +537,21 @@ static void InitMainDialog (HWND hwndDlg)
 
 		SendMessage (GetDlgItem (hwndDlg, IDC_NO_HISTORY), BM_SETCHECK, bHistory ? BST_UNCHECKED : BST_CHECKED, 0);
 		EnableDisableButtons (hwndDlg);
+
+		// Ensure bottom buttons are visible if the user sets a large font size
+		RECT mainRectScreen, boxRectScreen;
+		ULONG mainHeigth, mainWidth, correctHeigth;
+		GetWindowRect (hwndDlg, &mainRectScreen);
+		GetWindowRect (GetDlgItem (hwndDlg, IDC_LOWER_BOX), &boxRectScreen);
+
+		mainHeigth = mainRectScreen.bottom - mainRectScreen.top;
+		mainWidth = mainRectScreen.right - mainRectScreen.left;
+		correctHeigth =  boxRectScreen.bottom - mainRectScreen.top + CompensateYDPI (5);
+
+		if (mainHeigth < correctHeigth)
+		{
+			SetWindowPos (hwndDlg, NULL, 0, 0, mainWidth, correctHeigth , SWP_NOACTIVATE | SWP_NOZORDER  | SWP_NOMOVE);
+		}
 	}
 }
 
@@ -1507,6 +1523,10 @@ static void LaunchVolCreationWizard (HWND hwndDlg, const wchar_t *arg, BOOL bEle
 
 		if (!FileExists(t))
 			Error ("VOL_CREATION_WIZARD_NOT_FOUND", hwndDlg);	// Display a user-friendly error message and advise what to do
+		else if (!VerifyModuleSignature (t))
+		{
+			Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+		}
 		else
 		{
 
@@ -2164,9 +2184,9 @@ BOOL CALLBACK PasswordChangeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 			SetWindowTextW (hwndDlg, GetString ("IDD_PASSWORDCHANGE_DLG"));
 			LocalizeDialog (hwndDlg, "IDD_PASSWORDCHANGE_DLG");
 
-			SendMessage (GetDlgItem (hwndDlg, IDC_OLD_PASSWORD), EM_LIMITTEXT, MAX_PASSWORD, 0);
-			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD), EM_LIMITTEXT, MAX_PASSWORD, 0);
-			SendMessage (GetDlgItem (hwndDlg, IDC_VERIFY), EM_LIMITTEXT, MAX_PASSWORD, 0);
+			ToNormalPwdField (hwndDlg, IDC_OLD_PASSWORD);
+			ToNormalPwdField (hwndDlg, IDC_PASSWORD);
+			ToNormalPwdField (hwndDlg, IDC_VERIFY);
 			SendMessage (GetDlgItem (hwndDlg, IDC_OLD_PIM), EM_LIMITTEXT, MAX_PIM, 0);
 			SendMessage (GetDlgItem (hwndDlg, IDC_PIM), EM_LIMITTEXT, MAX_PIM, 0);
 			EnableWindow (GetDlgItem (hwndDlg, IDOK), FALSE);
@@ -2879,7 +2899,7 @@ BOOL CALLBACK PasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			/* make autodetection the default unless a specific PRF was specified in the command line */
 			SendMessage (hComboBox, CB_SETCURSEL, defaultPrfIndex, 0);
 
-			SendMessage (GetDlgItem (hwndDlg, IDC_PASSWORD), EM_LIMITTEXT, MAX_PASSWORD, 0);
+			ToNormalPwdField (hwndDlg, IDC_PASSWORD);
 			SendMessage (GetDlgItem (hwndDlg, IDC_CACHE), BM_SETCHECK, bCacheInDriver ? BST_CHECKED:BST_UNCHECKED, 0);
 			SendMessage (GetDlgItem (hwndDlg, IDC_PIM), EM_LIMITTEXT, MAX_PIM, 0);
 
@@ -3570,7 +3590,7 @@ BOOL CALLBACK MountOptionsDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
 			SetCheckBox (hwndDlg, IDC_KEYFILES_ENABLE_HIDVOL_PROT, hidVolProtKeyFilesParam.EnableKeyFiles);
 
-			SendDlgItemMessage (hwndDlg, IDC_PASSWORD_PROT_HIDVOL, EM_LIMITTEXT, MAX_PASSWORD, 0);
+			ToNormalPwdField (hwndDlg, IDC_PASSWORD_PROT_HIDVOL);
 			SendDlgItemMessage (hwndDlg, IDC_PIM, EM_LIMITTEXT, MAX_PIM, 0);
 
 			if (mountOptions->ProtectedHidVolPassword.Length > 0)
@@ -4425,102 +4445,197 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 				goto stop;
 			}
 
-			// Main app 32-bit
-			if (Is64BitOs () && !IsNonInstallMode ())
-				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt-x86.exe", appDir);
-			else
-				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt.exe", appDir);
-			StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt.exe", dstDir);
-			if (!TCCopyFile (srcPath, dstPath))
+			if (IsNonInstallMode ())
 			{
-				handleWin32Error (hwndDlg, SRC_POS);
-				goto stop;
-			}
-
-			// Main app 64-bit
-			if (Is64BitOs () && !IsNonInstallMode ())
+				// Main app 32-bit
 				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt.exe", appDir);
-			else
+				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt.exe", dstDir);
+				if (!VerifyModuleSignature (srcPath))
+				{
+					Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+					goto stop;
+				}
+				else if (!TCCopyFile (srcPath, dstPath))
+				{
+					handleWin32Error (hwndDlg, SRC_POS);
+					goto stop;
+				}
+
+				// Main app 64-bit
 				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt-x64.exe", appDir);
-			StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt-x64.exe", dstDir);
-			if (!TCCopyFile (srcPath, dstPath))
-			{
-				handleWin32Error (hwndDlg, SRC_POS);
-				goto stop;
-			}
-
-			// Wizard
-			if (copyWizard)
-			{
-				// Wizard 32-bit
-				if (Is64BitOs () && !IsNonInstallMode ())
-					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt Format-x86.exe", appDir);
-				else
-					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt Format.exe", appDir);
-				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format.exe", dstDir);
-				if (!TCCopyFile (srcPath, dstPath))
+				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt-x64.exe", dstDir);
+				if (!VerifyModuleSignature (srcPath))
+				{
+					Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+					goto stop;
+				}
+				else if (!TCCopyFile (srcPath, dstPath))
 				{
 					handleWin32Error (hwndDlg, SRC_POS);
 					goto stop;
 				}
 
-				// Wizard 64-bit
-				if (Is64BitOs () && !IsNonInstallMode ())
+				// Wizard
+				if (copyWizard)
+				{
+					// Wizard 32-bit
 					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt Format.exe", appDir);
-				else
+					StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format.exe", dstDir);
+					if (!VerifyModuleSignature (srcPath))
+					{
+						Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+						goto stop;
+					}
+					else if (!TCCopyFile (srcPath, dstPath))
+					{
+						handleWin32Error (hwndDlg, SRC_POS);
+						goto stop;
+					}
+
+					// Wizard 64-bit
 					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt Format-x64.exe", appDir);
-				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format-x64.exe", dstDir);
-				if (!TCCopyFile (srcPath, dstPath))
-				{
-					handleWin32Error (hwndDlg, SRC_POS);
-					goto stop;
-				}
-			}
-
-			// Expander
-			if (copyExpander)
-			{
-				// Expander 32-bit
-				if (Is64BitOs () && !IsNonInstallMode ())
-					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCryptExpander-x86.exe", appDir);
-				else
-					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCryptExpander.exe", appDir);
-				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander.exe", dstDir);
-				if (!TCCopyFile (srcPath, dstPath))
-				{
-					handleWin32Error (hwndDlg, SRC_POS);
-					goto stop;
+					StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format-x64.exe", dstDir);
+					if (!VerifyModuleSignature (srcPath))
+					{
+						Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+						goto stop;
+					}
+					else if (!TCCopyFile (srcPath, dstPath))
+					{
+						handleWin32Error (hwndDlg, SRC_POS);
+						goto stop;
+					}
 				}
 
-				// Expander 64-bit
-				if (Is64BitOs () && !IsNonInstallMode ())
+				// Expander
+				if (copyExpander)
+				{
+					// Expander 32-bit
 					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCryptExpander.exe", appDir);
-				else
+					StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander.exe", dstDir);
+					if (!VerifyModuleSignature (srcPath))
+					{
+						Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+						goto stop;
+					}
+					else if (!TCCopyFile (srcPath, dstPath))
+					{
+						handleWin32Error (hwndDlg, SRC_POS);
+						goto stop;
+					}
+
+					// Expander 64-bit
 					StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCryptExpander-x64.exe", appDir);
-				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander-x64.exe", dstDir);
-				if (!TCCopyFile (srcPath, dstPath))
+					StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander-x64.exe", dstDir);
+					if (!VerifyModuleSignature (srcPath))
+					{
+						Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+						goto stop;
+					}
+					else if (!TCCopyFile (srcPath, dstPath))
+					{
+						handleWin32Error (hwndDlg, SRC_POS);
+						goto stop;
+					}
+				}
+
+				// Driver
+				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\veracrypt.sys", appDir);
+				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt.sys", dstDir);
+				if (!VerifyModuleSignature (srcPath))
+				{
+					Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+					goto stop;
+				}
+				else if (!TCCopyFile (srcPath, dstPath))
+				{
+					handleWin32Error (hwndDlg, SRC_POS);
+					goto stop;
+				}
+
+				// Driver x64
+				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\veracrypt-x64.sys", appDir);
+				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt-x64.sys", dstDir);
+				if (!VerifyModuleSignature (srcPath))
+				{
+					Error ("DIST_PACKAGE_CORRUPTED", hwndDlg);
+					goto stop;
+				}
+				else if (!TCCopyFile (srcPath, dstPath))
 				{
 					handleWin32Error (hwndDlg, SRC_POS);
 					goto stop;
 				}
 			}
-
-			// Driver
-			StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\veracrypt.sys", appDir);
-			StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt.sys", dstDir);
-			if (!TCCopyFile (srcPath, dstPath))
+			else
 			{
-				handleWin32Error (hwndDlg, SRC_POS);
-				goto stop;
-			}
+				int fileNo = 0;
+				// get file from the Setup binary after checking its signature and its version
+				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\VeraCrypt Setup.exe", appDir);
 
-			// Driver x64
-			StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\veracrypt-x64.sys", appDir);
-			StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt-x64.sys", dstDir);
-			if (!TCCopyFile (srcPath, dstPath))
-			{
-				handleWin32Error (hwndDlg, SRC_POS);
-				goto stop;
+				FreeAllFileBuffers ();
+
+				if (!VerifyPackageIntegrity (srcPath) || !SelfExtractInMemory (srcPath))
+				{
+					MessageBoxW (hwndDlg, GetString ("DIST_PACKAGE_CORRUPTED"), lpszTitle, MB_ICONEXCLAMATION);
+					goto stop;
+				}
+
+				for (fileNo = 0; fileNo < NBR_COMPRESSED_FILES; fileNo++)
+				{
+					wchar_t fileName [TC_MAX_PATH] = {0};
+
+					// Filename
+					StringCchCopyNW (fileName, ARRAYSIZE(fileName), Decompressed_Files[fileNo].fileName, Decompressed_Files[fileNo].fileNameLength);
+
+					if (wcscmp (fileName, L"VeraCrypt.exe") == 0)
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt.exe", dstDir);
+					}
+					else if (wcscmp (fileName, L"VeraCrypt-x64.exe") == 0)
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt-x64.exe", dstDir);
+					}
+					else if (wcscmp (fileName, L"veracrypt.sys") == 0)
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt.sys", dstDir);
+					}
+					else if (wcscmp (fileName, L"veracrypt-x64.sys") == 0)
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt-x64.sys", dstDir);
+					}
+					else if (copyWizard && (wcscmp (fileName, L"VeraCrypt Format.exe") == 0))
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format.exe", dstDir);
+					}
+					else if (copyWizard && (wcscmp (fileName, L"VeraCrypt Format-x64.exe") == 0))
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format-x64.exe", dstDir);
+					}
+					else if (copyExpander && (wcscmp (fileName, L"VeraCryptExpander.exe") == 0))
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander.exe", dstDir);
+					}
+					else if (copyExpander && (wcscmp (fileName, L"VeraCryptExpander-x64.exe") == 0))
+					{
+						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander-x64.exe", dstDir);
+					}
+					else
+						continue;
+
+					if (!SaveBufferToFile (
+						(char *) Decompressed_Files[fileNo].fileContent,
+						dstPath,
+						Decompressed_Files[fileNo].fileLength,
+						FALSE, FALSE))
+					{
+						wchar_t szTmp[512];
+
+						StringCbPrintfW (szTmp, sizeof (szTmp), GetString ("CANNOT_WRITE_FILE_X"), dstPath);
+						MessageBoxW (hwndDlg, szTmp, lpszTitle, MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+						goto stop;
+					}
+				}
 			}
 
 			if (strcmp (GetPreferredLangId (), "en") != 0)
@@ -4534,7 +4649,11 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 				}
 				StringCbPrintfW (srcPath, sizeof(srcPath), L"%s\\Languages\\Language.%hs.xml", appDir, GetPreferredLangId ());
 				StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\Languages\\Language.%hs.xml", dstDir, GetPreferredLangId ());
-				TCCopyFile (srcPath, dstPath);
+				if (!TCCopyFile (srcPath, dstPath))
+				{
+					handleWin32Error (hwndDlg, SRC_POS);
+					goto stop;
+				}
 			}
 
 			// AutoRun
@@ -4573,6 +4692,7 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			MessageBoxW (hwndDlg, GetString ("TRAVELER_DISK_CREATED"), lpszTitle, MB_ICONINFORMATION);
 
 stop:
+			FreeAllFileBuffers ();
 			NormalCursor ();
 			return 1;
 		}
@@ -6674,6 +6794,12 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				// General preferences
 				LoadSettings (hwndDlg);
 
+				// Save language to XML configuration file if it has been selected in the setup
+				// so that other VeraCrypt programs will pick it up
+				if (bLanguageSetInSetup)
+					SaveSettings (hwndDlg);
+
+
 				// Keyfiles
 				LoadDefaultKeyFilesParam ();
 				RestoreDefaultKeyFilesParam ();
@@ -7637,7 +7763,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 							mountOptions.ProtectedHidVolPkcs5Prf = CmdVolumePkcs5;
 						mountOptions.ProtectedHidVolPim = CmdVolumePim;
 
-						if (IDCANCEL == DialogBoxParamW (hInst,
+						if (IDCANCEL == SecureDesktopDialogBoxParam (hInst,
 							MAKEINTRESOURCEW (IDD_MOUNT_OPTIONS), hwndDlg,
 							(DLGPROC) MountOptionsDlgProc, (LPARAM) &mountOptions))
 							return 1;
@@ -9282,9 +9408,26 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpsz
 	if (argv && argc == 2 && wstring (TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION) == argv[1])
 		return StartSystemFavoritesService() ? 0 : 1;
 
+	if (argv && argc == 2 && wstring (VC_WINDOWS_UPGRADE_POSTOOBE_CMDLINE_OPTION) == argv[1])
+	{
+		InitOSVersionInfo();
+		try
+		{
+			BootEncryption::UpdateSetupConfigFile (true);
+			// re-install our bootloader again in case the upgrade process has removed it.
+			BootEncryption bootEnc (NULL, true);
+			bootEnc.InstallBootLoader (true);
+		}
+		catch (...)
+		{
+		}
+		return 0;
+	}
+
 	int status;
 	atexit (localcleanup);
 	SetProcessShutdownParameters (0x100, 0);
+	DeobfuscateMagEndMarker ();
 
 	VirtualLock (&VolumePassword, sizeof (VolumePassword));
 	VirtualLock (&CmdVolumePassword, sizeof (CmdVolumePassword));
@@ -9577,7 +9720,7 @@ static BOOL MountFavoriteVolumeBase (HWND hwnd, const FavoriteVolume &favorite, 
 			else
 				mountOptions.ProtectedHidVolPkcs5Prf = CmdVolumePkcs5;
 			mountOptions.ProtectedHidVolPim = CmdVolumePim;
-			if (Silent || (DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_MOUNT_OPTIONS), hwnd, (DLGPROC) MountOptionsDlgProc, (LPARAM) &mountOptions) == IDCANCEL))
+			if (Silent || (SecureDesktopDialogBoxParam (hInst, MAKEINTRESOURCEW (IDD_MOUNT_OPTIONS), hwnd, (DLGPROC) MountOptionsDlgProc, (LPARAM) &mountOptions) == IDCANCEL))
 			{
 				status = FALSE;
 				goto skipMount;
@@ -10500,9 +10643,34 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 					dgBuffer, sizeof (dgBuffer), &dwResult, NULL);
 
 				if (!bResult)
-					goto error;
+				{
+					DISK_GEOMETRY geo;
+					if (DeviceIoControl (dev, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0, (LPVOID) &geo, sizeof (geo), &dwResult, NULL))
+					{
+						hostSize = geo.Cylinders.QuadPart * geo.SectorsPerTrack * geo.TracksPerCylinder * geo.BytesPerSector;
 
-				hostSize = ((PDISK_GEOMETRY_EX) dgBuffer)->DiskSize.QuadPart;
+						if (CurrentOSMajor >= 6)
+						{
+							STORAGE_READ_CAPACITY storage = {0};
+
+							storage.Version = sizeof (STORAGE_READ_CAPACITY);
+							storage.Size = sizeof (STORAGE_READ_CAPACITY);
+							if (DeviceIoControl (dev, IOCTL_STORAGE_READ_CAPACITY, NULL, 0, (LPVOID) &storage, sizeof (storage), &dwResult, NULL)
+								&& (dwResult >= sizeof (storage))
+								&& (storage.Size == sizeof (STORAGE_READ_CAPACITY))
+								)
+							{
+								hostSize = storage.DiskLength.QuadPart;
+							}
+						}
+					}
+					else
+					{
+						goto error;
+					}
+				}
+				else
+					hostSize = ((PDISK_GEOMETRY_EX) dgBuffer)->DiskSize.QuadPart;
 			}
 
 			if (hostSize == 0)
@@ -10734,6 +10902,16 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 			CheckDlgButton (hwndDlg, IDC_ENABLE_HARDWARE_ENCRYPTION, (driverConfig & TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION) ? BST_UNCHECKED : BST_CHECKED);
 			CheckDlgButton (hwndDlg, IDC_ENABLE_EXTENDED_IOCTL_SUPPORT, (driverConfig & TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL) ? BST_CHECKED : BST_UNCHECKED);
 			CheckDlgButton (hwndDlg, IDC_ALLOW_TRIM_NONSYS_SSD, (driverConfig & VC_DRIVER_CONFIG_ALLOW_NONSYS_TRIM) ? BST_CHECKED : BST_UNCHECKED);
+			// checkbox for Windows Defragmenter only usuable starting from Windows 8.1
+			// on previous versions, we can not control Windows defragmenter so 
+			// this settings is always checked.
+			if (IsOSAtLeast (WIN_8_1))
+				CheckDlgButton (hwndDlg, IDC_ALLOW_WINDOWS_DEFRAG, (driverConfig & VC_DRIVER_CONFIG_ALLOW_WINDOWS_DEFRAG) ? BST_CHECKED : BST_UNCHECKED);
+			else
+			{
+				CheckDlgButton (hwndDlg, IDC_ALLOW_WINDOWS_DEFRAG,  BST_CHECKED);
+				EnableWindow (GetDlgItem (hwndDlg, IDC_ALLOW_WINDOWS_DEFRAG), FALSE);
+			}
 
 			SYSTEM_INFO sysInfo;
 			GetSystemInfo (&sysInfo);
@@ -10792,6 +10970,7 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 				BOOL disableHW = !IsDlgButtonChecked (hwndDlg, IDC_ENABLE_HARDWARE_ENCRYPTION);
 				BOOL enableExtendedIOCTL = IsDlgButtonChecked (hwndDlg, IDC_ENABLE_EXTENDED_IOCTL_SUPPORT);
 				BOOL allowTrimCommand = IsDlgButtonChecked (hwndDlg, IDC_ALLOW_TRIM_NONSYS_SSD);
+				BOOL allowWindowsDefrag = IsDlgButtonChecked (hwndDlg, IDC_ALLOW_WINDOWS_DEFRAG);
 
 				try
 				{
@@ -10829,6 +11008,8 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION, disableHW);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL, enableExtendedIOCTL);
 					SetDriverConfigurationFlag (VC_DRIVER_CONFIG_ALLOW_NONSYS_TRIM, allowTrimCommand);
+					if (IsOSAtLeast (WIN_8_1))
+						SetDriverConfigurationFlag (VC_DRIVER_CONFIG_ALLOW_WINDOWS_DEFRAG, allowWindowsDefrag);
 
 					DWORD bytesReturned;
 					if (!DeviceIoControl (hDriver, TC_IOCTL_REREAD_DRIVER_CONFIG, NULL, 0, NULL, 0, &bytesReturned, NULL))
@@ -10857,6 +11038,14 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 				{
 					e.Show (hwndDlg);
 				}
+			}
+			return 1;
+
+		case IDC_ALLOW_WINDOWS_DEFRAG:
+			if (IsDlgButtonChecked (hwndDlg, IDC_ALLOW_WINDOWS_DEFRAG)
+				&& AskWarnYesNo ("CONFIRM_ALLOW_WINDOWS_DEFRAG", hwndDlg) == IDNO)
+			{
+				CheckDlgButton (hwndDlg, IDC_ALLOW_WINDOWS_DEFRAG, BST_UNCHECKED);
 			}
 			return 1;
 
@@ -11394,7 +11583,7 @@ void MountSelectedVolume (HWND hwndDlg, BOOL mountWithOptions)
 			else
 				mountOptions.ProtectedHidVolPkcs5Prf = CmdVolumePkcs5;
 			mountOptions.ProtectedHidVolPim = CmdVolumePim;
-			if (IDCANCEL == DialogBoxParamW (hInst,
+			if (IDCANCEL == SecureDesktopDialogBoxParam (hInst,
 				MAKEINTRESOURCEW (IDD_MOUNT_OPTIONS), hwndDlg,
 				(DLGPROC) MountOptionsDlgProc, (LPARAM) &mountOptions))
 				return;

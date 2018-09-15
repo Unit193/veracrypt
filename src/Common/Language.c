@@ -44,6 +44,7 @@ static DWORD LanguageResourceSize = 0;
 static char *HeaderResource[2] = {NULL, NULL};
 static DWORD HeaderResourceSize[2] = {0, 0};
 static char ActiveLangPackVersion[6] = {0};
+static int LanguageResourceId = 0;
 
 static char *MapFirstLanguageFile ()
 {
@@ -58,6 +59,8 @@ static char *MapFirstLanguageFile ()
 		free (LanguageFileBuffer);
 		LanguageFileBuffer = NULL;
 	}
+
+	LanguageResourceId = 0;
 
 	if (LanguageResource == NULL)
 	{
@@ -81,7 +84,7 @@ static char *MapFirstLanguageFile ()
 }
 
 
-static char *MapNextLanguageFile ()
+static char *MapNextLanguageFile (int resourceid)
 {
 	wchar_t f[TC_MAX_PATH*2], *t;
 	WIN32_FIND_DATAW find;
@@ -96,67 +99,90 @@ static char *MapNextLanguageFile ()
 		LanguageFileBuffer = NULL;
 	}
 
-	if (LanguageFileFindHandle == INVALID_HANDLE_VALUE)
+	if (resourceid == 0)
 	{
-		GetModuleFileNameW (NULL, f, sizeof (f) / sizeof (f[0]));
+		if (LanguageFileFindHandle == INVALID_HANDLE_VALUE)
+		{
+			GetModuleFileNameW (NULL, f, sizeof (f) / sizeof (f[0]));
+			t = wcsrchr (f, L'\\');
+			if (t == NULL) return NULL;
+
+			*t = 0;
+			StringCbCatW (f, sizeof(f), L"\\Languages\\Language*.xml");
+
+			LanguageFileFindHandle = FindFirstFileW (f, &find);
+		}
+		else if (!FindNextFileW (LanguageFileFindHandle, &find))
+		{
+			FindClose (LanguageFileFindHandle);
+			LanguageFileFindHandle = INVALID_HANDLE_VALUE;
+			return NULL;
+		}
+
+		if (LanguageFileFindHandle == INVALID_HANDLE_VALUE) return NULL;
+		if (find.nFileSizeHigh != 0) return NULL;
+
+		LanguageFileBuffer = malloc(find.nFileSizeLow + 1);
+		if (LanguageFileBuffer == NULL) return NULL;
+
+		GetModuleFileNameW (NULL, f, sizeof (f) / sizeof(f[0]));
 		t = wcsrchr (f, L'\\');
-		if (t == NULL) return NULL;
+		if (t == NULL)
+		{
+			free(LanguageFileBuffer);
+			LanguageFileBuffer = NULL;
+			return NULL;
+		}
 
-		*t = 0;
-		StringCbCatW (f, sizeof(f), L"\\Languages\\Language*.xml");
+		t[1] = 0;
+		StringCbCatW (f, sizeof(f), L"Languages\\");
+		StringCbCatW (f, sizeof(f),find.cFileName);
 
-		LanguageFileFindHandle = FindFirstFileW (f, &find);
+		file = CreateFileW (f, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		if (file == INVALID_HANDLE_VALUE)
+		{
+			free(LanguageFileBuffer);
+			LanguageFileBuffer = NULL;
+			return NULL;
+		}
+
+		bStatus = ReadFile (file, LanguageFileBuffer, find.nFileSizeLow, &read, NULL);
+		CloseHandle (file);
+		if (!bStatus || (read != find.nFileSizeLow))
+		{
+			free(LanguageFileBuffer);
+			LanguageFileBuffer = NULL;
+			return NULL;
+		}
+
+		LanguageFileBuffer [find.nFileSizeLow] = 0; // we have allocated (find.nFileSizeLow + 1) bytes
 	}
-	else if (!FindNextFileW (LanguageFileFindHandle, &find))
+	else if (LanguageResourceId != resourceid)
 	{
-		FindClose (LanguageFileFindHandle);
-		LanguageFileFindHandle = INVALID_HANDLE_VALUE;
-		return NULL;
+		DWORD size;
+
+		LanguageResourceId = resourceid;
+
+		LanguageResource = MapResource (L"Languages", LanguageResourceId, &size);
+		if (LanguageResource)
+			LanguageResourceSize = size;
+
+		if (LanguageResource)
+		{
+			LanguageFileBuffer = malloc(LanguageResourceSize + 1);
+			if (LanguageFileBuffer)
+			{
+				memcpy (LanguageFileBuffer, LanguageResource, LanguageResourceSize);
+				LanguageFileBuffer[LanguageResourceSize] = 0;
+			}
+		}
 	}
-
-	if (LanguageFileFindHandle == INVALID_HANDLE_VALUE) return NULL;
-	if (find.nFileSizeHigh != 0) return NULL;
-
-	LanguageFileBuffer = malloc(find.nFileSizeLow + 1);
-	if (LanguageFileBuffer == NULL) return NULL;
-
-	GetModuleFileNameW (NULL, f, sizeof (f) / sizeof(f[0]));
-	t = wcsrchr (f, L'\\');
-	if (t == NULL)
-	{
-		free(LanguageFileBuffer);
-		LanguageFileBuffer = NULL;
-		return NULL;
-	}
-
-	t[1] = 0;
-	StringCbCatW (f, sizeof(f), L"Languages\\");
-	StringCbCatW (f, sizeof(f),find.cFileName);
-
-	file = CreateFileW (f, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (file == INVALID_HANDLE_VALUE)
-	{
-		free(LanguageFileBuffer);
-		LanguageFileBuffer = NULL;
-		return NULL;
-	}
-
-	bStatus = ReadFile (file, LanguageFileBuffer, find.nFileSizeLow, &read, NULL);
-	CloseHandle (file);
-	if (!bStatus || (read != find.nFileSizeLow))
-	{
-		free(LanguageFileBuffer);
-		LanguageFileBuffer = NULL;
-		return NULL;
-	}
-
-	LanguageFileBuffer [find.nFileSizeLow] = 0; // we have allocated (find.nFileSizeLow + 1) bytes
 
 	return LanguageFileBuffer;
 }
 
 
-BOOL LoadLanguageFile ()
+static BOOL LoadLanguageData (int resourceid, BOOL bForceSetPreferredLanguage, BOOL bForceSilent)
 {
 	DWORD size;
 	BYTE *res;
@@ -184,11 +210,11 @@ BOOL LoadLanguageFile ()
 	ActiveLangPackVersion[0] = 0;
 	ClearDictionaryPool ();
 
-	if (PreferredLangId[0] != 0)
+	if ((resourceid == 0) && (PreferredLangId[0] != 0))
 		StringCbCopyA (langId, sizeof(langId), PreferredLangId);
 
 	// Parse all available language files until preferred language is found
-	for (res = MapFirstLanguageFile (); res != NULL; res = MapNextLanguageFile ())
+	for (res = MapFirstLanguageFile (); res != NULL; res = MapNextLanguageFile (resourceid))
 	{
 		xml = (char *) res;
 		xml = XmlFindElement (xml, "localization");
@@ -203,7 +229,8 @@ BOOL LoadLanguageFile ()
 		{
 			wchar_t m[2048];
 			StringCbPrintfW (m, sizeof(m), L"The installed language pack is incompatible with this version of VeraCrypt (the language pack is for VeraCrypt %hs). A newer version may be available at www.idrix.fr.\n\nTo prevent this message from being displayed, do any of the following:\n\n- Select 'Settings' > 'Language'; then select 'English' and click 'OK'.\n\n- Remove or replace the language pack with a compatible version (the language pack may reside e.g. in 'C:\\Program Files\\VeraCrypt' or '%%LOCALAPPDATA%%\\VirtualStore\\Program Files\\VeraCrypt', etc.)", attr);
-			MessageBoxW (NULL, m, L"VeraCrypt", MB_ICONERROR);
+			if (!bForceSilent)
+				MessageBoxW (NULL, m, L"VeraCrypt", MB_ICONERROR);
 			continue;
 		}
 
@@ -213,13 +240,23 @@ BOOL LoadLanguageFile ()
 			while (xml = XmlFindElement (xml, "language"))
 			{
 				XmlGetAttributeText (xml, "langid", attr, sizeof (attr));
-				if (strcmp (attr, langId) == 0)
+				if (resourceid == 0)
 				{
+					if (strcmp (attr, langId) == 0)
+					{
+						XmlGetAttributeText (xml++, "version", ActiveLangPackVersion, sizeof (ActiveLangPackVersion));
+						langFound = TRUE;
+						break;
+					}
+					xml++;
+				}
+				else
+				{
+					StringCbCopyA (langId, sizeof (langId), attr);
 					XmlGetAttributeText (xml++, "version", ActiveLangPackVersion, sizeof (ActiveLangPackVersion));
 					langFound = TRUE;
 					break;
 				}
-				xml++;
 			}
 
 			if (!langFound) continue;
@@ -288,7 +325,8 @@ BOOL LoadLanguageFile ()
 									case 't': *out++ = '\t'; break;
 									case 'n': *out++ = 13; *out++ = 10; break;
 									default:
-										MessageBoxA (0, key, "VeraCrypt: Unknown '\\' escape sequence in string", MB_ICONERROR);
+										if (!bForceSilent)
+											MessageBoxA (0, key, "VeraCrypt: Unknown '\\' escape sequence in string", MB_ICONERROR);
 										return FALSE;
 									}
 								}
@@ -302,7 +340,8 @@ BOOL LoadLanguageFile ()
 						len = MultiByteToWideChar (CP_UTF8, 0, attr, -1, wattr, sizeof (wattr) / sizeof(wattr[0]));
 						if (len == 0)
 						{
-							MessageBoxA (0, key, "VeraCrypt: Error while decoding UTF-8 string", MB_ICONERROR);
+							if (!bForceSilent)
+								MessageBoxA (0, key, "VeraCrypt: Error while decoding UTF-8 string", MB_ICONERROR);
 							return FALSE;
 						}
 
@@ -324,13 +363,16 @@ BOOL LoadLanguageFile ()
 		if (!defaultLangParsed)
 		{
 			defaultLangParsed = TRUE;
-			if (langId[0] == 0 || strcmp (langId, "en") == 0)
+			if ((resourceid == 0) && (langId[0] == 0 || strcmp (langId, "en") == 0))
 				break;
 		}
 	}
 
 	LocalizationActive = langFound && strcmp (langId, "en") != 0;
 	LocalizationSerialNo++;
+
+	if (bForceSetPreferredLanguage)
+		StringCbCopyA (PreferredLangId, sizeof (PreferredLangId), langId);
 
 	// Create control ID dictionary
 
@@ -383,6 +425,15 @@ BOOL LoadLanguageFile ()
 	return TRUE;
 }
 
+BOOL LoadLanguageFile ()
+{
+	return LoadLanguageData (0, FALSE, FALSE);
+}
+
+BOOL LoadLanguageFromResource (int resourceid, BOOL bSetPreferredLanguage, BOOL bForceSilent)
+{
+	return LoadLanguageData (resourceid, bSetPreferredLanguage, bForceSilent);
+}
 
 // lParam = 1: auto mode
 BOOL CALLBACK LanguageDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -404,7 +455,7 @@ BOOL CALLBACK LanguageDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			LocalizeDialog (hwndDlg, "IDD_LANGUAGE");
 			ToHyperlink (hwndDlg, IDC_GET_LANG_PACKS);
 
-			for (xml = MapFirstLanguageFile (); xml != NULL; xml = MapNextLanguageFile ())
+			for (xml = MapFirstLanguageFile (); xml != NULL; xml = MapNextLanguageFile (0))
 			{
 				while (xml = XmlFindElement (xml, "language"))
 				{

@@ -40,6 +40,7 @@ namespace VeraCrypt
 		File (wstring path,bool readOnly = false, bool create = false);
 		virtual ~File () { Close(); }
 
+		bool IsOpened () const { return FileOpen;}
 		void CheckOpened (const char* srcPos) { if (!FileOpen) { SetLastError (LastError); throw SystemException (srcPos);} }
 		void Close ();
 		DWORD Read (byte *buffer, DWORD size);
@@ -176,6 +177,7 @@ namespace VeraCrypt
 		int authorizeRetry;
 		int bmlLockFlags;
 		int bmlDriverEnabled;
+		string actionSuccessValue;
 
 		EfiBootConf();
 
@@ -207,6 +209,7 @@ namespace VeraCrypt
 		void GetFileSize(const wchar_t* name, unsigned __int64& size);
 		void ReadFile(const wchar_t* name, byte* data, DWORD size);
 		void CopyFile(const wchar_t* name, const wchar_t* targetName);
+		bool FileExists(const wchar_t* name);
 
 		BOOL RenameFile(const wchar_t* name, wchar_t* nameNew, BOOL bForce);
 		BOOL DelFile(const wchar_t* name);
@@ -232,7 +235,7 @@ namespace VeraCrypt
 	class BootEncryption
 	{
 	public:
-		BootEncryption (HWND parent);
+		BootEncryption (HWND parent, bool postOOBE = false);
 		~BootEncryption ();
 
 		enum FilterType
@@ -310,7 +313,8 @@ namespace VeraCrypt
 		void GetEfiBootDeviceNumber (PSTORAGE_DEVICE_NUMBER pSdn);
 		void BackupSystemLoader ();
 		void RestoreSystemLoader ();
-
+		static void UpdateSetupConfigFile (bool bForInstall);
+		void GetSecureBootConfig (BOOL* pSecureBootEnabled, BOOL *pVeraCryptKeysLoaded);
 	protected:
 		static const uint32 RescueIsoImageSize = 1835008; // Size of ISO9660 image with bootable emulated 1.44MB floppy disk image
 
@@ -339,6 +343,7 @@ namespace VeraCrypt
 		bool RealSystemDriveSizeValid;
 		bool RescueVolumeHeaderValid;
 		bool VolumeHeaderValid;
+		bool PostOOBEMode;
 	};
 }
 
@@ -353,5 +358,7 @@ namespace VeraCrypt
 #define TC_SYSTEM_FAVORITES_SERVICE_NAME				_T(TC_APP_NAME) L"SystemFavorites"
 #define	TC_SYSTEM_FAVORITES_SERVICE_LOAD_ORDER_GROUP	L"Event Log"
 #define TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION		L"/systemFavoritesService"
+
+#define VC_WINDOWS_UPGRADE_POSTOOBE_CMDLINE_OPTION		L"/PostOOBE"
 
 #endif // TC_HEADER_Common_BootEncryption

@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version="1.22">
+  <localization prog-version= "1.23">
     <language langid="pl" name="Polski" en-name="Polish" version="1.0.0" translators="Mirek Druchowicz, Janusz Zamecki, Sobiesław Antolak, Begina Felicysym" />
     <font lang="pl" class="normal" size="11" face="default" />
     <font lang="pl" class="bold" size="13" face="Arial" />
@@ -1407,7 +1407,7 @@
     <entry lang="pl" key="RESCUE_DISK_EFI_CHECK_FAILED">Nie można zweryfikować poprawnego wypakowania płyty ratunkowej.\n\nJeżeli wypakowałeś płytę ratunkową, proszę wysunąć i raz jeszcze wsunąć pamięć USB, kliknąć Dalej i spróbować ponownie. Jeżeli to nie pomoże, proszę wypróbować inną pamięć USB albo/i inny program obsługujący ZIP.\n\nJeżeli jeszcze nie wypakowałeś płyty ratunkowej, proszę to zrobić, a następnie kliknąć Dalej.\n\nJeżeli próbowałeś zweryfikować płytę ratunkową VeraCrypt stworzoną przed uruchomieniem tego kreatora, proszę pamiętać, że taka płyta ratunkowa nie może zostać użyta, ponieważ powstała dla innego klucza głównego. Musisz wypakować nowo powstały obraz ZIP płyty ratunkowej.</entry>
     <entry lang="pl" key="RESCUE_DISK_EFI_NON_WIZARD_CHECK_FAILED">Nie można zweryfikować poprawności wypakowania płyty ratunkowej.\n\nJeżeli wypakowałeś płytę ratunkową, proszę wysunąć i raz jeszcze wsunąć pamięć USB, kliknąć Dalej i spróbować ponownie. Jeżeli to nie pomoże, proszę wypróbować inną pamięć USB albo/i inny program obsługujący ZIP lub inny nośnik\n\nIJeżeli próbowałeś zweryfikować płytę ratunkową VeraCrypt stworzoną dla innego klucza głównego, hasła, soli itd., proszę pamiętać, że taka płyta ratunkową zawsze nie przejdzie weryfikacji. Aby stworzyć nową płytę ratunkową w pełni kompatybilną z bieżącą konfiguracją, wybierz 'System' > 'Utwórz płytę ratunkową'.</entry>
     <entry lang="pl" key="RESCUE_DISK_EFI_NON_WIZARD_CREATION">Obraz płyty ratunkowej został stworzony i jest przechowywany w tym pliku:\n%s\n\nTeraz musisz wypakować go na pamięć USB, która jest sformatowana jako FAT/FAT32.\n\nWAŻNE: Pamiętaj, że plik ZIP musi być wypakowany bezpośrednio do głównego folderu pamięci USB. Na przykład, jeżeli litera napędu pamięci USB to E:, wtedy wypakowany plik ZIP powinien stworzyć folder E:\\EFI na pamięci USB.\n\nPo stworzeniu płyty ratunkowej wybierz 'System' > 'Sprawdź płytę ratunkową', aby zweryfikować poprawność jej stworzenia.</entry>
-	<entry lang="pl" key="IDC_SECURE_DESKTOP_PASSWORD_ENTRY">Użyj funkcji bezpiecznego pulpitu do wprowadzenia hasła</entry>
+    <entry lang="pl" key="IDC_SECURE_DESKTOP_PASSWORD_ENTRY">Użyj funkcji bezpiecznego pulpitu do wprowadzenia hasła</entry>
     <entry lang="pl" key="ERR_REFS_INVALID_VOLUME_SIZE">Rozmiar pliku wolumenu określony w linii poleceń nie jest kompatybilny z wybranym systemem plików ReFS.</entry>
     <entry lang="pl" key="IDC_EDIT_DCSPROP">Edytuj konfigurację programu rozruchowego</entry>
     <entry lang="pl" key="IDC_SHOW_PLATFORMINFO">Wyświetl informacje o platformie EFI</entry>
@@ -1419,6 +1419,14 @@
     <entry lang="pl" key="AFTER_UPGRADE_RESCUE_DISK">Zdecydowanie zaleca się utworzenie nowej płyty ratunkowej VeraCrypt (która zawierać będzie nową wersję programu rozruchowego VeraCrypt) poprzez wybranie 'System' > 'Utwórz płytę ratunkową'.\nCzy chcesz to teraz zrobić?</entry>
     <entry lang="pl" key="IDC_ALLOW_TRIM_NONSYS_SSD">Zezwalaj na komendę TRIM dla bezsystemowej partycji/napędu SSD</entry>
     <entry lang="pl" key="IDC_BLOCK_SYSENC_TRIM">Blokuj komendę TRIM na systemowej partycji/napędzie</entry>
+    <entry lang="pl" key="WINDOWS_EFI_BOOT_LOADER_MISSING">BŁĄD: Nie można zlokalizować programu rozruchowego EFI systemu Windows na dysku. Operacja zostanie przerwana.</entry>
+    <entry lang="pl" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Obecnie nie jest możliwe szyfrowanie systemu, gdy włączona jest funkcja SecureBoot, a niestandardowe klucze VeraCrypt nie zostały załadowane do oprogramowania sprzętowego urządzenia. Funkcja SecureBoot musi być wyłączona w konfiguracji BIOS-u, aby umożliwić kontynuowanie szyfrowania systemu.</entry>
+    <entry lang="pl" key="PASSWORD_PASTED_TRUNCATED">Wklejony tekst został obcięty, ponieważ maksymalna długość hasła wynosi 64 znaki</entry>
+    <entry lang="pl" key="PASSWORD_MAXLENGTH_REACHED">Hasło osiągnęło już maksymalną długość 64 znaków.\nDodatkowy znak nie jest dozwolony.</entry>
+    <entry lang="pl" key="IDC_SELECT_LANGUAGE_LABEL">Wybierz używany język podczas instalacji:</entry>
+    <entry lang="pl" key="VOLUME_TOO_LARGE_FOR_HOST">BŁĄD: Rozmiar kontenera pliku jest większy niż dostępne wolne miejsce na dysku.</entry>
+    <entry lang="pl" key="IDC_ALLOW_WINDOWS_DEFRAG">Zezwalaj Defragmentatorowi dysków Windows na defragmentację bezsystemowej partycji/napędu</entry>
+    <entry lang="pl" key="CONFIRM_ALLOW_WINDOWS_DEFRAG">OSTRZEŻENIE: Defragmentacja bezsystemowych partycji/napędów może spowodować wyciek metadanych dotyczących ich zawartości lub spowodować problemy z ukrytymi wolumenami, które mogą zawierać.\n\nKontynuować?</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -27,14 +27,9 @@ static wchar_t *szFiles[]=
 	L"AVeraCrypt.exe",
 	L"AVeraCryptExpander.exe",
 	L"AVeraCrypt Format.exe",
-	L"AVeraCrypt-x86.exe",
-	L"AVeraCryptExpander-x86.exe",
-	L"AVeraCrypt Format-x86.exe",
-	L"AVeraCrypt-x64.exe",
-	L"AVeraCryptExpander-x64.exe",
-	L"AVeraCrypt Format-x64.exe",
+	L"Averacrypt.inf",
+	L"Averacrypt.cat",
 	L"Averacrypt.sys",
-	L"Averacrypt-x64.sys",
 	L"Dveracrypt.sys",
 	L"AVeraCrypt Setup.exe",
 	L"XLanguages.zip",
@@ -53,10 +48,25 @@ static wchar_t *szCompressedFiles[]=
 	L"VeraCrypt-x64.exe",
 	L"VeraCryptExpander-x64.exe",
 	L"VeraCrypt Format-x64.exe",
+	L"veracrypt.inf",
+	L"veracrypt.cat",
 	L"veracrypt.sys",
+	L"veracrypt-x64.cat",
 	L"veracrypt-x64.sys",
 	L"Languages.zip",
 	L"docs.zip"
+};
+
+// Specifies what legacy files to remove during install
+static wchar_t *szLegacyFiles[]=
+{
+	L"VeraCrypt-x86.exe",
+	L"VeraCryptExpander-x86.exe",
+	L"VeraCrypt Format-x86.exe",
+	L"VeraCrypt-x64.exe",
+	L"VeraCryptExpander-x64.exe",
+	L"VeraCrypt Format-x64.exe",
+	L"veracrypt-x64.sys",
 };
 
 #define FILENAME_64BIT_DRIVER	L"veracrypt-x64.sys"
