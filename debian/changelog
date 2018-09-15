@@ -1,3 +1,12 @@
+veracrypt (1.23-0vanir1) unstable; urgency=medium
+
+  * d/u/signing-key.asc: Update for new signing key.
+  * New upstream version 1.23
+    - Refresh patches.
+  * Update Standards-Version to 4.2.1.
+
+ -- Unit 193 <unit193@ubuntu.com>  Sat, 15 Sep 2018 17:26:29 -0400
+
 veracrypt (1.22-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.22
