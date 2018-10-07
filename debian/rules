@@ -8,6 +8,10 @@ include /usr/share/dpkg/buildflags.mk
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+export TC_EXTRA_CFLAGS = $(CFLAGS)
+export TC_EXTRA_CXXFLAGS = $(CXXFLAGS)
+export TC_EXTRA_LFLAGS = $(LDFLAGS)
+
 %:
 	dh  $@ --sourcedirectory=src
 
