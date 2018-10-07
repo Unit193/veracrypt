@@ -170,18 +170,24 @@ Index: veracrypt/src/Makefile
 ===================================================================
 --- veracrypt.orig/src/Makefile
 +++ veracrypt/src/Makefile
-@@ -61,6 +61,15 @@ CPPFLAGS+=$(shell dpkg-buildflags --get
- CFLAGS+=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS) -Wno-sequence-point
- CXXFLAGS+=$(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS) -Wno-narrowing
- LFLAGS+=$(shell dpkg-buildflags --get LDFLAGS)
-+ifeq ($(shell pkg-config --exists appindicator-0.1 && echo $$?),0)
+@@ -57,6 +57,21 @@ export WXCONFIG_CFLAGS :=
+ export WXCONFIG_CXXFLAGS :=
+ WX_ROOT ?= ..
+ 
++ifneq (,$(findstring gtk3,$(shell $(WX_CONFIG) --selected-config)))
++   INDICATOR_LIBRARY=appindicator3-0.1
++else
++   INDICATOR_LIBRARY=appindicator-0.1
++endif
++
++ifeq ($(shell pkg-config --exists $(INDICATOR_LIBRARY) && echo $$?),0)
 +	export C_CXX_FLAGS += -DHAVE_INDICATORS -DUBUNTU_INDICATOR
-+	export LIBS += $(shell pkg-config --libs appindicator-0.1)
-+	C_CXX_FLAGS += $(shell pkg-config --cflags appindicator-0.1)
-+else ifeq ($(shell pkg-config --exists ayatana-appindicator-0.1 && echo $$?),0)
++	export LIBS += $(shell pkg-config --libs $(INDICATOR_LIBRARY))
++	C_CXX_FLAGS += $(shell pkg-config --cflags $(INDICATOR_LIBRARY))
++else ifeq ($(shell pkg-config --exists ayatana-$(INDICATOR_LIBRARY) && echo $$?),0)
 +	export C_CXX_FLAGS += -DHAVE_INDICATORS -DAYATANA_INDICATOR
-+	export LIBS += $(shell pkg-config --libs ayatana-appindicator-0.1)
-+	C_CXX_FLAGS += $(shell pkg-config --cflags ayatana-appindicator-0.1)
++	export LIBS += $(shell pkg-config --libs ayatana-$(INDICATOR_LIBRARY))
++	C_CXX_FLAGS += $(shell pkg-config --cflags ayatana-$(INDICATOR_LIBRARY))
 +endif
  
  export TC_BUILD_CONFIG := Release
