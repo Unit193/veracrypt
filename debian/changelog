@@ -1,3 +1,22 @@
+veracrypt (1.24-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.24
+    - Drop patches applied upstream, refresh remaining patch.
+  * d/p/series, d/rules:
+    - Drop patch in favor of packing (C,CXX,LD)FLAGS into TC_EXTRA_$1.
+  * d/p/002-indicator-support.diff: Update to account for GTK3 wxgtk.
+  * d/control:
+    - Update build-depends for gtk3.
+    - Set R³ to no.
+  * d/rules:
+    - Derive ARCH from DEB_HOST_ARCH.
+    - Remove extra license file and veracrypt-uninstall.sh.
+  * d/scripts/mount.veracrypt, d/veracrypt.install:
+    - Add a script which allows use of VeraCrypt in fstab.
+  * Update Standards-Version to 4.4.1.
+
+ -- Unit 193 <unit193@ubuntu.com>  Tue, 08 Oct 2019 01:27:02 -0400
+
 veracrypt (1.23-0vanir1) unstable; urgency=medium
 
   * d/u/signing-key.asc: Update for new signing key.
