@@ -28,6 +28,8 @@
 #include "DriveFilter.h"
 #include "Boot/Windows/BootCommon.h"
 #include "cpu.h"
+#include "rdrand.h"
+#include "chachaRng.h"
 
 static BOOL DeviceFilterActive = FALSE;
 
@@ -73,23 +75,26 @@ static int64 DecoySystemWipedAreaEnd;
 PKTHREAD DecoySystemWipeThread = NULL;
 static NTSTATUS DecoySystemWipeResult;
 
-uint64 BootArgsRegions[] = { EFI_BOOTARGS_REGIONS };
+static uint64 BootArgsRegionsDefault[] = { EFI_BOOTARGS_REGIONS_DEFAULT };
+static uint64 BootArgsRegionsEFI[] = { EFI_BOOTARGS_REGIONS_EFI };
 
-NTSTATUS LoadBootArguments ()
+NTSTATUS LoadBootArguments (BOOL bIsEfi)
 {
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
 	PHYSICAL_ADDRESS bootArgsAddr;
 	byte *mappedBootArgs;
 	byte *mappedCryptoInfo = NULL;
 	uint16 bootLoaderArgsIndex;
+	uint64* BootArgsRegionsPtr = bIsEfi? BootArgsRegionsEFI : BootArgsRegionsDefault;
+	size_t BootArgsRegionsCount = bIsEfi? sizeof(BootArgsRegionsEFI)/ sizeof(BootArgsRegionsEFI[0]) : sizeof(BootArgsRegionsDefault)/ sizeof(BootArgsRegionsDefault[0]);
 
 	KeInitializeMutex (&MountMutex, 0);
 //	__debugbreak();
 	for (bootLoaderArgsIndex = 0;
-		bootLoaderArgsIndex < sizeof(BootArgsRegions)/ sizeof(BootArgsRegions[1]) && status != STATUS_SUCCESS;
+		bootLoaderArgsIndex < BootArgsRegionsCount && status != STATUS_SUCCESS;
 		++bootLoaderArgsIndex)
 	{
-		bootArgsAddr.QuadPart = BootArgsRegions[bootLoaderArgsIndex] + TC_BOOT_LOADER_ARGS_OFFSET;
+		bootArgsAddr.QuadPart = BootArgsRegionsPtr[bootLoaderArgsIndex] + TC_BOOT_LOADER_ARGS_OFFSET;
 		Dump ("Checking BootArguments at 0x%x\n", bootArgsAddr.LowPart);
 
 		mappedBootArgs = MmMapIoSpace (bootArgsAddr, sizeof (BootArguments), MmCached);
@@ -114,9 +119,9 @@ NTSTATUS LoadBootArguments ()
 			}
 
 			// Sanity check: for valid boot argument, the password is less than 64 bytes long
-			if (bootArguments->BootPassword.Length <= MAX_PASSWORD)
+			if (bootArguments->BootPassword.Length <= MAX_LEGACY_PASSWORD)
 			{
-				BootLoaderArgsPtr = BootArgsRegions[bootLoaderArgsIndex];
+				BootLoaderArgsPtr = BootArgsRegionsPtr[bootLoaderArgsIndex];
 
 				BootArgs = *bootArguments;
 				BootArgsValid = TRUE;
@@ -288,13 +293,40 @@ static void DismountDrive (DriveFilterExtension *Extension, BOOL stopIoQueue)
 	if (stopIoQueue && EncryptedIoQueueIsRunning (&Extension->Queue))
 		EncryptedIoQueueStop (&Extension->Queue);
 
-	crypto_close (Extension->Queue.CryptoInfo);
+	crypto_close ((PCRYPTO_INFO) Extension->Queue.CryptoInfo);
 	Extension->Queue.CryptoInfo = NULL;
 
-	crypto_close (Extension->HeaderCryptoInfo);
+	crypto_close ((PCRYPTO_INFO) Extension->HeaderCryptoInfo);
 	Extension->HeaderCryptoInfo = NULL;
 
 	Extension->DriveMounted = FALSE;
+
+	Dump ("Drive dismount done!\n");
+}
+
+static void InvalidateVolumeKeys (EXTENSION *Extension)
+{
+	Dump ("Invalidating volume encryption keys\n");
+	
+	Extension->Queue.ThreadBlockReadWrite = TRUE;
+
+	crypto_eraseKeys ((PCRYPTO_INFO) Extension->Queue.CryptoInfo);
+	crypto_eraseKeys ((PCRYPTO_INFO) Extension->cryptoInfo);
+
+	Dump ("Volume encryption keys invalidated!\n");
+}
+
+static void InvalidateDriveFilterKeys (DriveFilterExtension *Extension)
+{
+	Dump ("Invalidating drive filter encryption keys\n");
+	ASSERT (Extension->DriveMounted);
+	
+	Extension->Queue.ThreadBlockReadWrite = TRUE;
+
+	crypto_eraseKeys ((PCRYPTO_INFO) Extension->Queue.CryptoInfo);
+	crypto_eraseKeys ((PCRYPTO_INFO) Extension->HeaderCryptoInfo);
+
+	Dump ("Drive filter encryption keys invalidated!\n");
 }
 
 static void ComputeBootLoaderFingerprint(PDEVICE_OBJECT LowerDeviceObject, byte* ioBuffer /* ioBuffer must be at least 512 bytes long */)
@@ -567,7 +599,7 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 						for(i = 0; i<pwdCache->Count; ++i){
 							if (CacheBootPassword && pwdCache->Pwd[i].Length > 0)	{
 								int cachedPim = CacheBootPim? (int) (pwdCache->Pim[i]) : 0;
-								AddPasswordToCache (&pwdCache->Pwd[i], cachedPim);
+								AddLegacyPasswordToCache (&pwdCache->Pwd[i], cachedPim);
 							}
 						}
 						burn(pwdCache, sizeof(*pwdCache));
@@ -579,7 +611,7 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 		if (CacheBootPassword && BootArgs.BootPassword.Length > 0)
 		{
 			int cachedPim = CacheBootPim? pim : 0;
-			AddPasswordToCache (&BootArgs.BootPassword, cachedPim);
+			AddLegacyPasswordToCache (&BootArgs.BootPassword, cachedPim);
 		}
 
 		burn (&BootArgs.BootPassword, sizeof (BootArgs.BootPassword));
@@ -610,6 +642,15 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 		}
 		else
 			Extension->Queue.MaxReadAheadOffset = BootDriveLength;
+
+		/* encrypt keys */
+#ifdef _WIN64
+		if (IsRamEncryptionEnabled())
+		{
+			VcProtectKeys (Extension->HeaderCryptoInfo, VcGetEncryptionID (Extension->HeaderCryptoInfo));
+			VcProtectKeys (Extension->Queue.CryptoInfo, VcGetEncryptionID (Extension->Queue.CryptoInfo));
+		}
+#endif
 		
 		status = EncryptedIoQueueStart (&Extension->Queue);
 		if (!NT_SUCCESS (status))
@@ -619,6 +660,12 @@ static NTSTATUS MountDrive (DriveFilterExtension *Extension, Password *password,
 		{
 			CrashDumpEnabled = TRUE;
 			HibernationEnabled = TRUE;
+#ifdef _WIN64
+			if (IsRamEncryptionEnabled())
+			{
+				HibernationEnabled = FALSE;
+			}
+#endif
 		}
 		else if (!LegacyHibernationDriverFilterActive)
 			StartLegacyHibernationDriverFilter();
@@ -681,8 +728,18 @@ static NTSTATUS SaveDriveVolumeHeader (DriveFilterExtension *Extension)
 		uint32 headerCrc32;
 		uint64 encryptedAreaLength = Extension->Queue.EncryptedAreaEnd + 1 - Extension->Queue.EncryptedAreaStart;
 		byte *fieldPos = header + TC_HEADER_OFFSET_ENCRYPTED_AREA_LENGTH;
+		PCRYPTO_INFO pCryptoInfo = Extension->HeaderCryptoInfo;
+#ifdef _WIN64
+		CRYPTO_INFO tmpCI;
+		if (IsRamEncryptionEnabled())
+		{
+			memcpy (&tmpCI, pCryptoInfo, sizeof (CRYPTO_INFO));
+			VcUnprotectKeys (&tmpCI, VcGetEncryptionID (pCryptoInfo));
+			pCryptoInfo = &tmpCI;
+		}
+#endif
 
-		DecryptBuffer (header + HEADER_ENCRYPTED_DATA_OFFSET, HEADER_ENCRYPTED_DATA_SIZE, Extension->HeaderCryptoInfo);
+		DecryptBuffer (header + HEADER_ENCRYPTED_DATA_OFFSET, HEADER_ENCRYPTED_DATA_SIZE, pCryptoInfo);
 
 		if (GetHeaderField32 (header, TC_HEADER_OFFSET_MAGIC) != 0x56455241)
 		{
@@ -697,7 +754,13 @@ static NTSTATUS SaveDriveVolumeHeader (DriveFilterExtension *Extension)
 		fieldPos = header + TC_HEADER_OFFSET_HEADER_CRC;
 		mputLong (fieldPos, headerCrc32);
 
-		EncryptBuffer (header + HEADER_ENCRYPTED_DATA_OFFSET, HEADER_ENCRYPTED_DATA_SIZE, Extension->HeaderCryptoInfo);
+		EncryptBuffer (header + HEADER_ENCRYPTED_DATA_OFFSET, HEADER_ENCRYPTED_DATA_SIZE, pCryptoInfo);
+#ifdef _WIN64
+		if (IsRamEncryptionEnabled())
+		{
+			burn (&tmpCI, sizeof (CRYPTO_INFO));
+		}
+#endif
 	}
 
 	status = TCWriteDevice (Extension->LowerDeviceObject, header, offset, TC_BOOT_ENCRYPTION_VOLUME_HEADER_SIZE);
@@ -781,7 +844,13 @@ static void CheckDeviceTypeAndMount (DriveFilterExtension *filterExtension)
 				TC_BUG_CHECK (status);
 
 			if (!BootDriveFound)
-				MountDrive (filterExtension, &BootArgs.BootPassword, &BootArgs.HeaderSaltCrc32);
+			{
+				Password bootPass = {0};
+				bootPass.Length = BootArgs.BootPassword.Length;
+				memcpy (bootPass.Text, BootArgs.BootPassword.Text, BootArgs.BootPassword.Length);
+				MountDrive (filterExtension, &bootPass, &BootArgs.HeaderSaltCrc32);
+				burn (&bootPass, sizeof (bootPass));
+			}
 
 			KeReleaseMutex (&MountMutex, FALSE);
 		}
@@ -917,16 +986,19 @@ static NTSTATUS DispatchPower (PDEVICE_OBJECT DeviceObject, PIRP Irp, DriveFilte
 		while (SendDeviceIoControlRequest (RootDeviceObject, TC_IOCTL_ABORT_BOOT_ENCRYPTION_SETUP, NULL, 0, NULL, 0) == STATUS_INSUFFICIENT_RESOURCES);
 	}
 
-#if 0	// Dismount of the system drive is disabled until there is a way to do it without causing system errors (see the documentation for more info)
+	// Dismount the system drive on shutdown on Windows 7 and later
 	if (DriverShuttingDown
+		&& IsOSAtLeast (WIN_7)
 		&& Extension->BootDrive
 		&& Extension->DriveMounted
 		&& irpSp->MinorFunction == IRP_MN_SET_POWER
 		&& irpSp->Parameters.Power.Type == DevicePowerState)
 	{
 		DismountDrive (Extension, TRUE);
+#ifdef _WIN64
+		ClearSecurityParameters ();
+#endif
 	}
-#endif // 0
 
 	PoStartNextPowerIrp (Irp);
 
@@ -1025,6 +1097,40 @@ NTSTATUS DriveFilterDispatchIrp (PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	return status;
 }
 
+void EmergencyClearAllKeys (PIRP irp, PIO_STACK_LOCATION irpSp)
+{
+	irp->IoStatus.Information = 0;
+
+	if (!IoIsSystemThread (PsGetCurrentThread()) && !UserCanAccessDriveDevice())
+	{
+		irp->IoStatus.Status = STATUS_ACCESS_DENIED;
+	}
+	else
+	{
+		int drive;
+		for (drive = MIN_MOUNTED_VOLUME_DRIVE_NUMBER; drive <= MAX_MOUNTED_VOLUME_DRIVE_NUMBER; ++drive)
+		{
+			PDEVICE_OBJECT device = GetVirtualVolumeDeviceObject (drive);
+			if (device)
+			{
+				PEXTENSION extension = (PEXTENSION) device->DeviceExtension;
+				if (extension)
+				{
+					InvalidateVolumeKeys (extension);
+				}
+			}
+		}
+
+		if (BootDriveFound && BootDriveFilterExtension && BootDriveFilterExtension->DriveMounted)
+			InvalidateDriveFilterKeys (BootDriveFilterExtension);
+
+#ifdef _WIN64
+		ClearSecurityParameters();
+#endif
+
+		irp->IoStatus.Status = STATUS_SUCCESS;
+	}
+}
 
 void ReopenBootVolumeHeader (PIRP irp, PIO_STACK_LOCATION irpSp)
 {
@@ -1044,7 +1150,7 @@ void ReopenBootVolumeHeader (PIRP irp, PIO_STACK_LOCATION irpSp)
 		return;
 
 	if (!BootDriveFound || !BootDriveFilterExtension || !BootDriveFilterExtension->DriveMounted || !BootDriveFilterExtension->HeaderCryptoInfo
-		|| request->VolumePassword.Length > MAX_PASSWORD
+		|| request->VolumePassword.Length > MAX_LEGACY_PASSWORD
 		|| request->pkcs5_prf < 0
 		|| request->pkcs5_prf > LAST_PRF_ID
 		|| request->pim < 0
@@ -1074,12 +1180,24 @@ void ReopenBootVolumeHeader (PIRP irp, PIO_STACK_LOCATION irpSp)
 		goto ret;
 	}
 
+#ifdef _WIN64
+	if (IsRamEncryptionEnabled())
+	{
+		VcUnprotectKeys (BootDriveFilterExtension->HeaderCryptoInfo, VcGetEncryptionID (BootDriveFilterExtension->HeaderCryptoInfo));
+	}
+#endif
+
 	if (ReadVolumeHeader (!BootDriveFilterExtension->HiddenSystem, header, &request->VolumePassword, request->pkcs5_prf, request->pim, FALSE, NULL, BootDriveFilterExtension->HeaderCryptoInfo) == 0)
 	{
 		Dump ("Header reopened\n");
+#ifdef _WIN64
+		if (IsRamEncryptionEnabled())
+		{
+			VcProtectKeys (BootDriveFilterExtension->HeaderCryptoInfo, VcGetEncryptionID(BootDriveFilterExtension->HeaderCryptoInfo));
+		}
+#endif
 		ComputeBootLoaderFingerprint (BootDriveFilterExtension->LowerDeviceObject, header);
-		
-		BootDriveFilterExtension->Queue.CryptoInfo->header_creation_time = BootDriveFilterExtension->HeaderCryptoInfo->header_creation_time;
+
 		BootDriveFilterExtension->Queue.CryptoInfo->pkcs5 = BootDriveFilterExtension->HeaderCryptoInfo->pkcs5;
 		BootDriveFilterExtension->Queue.CryptoInfo->noIterations = BootDriveFilterExtension->HeaderCryptoInfo->noIterations;
 		BootDriveFilterExtension->Queue.CryptoInfo->volumePim = BootDriveFilterExtension->HeaderCryptoInfo->volumePim;
@@ -1194,7 +1312,7 @@ static NTSTATUS HiberDriverWriteFunctionFilter (int filterNumber, PLARGE_INTEGER
 				if (BootDriveFilterExtension->Queue.RemapEncryptedArea)
 					dataUnit.Value += BootDriveFilterExtension->Queue.RemappedAreaDataUnitOffset;
 
-				EncryptDataUnitsCurrentThread (HibernationWriteBuffer + (intersectStart - offset),
+				EncryptDataUnitsCurrentThreadEx (HibernationWriteBuffer + (intersectStart - offset),
 					&dataUnit,
 					intersectLength / ENCRYPTION_DATA_UNIT_SIZE,
 					BootDriveFilterExtension->Queue.CryptoInfo);
@@ -1458,33 +1576,17 @@ static VOID SetupThreadProc (PVOID threadArg)
 
 	// generate real random values for wipeRandChars and 
 	// wipeRandCharsUpdate instead of relying on uninitialized stack memory
-	LARGE_INTEGER iSeed;
-	KeQuerySystemTime( &iSeed );
-	if (KeGetCurrentIrql() < DISPATCH_LEVEL)
-	{
-		ULONG ulRandom;
-		ulRandom = RtlRandomEx( &iSeed.LowPart );
-		memcpy (wipeRandChars, &ulRandom, TC_WIPE_RAND_CHAR_COUNT);
-		ulRandom = RtlRandomEx( &ulRandom );
-		memcpy (wipeRandCharsUpdate, &ulRandom, TC_WIPE_RAND_CHAR_COUNT);
-		burn (&ulRandom, sizeof(ulRandom));
-	}
-	else
-	{
-		byte digest[SHA512_DIGESTSIZE];
-		sha512_ctx tctx;
-		sha512_begin (&tctx);
-		sha512_hash ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
-		sha512_end (digest, &tctx);
+	ChaCha20RngCtx rngCtx;
+	byte pbSeed[CHACHA20RNG_KEYSZ + CHACHA20RNG_IVSZ];
 
-		memcpy (wipeRandChars, digest, TC_WIPE_RAND_CHAR_COUNT);
-		memcpy (wipeRandCharsUpdate, &digest[SHA512_DIGESTSIZE - TC_WIPE_RAND_CHAR_COUNT], TC_WIPE_RAND_CHAR_COUNT);
+	GetDriverRandomSeed (pbSeed, sizeof (pbSeed));
+	ChaCha20RngInit (&rngCtx, pbSeed, GetDriverRandomSeed, 0);
 
-		burn (digest, SHA512_DIGESTSIZE);
-		burn (&tctx, sizeof (tctx));
-	}
-	
-	burn (&iSeed, sizeof(iSeed));
+	ChaCha20RngGetBytes (&rngCtx, wipeRandChars, TC_WIPE_RAND_CHAR_COUNT);
+	ChaCha20RngGetBytes (&rngCtx, wipeRandCharsUpdate, TC_WIPE_RAND_CHAR_COUNT);
+
+	burn (&rngCtx, sizeof (rngCtx));
+	FAST_ERASE64 (pbSeed, sizeof (pbSeed));
 
 	SetupResult = STATUS_UNSUCCESSFUL;
 
@@ -2125,10 +2227,8 @@ static VOID DecoySystemWipeThreadProc (PVOID threadArg)
 		DecoySystemWipeResult = STATUS_INVALID_PARAMETER;
 		goto ret;
 	}
-
-	memcpy (wipeCryptoInfo->k2, WipeDecoyRequest.WipeKey + EAGetKeySize (ea), EAGetKeySize (ea));
 	
-	if (!EAInitMode (wipeCryptoInfo))
+	if (!EAInitMode (wipeCryptoInfo, WipeDecoyRequest.WipeKey + EAGetKeySize (ea)))
 	{
 		DecoySystemWipeResult = STATUS_INVALID_PARAMETER;
 		goto err;

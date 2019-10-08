@@ -133,13 +133,20 @@ namespace VeraCrypt
 
 		try
 		{
-			Options.Password = PasswordPanel->GetPassword();
+			Options.Password = PasswordPanel->GetPassword(Options.PartitionInSystemEncryptionScope);
 		}
 		catch (PasswordException& e)
 		{
 			Gui->ShowWarning (e);
 			return;
 		}
+		
+		if (Options.PartitionInSystemEncryptionScope && Options.Password->Size() > VolumePassword::MaxLegacySize)
+		{
+			Gui->ShowWarning (StringFormatter (_("System Encryption password is longer than {0} characters."), (int) VolumePassword::MaxLegacySize));
+			return;
+		}
+		
 		Options.Pim = Pim;
 		Options.Kdf = PasswordPanel->GetPkcs5Kdf(bUnsupportedKdf);
 		if (bUnsupportedKdf)
@@ -158,7 +165,7 @@ namespace VeraCrypt
 		{
 			try
 			{
-				Options.ProtectionPassword = ProtectionPasswordPanel->GetPassword();
+				Options.ProtectionPassword = ProtectionPasswordPanel->GetPassword(Options.TrueCryptMode);
 			}
 			catch (PasswordException& e)
 			{

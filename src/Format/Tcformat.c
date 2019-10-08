@@ -178,6 +178,7 @@ int SysEncDetectHiddenSectors = -1;		/* Whether the user wants us to detect and 
 int SysEncDriveAnalysisStart;
 BOOL bDontVerifyRescueDisk = FALSE;
 BOOL bFirstSysEncResumeDone = FALSE;
+BOOL bDontCheckFileContainerSize = FALSE; /* If true, we don't check if the given size of file container is smaller than the available size on the hosting disk */
 int nMultiBoot = 0;			/* The number of operating systems installed on the computer, according to the user. 0: undetermined, 1: one, 2: two or more */
 volatile BOOL bHiddenVol = FALSE;	/* If true, we are (or will be) creating a hidden volume. */
 volatile BOOL bHiddenVolHost = FALSE;	/* If true, we are (or will be) creating the host volume (called "outer") for a hidden volume. */
@@ -248,6 +249,7 @@ int CmdVolumePim = 0;
 int CmdVolumeFilesystem = FILESYS_NONE;
 unsigned __int64 CmdVolumeFileSize = 0;
 BOOL CmdSparseFileSwitch = FALSE;
+BOOL CmdQuickFormat = FALSE;
 
 BOOL bForceOperation = FALSE;
 
@@ -279,7 +281,8 @@ wchar_t outRandPoolDispBuffer [RANDPOOL_DISPLAY_SIZE];
 BOOL bDisplayPoolContents = TRUE;
 
 volatile BOOL bSparseFileSwitch = FALSE;
-volatile BOOL quickFormat = FALSE;	/* WARNING: Meaning of this variable depends on bSparseFileSwitch. If bSparseFileSwitch is TRUE, this variable represents the sparse file flag. */
+volatile BOOL quickFormat = FALSE;
+volatile BOOL dynamicFormat = FALSE; /* this variable represents the sparse file flag. */
 volatile int fileSystem = FILESYS_NONE;
 volatile int clusterSize = 0;
 
@@ -291,6 +294,8 @@ LONGLONG nAvailableFreeSpace = -1;
 BOOL bIsSparseFilesSupportedByHost = FALSE;
 
 vector <HostDevice> DeferredNonSysInPlaceEncDevices;
+
+int iMaxPasswordLength = MAX_PASSWORD;
 
 // specific definitions and implementation for support of resume operation
 // in wait dialog mechanism
@@ -775,6 +780,8 @@ static void LoadSettingsAndCheckModified (HWND hwndDlg, BOOL bOnlyCheckModified,
 	ConfigReadCompareInt ("HideWaitingDialog", FALSE, &bHideWaitingDialog, bOnlyCheckModified, pbSettingsModified);
 
 	ConfigReadCompareInt ("SaveVolumeHistory", FALSE, &bHistory, bOnlyCheckModified, pbSettingsModified);
+
+	ConfigReadCompareInt ("UseLegacyMaxPasswordLength", FALSE, &bUseLegacyMaxPasswordLength, bOnlyCheckModified, pbSettingsModified);
 
 	{
 		char szTmp[MAX_PATH] = {0};
@@ -1541,7 +1548,7 @@ static void VerifySizeAndUpdate (HWND hwndDlg, BOOL bUpdate)
 		{
 			if (lTmp * i > (bHiddenVolHost ? TC_MAX_HIDDEN_VOLUME_HOST_SIZE : TC_MAX_VOLUME_SIZE))
 				bEnable = FALSE;
-			else if (!bDevice && (lTmp * i > nAvailableFreeSpace) && (!bIsSparseFilesSupportedByHost || bHiddenVolHost))
+			else if (!bDevice && (lTmp * i > nAvailableFreeSpace) && !bDontCheckFileContainerSize && (!bIsSparseFilesSupportedByHost || bHiddenVolHost))
 			{
 				// we check container size against available free space only when creating dynamic volume is not possible
 				// which is the case if filesystem doesn't allow sparce file or if we are creating outer volume of a hidden volume
@@ -1607,10 +1614,6 @@ static void RefreshMultiBootControls (HWND hwndDlg)
 	if (nMultiBoot == 0)
 		nMultiBoot = 1;
 #endif
-
-	// For now, we force single configuration in wizard
-	if (bSystemIsGPT && nMultiBoot == 0)
-		nMultiBoot = 1;
 
 	SendMessage (GetDlgItem (hwndDlg, IDC_SINGLE_BOOT),
 		BM_SETCHECK,
@@ -2630,7 +2633,7 @@ static void __cdecl volTransformThreadFunction (void *hwndDlgArg)
 	volParams->headerFlags = (CreatingHiddenSysVol() ? TC_HEADER_FLAG_ENCRYPTED_SYSTEM : 0);
 	volParams->fileSystem = fileSystem;
 	volParams->clusterSize = clusterSize;
-	volParams->sparseFileSwitch = bSparseFileSwitch;
+	volParams->sparseFileSwitch = dynamicFormat;
 	volParams->quickFormat = quickFormat;
 	volParams->sectorSize = GetFormatSectorSize();
 	volParams->realClusterSize = &realClusterSize;
@@ -2819,7 +2822,7 @@ static void __cdecl volTransformThreadFunction (void *hwndDlgArg)
 				{
 					Info("FORMAT_FINISHED_INFO", hwndDlg);
 
-					if (bSparseFileSwitch && quickFormat)
+					if (dynamicFormat)
 						Warning("SPARSE_FILE_SIZE_NOTE", hwndDlg);
 				}
 			}
@@ -3871,7 +3874,6 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			SetWindowTextW (GetDlgItem (GetParent (hwndDlg), IDCANCEL), GetString ("CANCEL"));
 
 			RefreshMultiBootControls (hwndDlg);
-			DisableIfGpt(GetDlgItem(hwndDlg, IDC_MULTI_BOOT));
 			EnableWindow (GetDlgItem (GetParent (hwndDlg), IDC_NEXT), nMultiBoot > 0);
 			EnableWindow (GetDlgItem (GetParent (hwndDlg), IDC_PREV), TRUE);
 			EnableWindow (GetDlgItem (GetParent (hwndDlg), IDCANCEL), TRUE);
@@ -4389,7 +4391,8 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				SetCheckBox (hwndDlg, IDC_PIM_ENABLE, PimEnable);
 
 				SetCheckBox (hwndDlg, IDC_KEYFILES_ENABLE, KeyFilesEnable && !SysEncInEffect());
-				EnableWindow (GetDlgItem (hwndDlg, IDC_KEY_FILES), KeyFilesEnable);
+				EnableWindow (GetDlgItem (hwndDlg, IDC_KEY_FILES), KeyFilesEnable && !SysEncInEffect());
+				EnableWindow (GetDlgItem (hwndDlg, IDC_KEYFILES_ENABLE), !SysEncInEffect());
 
 				SetWindowTextW (GetDlgItem (hwndDlg, IDC_BOX_HELP), str);
 
@@ -4932,26 +4935,29 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				if (bHiddenVol)
 				{
 					quickFormat = !bHiddenVolHost;
+					dynamicFormat = FALSE;
 					bSparseFileSwitch = FALSE;
 
+					SetCheckBox (hwndDlg, SPARSE_FILE, FALSE);
+					EnableWindow (GetDlgItem (hwndDlg, SPARSE_FILE), FALSE);
+
 					SetCheckBox (hwndDlg, IDC_QUICKFORMAT, quickFormat);
-					SetWindowTextW (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), GetString ((bDevice || !bHiddenVolHost) ? "IDC_QUICKFORMAT" : "SPARSE_FILE"));
-					EnableWindow (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), bDevice && bHiddenVolHost);
+					EnableWindow (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), bHiddenVolHost);
 				}
 				else
 				{
 					if (bDevice)
 					{
+						dynamicFormat = FALSE;
 						bSparseFileSwitch = FALSE;
-						SetWindowTextW (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), GetString("IDC_QUICKFORMAT"));
+						SetCheckBox (hwndDlg, SPARSE_FILE, FALSE);
+						EnableWindow (GetDlgItem (hwndDlg, SPARSE_FILE), FALSE);
 						EnableWindow (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), TRUE);
 					}
 					else
 					{
 						wchar_t root[TC_MAX_PATH];
 						DWORD fileSystemFlags = 0;
-
-						SetWindowTextW (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), GetString("SPARSE_FILE"));
 
 						/* Check if the host file system supports sparse files */
 
@@ -4962,8 +4968,13 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 						}
 						else
 							bSparseFileSwitch = FALSE;
-
-						EnableWindow (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), bSparseFileSwitch);
+						if (!bSparseFileSwitch)
+						{
+							dynamicFormat = FALSE;
+							SetCheckBox (hwndDlg, SPARSE_FILE, FALSE);
+						}
+						EnableWindow (GetDlgItem (hwndDlg, SPARSE_FILE), bSparseFileSwitch);
+						EnableWindow (GetDlgItem (hwndDlg, IDC_QUICKFORMAT), TRUE);
 					}
 				}
 
@@ -5749,7 +5760,7 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		{
 			if (hw == EN_CHANGE)
 			{
-				GetPassword (hCurPage, IDC_PASSWORD_DIRECT, (char*) volumePassword.Text, MAX_PASSWORD + 1, FALSE);
+				GetPassword (hCurPage, IDC_PASSWORD_DIRECT, (char*) volumePassword.Text, iMaxPasswordLength + 1, FALSE, FALSE);
 				volumePassword.Length = (unsigned __int32) strlen ((char *) volumePassword.Text);
 				return 1;
 			}
@@ -5864,6 +5875,7 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				bHiddenVolHost = FALSE;
 				bSparseFileSwitch = FALSE;
 				quickFormat = FALSE;
+				dynamicFormat = FALSE;
 
 				return 1;
 			}
@@ -5902,17 +5914,29 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 		}
 
-		if (lw == IDC_QUICKFORMAT && IsButtonChecked (GetDlgItem (hCurPage, IDC_QUICKFORMAT)))
+		if (lw == IDC_QUICKFORMAT)
 		{
-			if (bSparseFileSwitch)
-			{
-				if (AskWarnYesNo("CONFIRM_SPARSE_FILE", MainDlg) == IDNO)
-					SetCheckBox (hwndDlg, IDC_QUICKFORMAT, FALSE);
-			}
-			else
+			if (IsButtonChecked (GetDlgItem (hCurPage, IDC_QUICKFORMAT)))
 			{
 				if (AskWarnYesNo("WARN_QUICK_FORMAT", MainDlg) == IDNO)
 					SetCheckBox (hwndDlg, IDC_QUICKFORMAT, FALSE);
+			}
+			else if (IsButtonChecked (GetDlgItem (hCurPage, SPARSE_FILE)))
+			{
+				/* sparse file require quick format */
+				SetCheckBox (hwndDlg, SPARSE_FILE, FALSE);
+			}
+			return 1;
+		}
+
+		if (lw == SPARSE_FILE && IsButtonChecked (GetDlgItem (hCurPage, SPARSE_FILE)))
+		{
+			if (AskWarnYesNo("CONFIRM_SPARSE_FILE", MainDlg) == IDNO)
+				SetCheckBox (hwndDlg, SPARSE_FILE, FALSE);
+			else if (!IsButtonChecked (GetDlgItem (hCurPage, IDC_QUICKFORMAT)) && IsWindowEnabled (GetDlgItem (hCurPage, IDC_QUICKFORMAT)))
+			{
+				/* sparse file require quick format */
+				SetCheckBox (hwndDlg, IDC_QUICKFORMAT, TRUE);
 			}
 			return 1;
 		}
@@ -6060,6 +6084,12 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 			LoadSettings (hwndDlg);
 
+			// set the maximum password length based on configuration setting
+			if (bUseLegacyMaxPasswordLength)
+				iMaxPasswordLength = MAX_LEGACY_PASSWORD;
+			else
+				iMaxPasswordLength = MAX_PASSWORD;
+
 			// Save language to XML configuration file if it has been selected in the setup
 			// so that other VeraCrypt programs will pick it up
 			if (bLanguageSetInSetup)
@@ -6191,7 +6221,8 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					}
 				}
 
-				quickFormat = TRUE;
+				quickFormat = CmdQuickFormat;
+				dynamicFormat = CmdSparseFileSwitch;
 
 				if (!GetDiskFreeSpaceEx (root, &free, 0, 0))
 				{
@@ -6212,7 +6243,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				}
 				else
 				{
-					if (!bSparseFileSwitch && (nVolumeSize > free.QuadPart))
+					if (!dynamicFormat && !bDontCheckFileContainerSize && (nVolumeSize > free.QuadPart))
 					{
 						AbortProcess ("ERR_CONTAINER_SIZE_TOO_BIG");
 					}
@@ -6799,7 +6830,8 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		{
 			// Format has been aborted (did not finish)
 
-			EnableWindow (GetDlgItem (hCurPage, IDC_QUICKFORMAT), (bDevice || bSparseFileSwitch) && !(bHiddenVol && !bHiddenVolHost));
+			EnableWindow (GetDlgItem (hCurPage, IDC_QUICKFORMAT), !(bHiddenVol && !bHiddenVolHost));
+			EnableWindow (GetDlgItem (hCurPage, SPARSE_FILE), (bSparseFileSwitch) && !(bHiddenVol && !bHiddenVolHost));
 			EnableWindow (GetDlgItem (hCurPage, IDC_FILESYS), TRUE);
 			EnableWindow (GetDlgItem (hCurPage, IDC_CLUSTERSIZE), TRUE);
 			EnableWindow (GetDlgItem (hwndDlg, IDC_PREV), TRUE);
@@ -7156,9 +7188,10 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					// Skip irrelevant pages
 					nNewPageNo = HIDDEN_VOL_HOST_PRE_CIPHER_PAGE - 1;
 				}
-				else if (nMultiBoot <= 1)
+				else if ((nMultiBoot <= 1) || bSystemIsGPT)
 				{
 					// Single-boot (not creating a hidden OS)
+					// Multi-boot in case of GPT
 
 					// Skip irrelevant pages
 					nNewPageNo = CIPHER_PAGE - 1;
@@ -7553,7 +7586,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				}
 
 				// Store the password in case we need to restore it after keyfile is applied to it
-				if (!GetPassword (hCurPage, IDC_PASSWORD, szRawPassword, sizeof (szRawPassword), TRUE))
+				if (!GetPassword (hCurPage, IDC_PASSWORD, szRawPassword, iMaxPasswordLength + 1, FALSE, TRUE))
 					return 1;
 
 				if (!SysEncInEffect ())
@@ -7662,7 +7695,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			{
 				WaitCursor ();
 
-				if (!GetPassword (hCurPage, IDC_PASSWORD_DIRECT, (char*) volumePassword.Text, MAX_PASSWORD + 1, TRUE))
+				if (!GetPassword (hCurPage, IDC_PASSWORD_DIRECT, (char*) volumePassword.Text, iMaxPasswordLength + 1, FALSE, TRUE))
 				{
 					NormalCursor ();
 					return 1;
@@ -7674,7 +7707,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				volumePim = GetPim (hCurPage, IDC_PIM, 0);
 
 				// Store the password in case we need to restore it after keyfile is applied to it
-				if (!GetPassword (hCurPage, IDC_PASSWORD_DIRECT, szRawPassword, sizeof (szRawPassword), TRUE))
+				if (!GetPassword (hCurPage, IDC_PASSWORD_DIRECT, szRawPassword, iMaxPasswordLength + 1, FALSE, TRUE))
 				{
 					NormalCursor ();
 					return 1;
@@ -8352,8 +8385,9 @@ retryCDDriveCheck:
 					SendMessage (GetDlgItem (hCurPage, IDC_CLUSTERSIZE), CB_GETCURSEL, 0, 0) , 0);
 
 				quickFormat = IsButtonChecked (GetDlgItem (hCurPage, IDC_QUICKFORMAT));
+				dynamicFormat = IsButtonChecked (GetDlgItem (hCurPage, SPARSE_FILE));
 
-				if (!quickFormat && !bDevice && !(bHiddenVol && !bHiddenVolHost) && (nVolumeSize > (ULONGLONG) nAvailableFreeSpace))
+				if (!dynamicFormat && !bDevice && !(bHiddenVol && !bHiddenVolHost) && (nVolumeSize > (ULONGLONG) nAvailableFreeSpace))
 				{
 					Error("VOLUME_TOO_LARGE_FOR_HOST", hwndDlg);
 					bVolTransformThreadToRun = FALSE;
@@ -8437,9 +8471,9 @@ retryCDDriveCheck:
 				}
 				else if (bHiddenVol)
 				{
-					// Hidden volume is always quick-formatted (if, however, the meaning of quickFormat is
-					// whether to create a sparse file, it must be set to FALSE).
-					quickFormat = !bSparseFileSwitch;
+					// Hidden volume is always quick-formatted.
+					quickFormat = TRUE;
+					dynamicFormat = FALSE;
 				}
 
 
@@ -8456,6 +8490,7 @@ retryCDDriveCheck:
 				EnableWindow (GetDlgItem (hwndDlg, IDHELP), FALSE);
 				EnableWindow (GetDlgItem (hwndDlg, IDCANCEL), FALSE);
 				EnableWindow (GetDlgItem (hCurPage, IDC_QUICKFORMAT), FALSE);
+				EnableWindow (GetDlgItem (hCurPage, SPARSE_FILE), FALSE);
 				EnableWindow (GetDlgItem (hCurPage, IDC_CLUSTERSIZE), FALSE);
 				EnableWindow (GetDlgItem (hCurPage, IDC_FILESYS), FALSE);
 				EnableWindow (GetDlgItem (hCurPage, IDC_ABORT_BUTTON), TRUE);
@@ -8738,7 +8773,7 @@ ovf_end:
 
 				if (WizardMode == WIZARD_MODE_SYS_DEVICE)
 				{
-					if (nMultiBoot > 1)
+					if ((nMultiBoot > 1) && !bSystemIsGPT)
 						nNewPageNo = SYSENC_MULTI_BOOT_OUTCOME_PAGE + 1;	// Skip irrelevant pages
 					else
 						nNewPageNo = SYSENC_MULTI_BOOT_MODE_PAGE + 1;		// Skip irrelevant pages
@@ -8767,7 +8802,7 @@ ovf_end:
 			else if (nCurPageNo == PASSWORD_PAGE)
 			{
 				// Store the password in case we need to restore it after keyfile is applied to it
-				GetPassword (hCurPage, IDC_PASSWORD, szRawPassword, sizeof (szRawPassword), FALSE);
+				GetPassword (hCurPage, IDC_PASSWORD, szRawPassword, iMaxPasswordLength + 1, FALSE, FALSE);
 
 				VerifyPasswordAndUpdate (hwndDlg, GetDlgItem (MainDlg, IDC_NEXT),
 					GetDlgItem (hCurPage, IDC_PASSWORD),
@@ -8809,9 +8844,9 @@ ovf_end:
 				|| nCurPageNo == NONSYS_INPLACE_ENC_RESUME_PASSWORD_PAGE)
 			{
 				// Store the password in case we need to restore it after keyfile is applied to it
-				GetPassword (hCurPage, IDC_PASSWORD_DIRECT, szRawPassword, MAX_PASSWORD + 1, FALSE);
+				GetPassword (hCurPage, IDC_PASSWORD_DIRECT, szRawPassword, iMaxPasswordLength + 1, FALSE, FALSE);
 
-				memcpy (volumePassword.Text, szRawPassword, MAX_PASSWORD + 1);
+				memcpy (volumePassword.Text, szRawPassword, iMaxPasswordLength + 1);
 				volumePassword.Length = (unsigned __int32) strlen ((char *) volumePassword.Text);
 
 				if (!bInPlaceEncNonSys)
@@ -8945,6 +8980,8 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 				OptionSilent,
 				OptionDynamic,
 				OptionForce,
+				OptionNoSizeCheck,
+				OptionQuickFormat,
 			};
 
 			argument args[]=
@@ -8965,6 +9002,8 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 				{ OptionSilent,				L"/silent",			NULL, FALSE },
 				{ OptionDynamic,				L"/dynamic",			NULL, FALSE },
 				{ OptionForce,					L"/force",			NULL, FALSE },
+				{ OptionNoSizeCheck,			L"/nosizecheck",	NULL, FALSE },
+				{ OptionQuickFormat,			L"/quick",	NULL, FALSE },
 
 				// Internal
 				{ CommandResumeSysEncLogOn,		L"/acsysenc",		L"/a", TRUE },
@@ -9052,7 +9091,7 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 					if (HAS_ARGUMENT == GetArgumentValue (lpszCommandLineArgs, &i, nNoCommandLineArgs,
 								  szTmp, ARRAYSIZE (szTmp)))
 					{
-						int iLen = WideCharToMultiByte (CP_UTF8, 0, szTmp, -1, (LPSTR) CmdVolumePassword.Text, MAX_PASSWORD + 1, NULL, NULL);
+						int iLen = WideCharToMultiByte (CP_UTF8, 0, szTmp, -1, (LPSTR) CmdVolumePassword.Text, iMaxPasswordLength + 1, NULL, NULL);
 						burn (szTmp, sizeof (szTmp));
 						if (iLen > 0)
 							CmdVolumePassword.Length = (unsigned __int32) (iLen - 1);
@@ -9311,6 +9350,14 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 
 			case OptionNoIsoCheck:
 				bDontVerifyRescueDisk = TRUE;
+				break;
+
+			case OptionNoSizeCheck:
+				bDontCheckFileContainerSize = TRUE;
+				break;
+
+			case OptionQuickFormat:
+				CmdQuickFormat = TRUE;
 				break;
 
 			case OptionHistory:

@@ -994,10 +994,16 @@ namespace VeraCrypt
 
 	Device::Device (wstring path, bool readOnly)
 	{
-		 FileOpen = false;
-		 Elevated = false;
+		wstring effectivePath;
+		FileOpen = false;
+		Elevated = false;
 
-		Handle = CreateFile ((wstring (L"\\\\.\\") + path).c_str(),
+		if (path.find(L"\\\\?\\") == 0)
+			effectivePath = path;
+		else
+			effectivePath = wstring (L"\\\\.\\") + path;
+
+		Handle = CreateFile (effectivePath.c_str(),
 			readOnly ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
 			FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
 			FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_WRITE_THROUGH, NULL);
@@ -1526,6 +1532,7 @@ namespace VeraCrypt
 	bool BootEncryption::SystemDriveIsDynamic ()
 	{
 		GetSystemDriveConfigurationRequest request;
+		memset (&request, 0, sizeof (request));
 		StringCchCopyW (request.DevicePath, ARRAYSIZE (request.DevicePath), GetSystemDriveConfiguration().DeviceKernelPath.c_str());
 
 		CallDriver (TC_IOCTL_GET_SYSTEM_DRIVE_CONFIG, &request, sizeof (request), &request, sizeof (request));
@@ -1898,6 +1905,7 @@ namespace VeraCrypt
 					throw ParameterIncorrect (SRC_POS);
 
 				GetSystemDriveConfigurationRequest request;
+				memset (&request, 0, sizeof (request));
 				StringCchCopyW (request.DevicePath, ARRAYSIZE (request.DevicePath), GetSystemDriveConfiguration().DeviceKernelPath.c_str());
 
 				CallDriver (TC_IOCTL_GET_SYSTEM_DRIVE_CONFIG, &request, sizeof (request), &request, sizeof (request));
@@ -1976,8 +1984,7 @@ namespace VeraCrypt
 		}
 		else
 		{
-			finally_do ({ EfiBootInst.DismountBootPartition(); });
-			EfiBootInst.MountBootPartition(0);
+			EfiBootInst.PrepareBootPartition();
 
 			if (! (userConfig & TC_BOOT_USER_CFG_FLAG_DISABLE_PIM))
 				pim = -1;
@@ -2490,8 +2497,6 @@ namespace VeraCrypt
 	}
 
 	EfiBoot::EfiBoot() {
-		ZeroMemory(EfiBootPartPath, sizeof(EfiBootPartPath));		
-		ZeroMemory (BootVolumePath, sizeof (BootVolumePath));
 		ZeroMemory (&sdn, sizeof (sdn));
 		ZeroMemory (&partInfo, sizeof (partInfo));
 		m_bMounted = false;
@@ -2519,34 +2524,21 @@ namespace VeraCrypt
 		}		
 
 		PUNICODE_STRING pStr = (PUNICODE_STRING) tempBuf;
-		memcpy (BootVolumePath, pStr->Buffer, min (pStr->Length, (sizeof (BootVolumePath) - 2)));
+		BootVolumePath = pStr->Buffer;
+
+		EfiBootPartPath = L"\\\\?";
+		EfiBootPartPath += &pStr->Buffer[7];
+
 		bBootVolumePathSelected = true;
 	}
 
-	void EfiBoot::SelectBootVolume(WCHAR* bootVolumePath) {
-		wstring str;
-		str = bootVolumePath;
-		memcpy (BootVolumePath, &str[0], min (str.length() * 2, (sizeof (BootVolumePath) - 2)));
-		bBootVolumePathSelected = true;
-	}
-
-	void EfiBoot::MountBootPartition(WCHAR letter) {
+	void EfiBoot::PrepareBootPartition() {
 		if (!bBootVolumePathSelected) {
 			SelectBootVolumeESP();
 		}
-
-		if (!letter) {
-			if (!GetFreeDriveLetter(&EfiBootPartPath[0])) {
-				throw ErrorException(L"No free letter to mount EFI boot partition", SRC_POS);
-			}
-		} else {
-			EfiBootPartPath[0] = letter;
-		}
-		EfiBootPartPath[1] = ':';
-		EfiBootPartPath[2] = 0;
-		throw_sys_if(!DefineDosDevice(DDD_RAW_TARGET_PATH, EfiBootPartPath, BootVolumePath));		
-
-		Device  dev(EfiBootPartPath, TRUE);
+		std::wstring devicePath = L"\\\\?\\GLOBALROOT";
+		devicePath += BootVolumePath;
+		Device  dev(devicePath.c_str(), TRUE);
 
 		try
 		{
@@ -2554,7 +2546,6 @@ namespace VeraCrypt
 		}
 		catch (...)
 		{
-			DefineDosDevice(DDD_REMOVE_DEFINITION, EfiBootPartPath, NULL);
 			throw;
 		}
 		
@@ -2564,20 +2555,9 @@ namespace VeraCrypt
 		dev.Close();
 		if (!bSuccess)
 		{
-			DefineDosDevice(DDD_REMOVE_DEFINITION, EfiBootPartPath, NULL);
 			SetLastError (dwLastError);
 			throw SystemException(SRC_POS);
-		}
-
-		m_bMounted = true;
-	}
-
-	void EfiBoot::DismountBootPartition() {
-		if (m_bMounted)
-		{
-			DefineDosDevice(DDD_REMOVE_DEFINITION, EfiBootPartPath, NULL);
-			m_bMounted = false;
-		}
+		}		
 	}
 
 	bool EfiBoot::IsEfiBoot() {
@@ -2820,7 +2800,7 @@ namespace VeraCrypt
 		throw_sys_if (!::CopyFileW (path.c_str(), targetPath.c_str(), FALSE));
 	}
 
-	BOOL EfiBoot::RenameFile(const wchar_t* name, wchar_t* nameNew, BOOL bForce) {
+	BOOL EfiBoot::RenameFile(const wchar_t* name, const wchar_t* nameNew, BOOL bForce) {
 		wstring path = EfiBootPartPath;
 		path += name;
 		wstring pathNew = EfiBootPartPath;
@@ -3083,19 +3063,20 @@ namespace VeraCrypt
 			if (!DcsInfoImg)
 				throw ErrorException(L"Out of resource DcsInfo", SRC_POS);
 
-			finally_do ({ EfiBootInst.DismountBootPartition(); });
-			EfiBootInst.MountBootPartition(0);			
+			EfiBootInst.PrepareBootPartition();			
 
 			try
 			{
 				// Save modules
 				bool bAlreadyExist;
+				const char* g_szMsBootString = "bootmgfw.pdb";
+				unsigned __int64 loaderSize = 0;
+				const wchar_t * szStdEfiBootloader = Is64BitOs()? L"\\EFI\\Boot\\bootx64.efi": L"\\EFI\\Boot\\bootia32.efi";
+				const wchar_t * szBackupEfiBootloader = Is64BitOs()? L"\\EFI\\Boot\\original_bootx64.vc_backup": L"\\EFI\\Boot\\original_bootia32.vc_backup";
 
 				if (preserveUserConfig)
 				{
 					bool bModifiedMsBoot = true;
-					const char* g_szMsBootString = "bootmgfw.pdb";
-					unsigned __int64 loaderSize = 0;
 					EfiBootInst.GetFileSize(L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi", loaderSize);
 
 					if (EfiBootInst.FileExists (L"\\EFI\\Microsoft\\Boot\\bootmgfw_ms.vc"))
@@ -3171,11 +3152,29 @@ namespace VeraCrypt
 						// if yes, replace it with our bootloader after it was copied to bootmgfw_ms.vc
 						if (!bModifiedMsBoot)
 							EfiBootInst.CopyFile (L"\\EFI\\VeraCrypt\\DcsBoot.efi", L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi");
+
+						if (EfiBootInst.FileExists (szStdEfiBootloader))
+						{
+							// check if standard bootloader under EFI\Boot has been set to Microsoft version
+							// if yes, replace it with our bootloader
+							EfiBootInst.GetFileSize(szStdEfiBootloader, loaderSize);
+							if (loaderSize > 32768)
+							{
+								std::vector<byte> bootLoaderBuf ((size_t) loaderSize);
+
+								EfiBootInst.ReadFile(szStdEfiBootloader, &bootLoaderBuf[0], (DWORD) loaderSize);
+
+								// look for bootmgfw.efi identifiant string
+								if (BufferHasPattern (bootLoaderBuf.data (), (size_t) loaderSize, g_szMsBootString, strlen (g_szMsBootString)))
+								{
+									EfiBootInst.RenameFile (szStdEfiBootloader, szBackupEfiBootloader, TRUE);
+									EfiBootInst.CopyFile (L"\\EFI\\VeraCrypt\\DcsBoot.efi", szStdEfiBootloader);
+								}
+							}
+						}
 						return;
 					}
 				}
-
-				const wchar_t * szStdEfiBootloader = Is64BitOs()? L"\\EFI\\Boot\\bootx64.efi": L"\\EFI\\Boot\\bootia32.efi";
 
 				EfiBootInst.MkDir(L"\\EFI\\VeraCrypt", bAlreadyExist);
 				EfiBootInst.SaveFile(L"\\EFI\\VeraCrypt\\DcsBoot.efi", dcsBootImg, sizeDcsBoot);
@@ -3191,7 +3190,26 @@ namespace VeraCrypt
 				EfiBootInst.SetStartExec(L"VeraCrypt BootLoader (DcsBoot)", L"\\EFI\\VeraCrypt\\DcsBoot.efi");
 
 				if (EfiBootInst.FileExists (szStdEfiBootloader))
-					EfiBootInst.SaveFile(szStdEfiBootloader, dcsBootImg, sizeDcsBoot);
+				{
+					// check if standard bootloader under EFI\Boot is Microsoft one or if it is ours
+					// if both cases, replace it with our bootloader otherwise do nothing
+					EfiBootInst.GetFileSize(szStdEfiBootloader, loaderSize);
+					std::vector<byte> bootLoaderBuf ((size_t) loaderSize);
+					EfiBootInst.ReadFile(szStdEfiBootloader, &bootLoaderBuf[0], (DWORD) loaderSize);
+
+					// look for bootmgfw.efi or VeraCrypt identifiant strings
+					if (	((loaderSize > 32768) && BufferHasPattern (bootLoaderBuf.data (), (size_t) loaderSize, g_szMsBootString, strlen (g_szMsBootString)))
+						)
+					{
+						EfiBootInst.RenameFile (szStdEfiBootloader, szBackupEfiBootloader, TRUE);
+						EfiBootInst.SaveFile(szStdEfiBootloader, dcsBootImg, sizeDcsBoot);
+					}
+					if (	((loaderSize <= 32768) && BufferHasPattern (bootLoaderBuf.data (), (size_t) loaderSize, _T(TC_APP_NAME), strlen (TC_APP_NAME) * 2))
+						)
+					{
+						EfiBootInst.SaveFile(szStdEfiBootloader, dcsBootImg, sizeDcsBoot);
+					}
+				}
 				EfiBootInst.SaveFile(L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi", dcsBootImg, sizeDcsBoot);
 				// move configuration file from old location (if it exists) to new location
 				// we don't force the move operation if the new location already exists
@@ -4101,16 +4119,12 @@ namespace VeraCrypt
 			}
 			unsigned __int64 loaderSize = 0;
 			std::vector<byte> bootLoaderBuf;
-			const wchar_t * szStdEfiBootloader = Is64BitOs()? L"\\EFI\\Boot\\bootx64.efi": L"\\EFI\\Boot\\bootia32.efi";
-			const wchar_t * szBackupEfiBootloader = Is64BitOs()? L"\\EFI\\Boot\\original_bootx64.vc_backup": L"\\EFI\\Boot\\original_bootia32.vc_backup";
 			const wchar_t * szStdMsBootloader = L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi";
 			const wchar_t * szBackupMsBootloader = L"\\EFI\\Microsoft\\Boot\\bootmgfw_ms.vc";
 			const char* g_szMsBootString = "bootmgfw.pdb";
 			bool bModifiedMsBoot = true;
 
-			finally_do ({ EfiBootInst.DismountBootPartition(); });
-
-			EfiBootInst.MountBootPartition(0);		
+			EfiBootInst.PrepareBootPartition();		
 
 			EfiBootInst.GetFileSize(szStdMsBootloader, loaderSize);
 			bootLoaderBuf.resize ((size_t) loaderSize);
@@ -4157,36 +4171,7 @@ namespace VeraCrypt
 			}
 
 			EfiBootInst.CopyFile (szStdMsBootloader, szBackupMsBootloader);
-
-			if (EfiBootInst.FileExists (szStdEfiBootloader))
-			{
-				EfiBootInst.GetFileSize (szStdEfiBootloader, loaderSize);
-
-				bootLoaderBuf.resize ((size_t) loaderSize);
-
-				EfiBootInst.ReadFile (szStdEfiBootloader, &bootLoaderBuf[0], (DWORD) loaderSize);
-
-				// Prevent VeraCrypt EFI loader from being backed up
-				if (BufferHasPattern (bootLoaderBuf.data (), (size_t) loaderSize, _T(TC_APP_NAME), wcslen (_T(TC_APP_NAME)) * 2))
-				{
-					if (AskWarnNoYes ("TC_BOOT_LOADER_ALREADY_INSTALLED", ParentWindow) == IDNO)
-						throw UserAbort (SRC_POS);
-
-					// check if backup exists already and if it has bootmgfw signature
-					if (EfiBootInst.FileExists (szBackupEfiBootloader))
-					{
-						// perform the backup on disk using this file
-						EfiBootInst.CopyFile (szBackupEfiBootloader, GetSystemLoaderBackupPath().c_str());
-					}
-
-					return;
-				}
-
-				EfiBootInst.CopyFile (szStdEfiBootloader, GetSystemLoaderBackupPath().c_str());
-				EfiBootInst.CopyFile (szStdEfiBootloader, szBackupEfiBootloader);
-			}
-			else
-				EfiBootInst.CopyFile (szStdMsBootloader, GetSystemLoaderBackupPath().c_str());
+			EfiBootInst.CopyFile (szStdMsBootloader, GetSystemLoaderBackupPath().c_str());
 
 		}
 		else
@@ -4231,9 +4216,7 @@ namespace VeraCrypt
 				}
 			}
 
-			finally_do ({ EfiBootInst.DismountBootPartition(); });
-
-			EfiBootInst.MountBootPartition(0);			
+			EfiBootInst.PrepareBootPartition();			
 
 			EfiBootInst.DeleteStartExec();
 			EfiBootInst.DeleteStartExec(0xDC5B, L"Driver"); // remove DcsBml boot driver it was installed
@@ -4624,8 +4607,6 @@ namespace VeraCrypt
 			{
 				WriteLocalMachineRegistryString (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, NULL, L"Service", FALSE);
 				WriteLocalMachineRegistryString (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, NULL, L"Service", FALSE);
-
-				SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD_FOR_SYS_FAVORITES, true);
 			}
 			catch (...)
 			{
@@ -4640,13 +4621,14 @@ namespace VeraCrypt
 		}
 		else
 		{
-			SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD_FOR_SYS_FAVORITES, false);
-
 			DeleteLocalMachineRegistryKey (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal", TC_SYSTEM_FAVORITES_SERVICE_NAME);
 			DeleteLocalMachineRegistryKey (L"SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network", TC_SYSTEM_FAVORITES_SERVICE_NAME);
 
 			SC_HANDLE service = OpenService (scm, TC_SYSTEM_FAVORITES_SERVICE_NAME, SERVICE_ALL_ACCESS);
 			throw_sys_if (!service);
+
+			SERVICE_STATUS serviceStatus = {0};
+			ControlService (service, SERVICE_CONTROL_STOP, &serviceStatus);
 
 			throw_sys_if (!DeleteService (service));
 			CloseServiceHandle (service);
@@ -4709,6 +4691,21 @@ namespace VeraCrypt
 #endif
 	}
 
+	void BootEncryption::SetServiceConfigurationFlag (uint32 flag, bool state)
+	{
+		DWORD configMap = ReadDriverConfigurationFlags();
+
+		if (state)
+			configMap |= flag;
+		else
+			configMap &= ~flag;
+#ifdef SETUP
+		WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, TC_SYSTEM_FAVORITES_SERVICE_NAME L"Config", configMap);
+#else
+		WriteLocalMachineRegistryDwordValue (L"SYSTEM\\CurrentControlSet\\Services\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, TC_SYSTEM_FAVORITES_SERVICE_NAME L"Config", configMap);
+#endif
+	}
+
 #ifndef SETUP
 
 	void BootEncryption::RegisterSystemFavoritesService (BOOL registerService)
@@ -4733,8 +4730,7 @@ namespace VeraCrypt
 			}
 			else
 			{
-				finally_do ({ EfiBootInst.DismountBootPartition(); });
-				EfiBootInst.MountBootPartition(0);		
+				EfiBootInst.PrepareBootPartition();		
 				memcpy (pSdn, EfiBootInst.GetStorageDeviceNumber(), sizeof (STORAGE_DEVICE_NUMBER));
 			}
 		}
@@ -4744,7 +4740,9 @@ namespace VeraCrypt
 			throw SystemException (SRC_POS);
 		}
 	}
+#endif
 
+#if defined(VC_EFI_CUSTOM_MODE) || !defined(SETUP)
 	void BootEncryption::GetSecureBootConfig (BOOL* pSecureBootEnabled, BOOL *pVeraCryptKeysLoaded)
 	{
 		SystemDriveConfiguration config = GetSystemDriveConfiguration ();
@@ -4784,7 +4782,8 @@ namespace VeraCrypt
 			throw SystemException (SRC_POS);
 		}
 	}
-
+#endif
+#ifndef SETUP
 	void BootEncryption::CheckRequirements ()
 	{
 		if (nCurrentOS == WIN_2000)
@@ -4966,7 +4965,7 @@ namespace VeraCrypt
 
 		try
 		{
-			RegisterSystemFavoritesService (false);
+			RegisterSystemFavoritesService (FALSE);
 		}
 		catch (...) { }
 
@@ -5194,6 +5193,8 @@ namespace VeraCrypt
 				InstallVolumeHeader ();
 
 			RegisterBootDriver (hiddenSystem);
+
+			RegisterSystemFavoritesService (TRUE);
 		}
 		catch (Exception &)
 		{
@@ -5379,6 +5380,16 @@ namespace VeraCrypt
 		DWORD configMap;
 
 		if (!ReadLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", TC_DRIVER_CONFIG_REG_VALUE_NAME, &configMap))
+			configMap = 0;
+
+		return configMap;
+	}
+
+	uint32 BootEncryption::ReadServiceConfigurationFlags ()
+	{
+		DWORD configMap;
+
+		if (!ReadLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\" TC_SYSTEM_FAVORITES_SERVICE_NAME, TC_SYSTEM_FAVORITES_SERVICE_NAME L"Config", &configMap))
 			configMap = 0;
 
 		return configMap;

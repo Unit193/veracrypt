@@ -119,6 +119,8 @@ typedef struct
 
  	byte*  SecRegionData;
  	SIZE_T SecRegionSize;
+
+	volatile BOOL ThreadBlockReadWrite;
 }  EncryptedIoQueue;
 
 

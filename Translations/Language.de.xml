@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.23">
+  <localization prog-version= "1.24">
     <!-- Sprachen -->
-    <language langid="de" name="Deutsch" en-name="German" version="1.1.8" translators="Harry Haller, Alexander Schorg, Simon Frankenberger, David Arndt, H. Sauer, Dulla, Ettore Atalan, Matthias Kolja Miehl" />
+    <language langid="de" name="Deutsch" en-name="German" version="1.1.8" translators="Harry Haller, Alexander Schorg, Simon Frankenberger, David Arndt, H. Sauer, Dulla, Ettore Atalan, Matthias Kolja Miehl, Felix Reichmann" />
     <!-- Schriftarten -->
     <font lang="de" class="normal" size="11" face="default" />
     <font lang="de" class="bold" size="13" face="Arial" />
@@ -44,7 +44,7 @@
     <entry lang="de" key="IDC_HIDVOL_WIZ_MODE_DIRECT">Direkter Modus</entry>
     <entry lang="de" key="IDC_HIDVOL_WIZ_MODE_FULL">Kompletter Modus</entry>
     <entry lang="de" key="IDC_KB">&amp;KB</entry>
-    <entry lang="de" key="IDC_KEYFILES_ENABLE">Schlüsselda&amp;t. verwenden</entry>
+    <entry lang="de" key="IDC_KEYFILES_ENABLE">Schlüsselda&amp;tei verwenden</entry>
     <entry lang="de" key="IDC_KEYFILES_TRY_EMPTY_PASSWORD">Versuche zuerst ohne Passwort einzubinden</entry>
     <entry lang="de" key="IDC_KEYFILES_RANDOM_SIZE">Zufällige Größe (64 &lt;-&gt; 1048576)</entry>
     <entry lang="de" key="IDC_KEY_FILES">Schlüsselda&amp;teien ...</entry>
@@ -56,7 +56,7 @@
     <entry lang="de" key="IDC_MORE_INFO_ON_SYS_ENCRYPTION">Mehr Informationen über die Systemverschlüsselung</entry>
     <entry lang="de" key="IDC_MORE_INFO_SYS_ENCRYPTION">Mehr Informationen</entry>
     <entry lang="de" key="IDC_MULTI_BOOT">Mehrere Betriebssysteme</entry>
-    <entry lang="de" key="IDC_NONSYS_DEVICE">Verschlüsselt eine Partition/ein Laufwerk</entry>
+    <entry lang="de" key="IDC_NONSYS_DEVICE">Eine Partition/ein Laufwerk verschlüsseln</entry>
     <entry lang="de" key="IDC_NO_HISTORY">Verlauf &amp;nicht speichern</entry>
     <entry lang="de" key="IDC_OPEN_OUTER_VOLUME">Äußeres Volume öffnen</entry>
     <entry lang="de" key="IDC_PAUSE">&amp;Pause</entry>
@@ -70,7 +70,7 @@
     <entry lang="de" key="IDC_STD_VOL">Standard VeraCrypt-Volume</entry>
     <entry lang="de" key="IDC_SYSENC_HIDDEN">V&amp;ersteckt</entry>
     <entry lang="de" key="IDC_SYSENC_NORMAL">Normal</entry>
-    <entry lang="de" key="IDC_SYS_DEVICE">System-Partition bzw. System-Laufwerk verschlüsseln</entry>
+    <entry lang="de" key="IDC_SYS_DEVICE">Eine System-Partition bzw. ein System-Laufwerk verschlüsseln</entry>
     <entry lang="de" key="IDC_SYS_PARTITION">Die Windows System-Partition verschlüsseln</entry>
     <entry lang="de" key="IDC_WHOLE_SYS_DRIVE">Gesamtes Laufwerk verschlüsseln</entry>
     <entry lang="de" key="IDD_VOL_CREATION_WIZARD_DLG">Assistent zum Erstellen eines VeraCrypt-Volumes</entry>
@@ -88,7 +88,7 @@
     <entry lang="de" key="IDT_LEFT">Rest</entry>
     <entry lang="de" key="IDT_MASTER_KEY">Hauptschlüssel: </entry>
     <entry lang="de" key="IDT_MULTI_BOOT">Diese Option wählen, falls zwei oder mehrere Betriebssysteme auf diesem System installiert sind.\n\nZum Beispiel:\n- Windows 8 und Windows 8\n- Windows 8 und Windows 10\n- Windows und Mac OS X\n- Windows und Linux\n- Windows, Linux und Mac OS X</entry>
-    <entry lang="de" key="IDT_NON_SYS_DEVICE">Verschlüsselt eine Nicht-Systempartition auf internen oder externen Laufwerken (als normales oder verstecktes Volume).</entry>
+    <entry lang="de" key="IDT_NON_SYS_DEVICE">Verschlüsselt eine Nicht-Systempartition auf internen oder externen Laufwerken (als normales oder verstecktes Volumen).</entry>
     <entry lang="de" key="IDT_PARTIAL_POOL_CONTENTS">Aktueller Inhalte-Pool (teilweise)</entry>
     <entry lang="de" key="IDT_PASS">Durchgang</entry>
     <entry lang="de" key="IDT_PASSWORD">&amp;Passwort:</entry>
@@ -621,12 +621,12 @@
     <entry lang="de" key="NONSYS_INPLACE_ENC_RESUME_PASSWORD_PAGE_HELP">Bitte geben Sie das Passwort und/oder die Schlüsseldatei(en) für das Nicht-System Volume an, von dem Sie den „in-place“ Verschlüsselungsprozess fortsetzen möchten.\n\n\nHinweis: Nachdem Sie auf Weiter klicken wird VeraCrypt versuchen alle Nicht-System Volumes zu finden, wo der Verschlüsselungsprozess unterbrochen wurde und wo die VeraCrypt-Volume-Kopfdaten mit dem angegebenen Passwort und/oder der Schlüsseldatei(en) entschlüsselt werden kann. Wenn mehr als ein solches Volume gefunden wird, dann müssen Sie eines davon im nächsten Schritt auswählen.</entry>
     <entry lang="de" key="NONSYS_INPLACE_ENC_RESUME_VOL_SELECT_HELP">Bitte wählen Sie eines der aufgelisteten Volumes. Die Liste enthält jedes zugängliche Nicht-System Volume, bei dem der Verschlüsselungsprozess unterbrochen wurde und wo mithilfe des Passwortes und/oder der Schlüsseldatei(en) die Kopfdaten entschlüsselt werden konnten.</entry>
     <entry lang="de" key="NONSYS_INPLACE_DEC_PASSWORD_PAGE_HELP">Bitte geben Sie das Passwort und/oder die Schlüsseldatei(en) für das Nicht-System Volume an, welches Sie entschlüsseln möchten.</entry>
-    <entry lang="de" key="PASSWORD_HELP">Es wird dringend empfohlen ein gutes Passwort zu wählen. Passwörter die in einem Wörterbuch zu finden sind (und ebenso Kombinationen aus 2, 3 oder 4 solcher Wörter) sollten nicht verwendet werden. Das Passwort sollte keine Namen oder Geburtstage enthalten, und nicht leicht zu erraten sein. Ein gutes Passwort ist eine zufällige Kombination aus Groß- und Kleinbuchstaben, Zahlen, und Sonderzeichen wie @ ^ = $ * + etc. Es ist zudem empfehlenswert ein Passwort mit mehr als 20 Zeichen zu wählen (je länger umso besser). Die mögliche Länge ist auf 64 Zeichen beschränkt.</entry>
+    <entry lang="de" key="PASSWORD_HELP">Es wird dringend empfohlen ein gutes Passwort zu wählen. Passwörter die in einem Wörterbuch zu finden sind (und ebenso Kombinationen aus 2, 3 oder 4 solcher Wörter) sollten nicht verwendet werden. Das Passwort sollte keine Namen oder Geburtstage enthalten, und nicht leicht zu erraten sein. Ein gutes Passwort ist eine zufällige Kombination aus Groß- und Kleinbuchstaben, Zahlen, und Sonderzeichen wie @ ^ = $ * + etc. Es ist zudem empfehlenswert ein Passwort mit mehr als 20 Zeichen zu wählen (je länger umso besser). Die mögliche Länge ist auf 128 Zeichen beschränkt.</entry>
     <entry lang="de" key="PASSWORD_HIDDENVOL_HELP">Wählen Sie bitte ein Passwort für das versteckte Volume. </entry>
     <entry lang="de" key="PASSWORD_HIDDEN_OS_HELP">Wählen Sie ein Passwort für das versteckte Betriebssystem (d.h. für das versteckte Volume). </entry>
     <entry lang="de" key="PASSWORD_HIDDEN_OS_NOTE">WICHTIG: Das Passwort, dass Sie in diesem Schritt für das versteckte Betriebssystem auswählen, muss sich erheblich von den zwei anderen Passwörtern unterscheiden (d.h. von dem Passwort für das äußere Volume und von dem Passwort für das Köder-Betriebssystem).</entry>
     <entry lang="de" key="PASSWORD_HIDDENVOL_HOST_DIRECT_HELP">Geben Sie bitte das Passwort für das Volume ein, innerhalb welchem das versteckte Volume erstellt werden soll. Nachdem Sie "Weiter" angeklickt haben, wird VeraCrypt versuchen das Volume einzubinden. Sobald das Volume eingebunden ist, wird dessen Clusterbelegung analysiert, um festzustellen, wie viel freier zusammenhängender Speicher vom Ende des Volumes aus verfügbar ist. Der gefundene Bereich wird für die Unterbringung des versteckten Volumes verwendet. Dessen Größe legt zugleich auch die maximale Größe des versteckten Volumes festlegt. Das Analysieren der Clusterbelegung ist notwendig, um sicherzustellen, dass keine Daten des äußeren Volumes durch das versteckte Volume überschrieben werden.</entry>
-    <entry lang="de" key="PASSWORD_HIDDENVOL_HOST_HELP">\nWählen Sie ein Passwort für das äußere Volume. Das Passwort wird das sein, welches Sie einem Angreifer aushändigen können, wenn Sie dazu aufgefordert oder gezwungen werden.\n\nWICHTIG: Das Passwort muss sich erheblich von dem unterscheiden, welches Sie für das versteckte Volume auswählen werden.\n\nHinweis: Die maximal mögliche Passwortlänge beträgt 64 Zeichen.</entry>
+    <entry lang="de" key="PASSWORD_HIDDENVOL_HOST_HELP">\nWählen Sie ein Passwort für das äußere Volume. Das Passwort wird das sein, welches Sie einem Angreifer aushändigen können, wenn Sie dazu aufgefordert oder gezwungen werden.\n\nWICHTIG: Das Passwort muss sich erheblich von dem unterscheiden, welches Sie für das versteckte Volume auswählen werden.\n\nHinweis: Die maximal mögliche Passwortlänge beträgt 128 Zeichen.</entry>
     <entry lang="de" key="PASSWORD_SYSENC_OUTERVOL_HELP">Bitte wählen Sie ein Passwort für das äußere Volume. Dies wird das Passwort sein das Sie einem Angreifer verraten können, wenn Sie aufgefordert oder gezwungen werden das Passwort für die erste Partition hinter der Systempartition herauszugeben, auf der sich das äußere Volume und das versteckte Volume (mit dem ausgeblendete Betriebssystem) befinden wird. Die Existenz des versteckten Volumes (und des versteckten Betriebssystems) bleibt geheim. Beachten Sie, dass dieses Passwort nicht für das Köder-Betriebssystem ist.\n\nWICHTIG: Das Passwort muss sich erheblich von dem unterscheiden, welches von Ihnen für das versteckte Volume (d.h. für das versteckte Betriebssystem) ausgewählt wird.</entry>
     <entry lang="de" key="PASSWORD_HIDVOL_HOST_TITLE">Passwort des äußeren Volumes</entry>
     <entry lang="de" key="PASSWORD_HIDVOL_TITLE">Passwort des versteckten Volumes</entry>
@@ -809,7 +809,7 @@
     <entry lang="de" key="SYSTEM_PARTITION_PARTIALLY_ENCRYPTED">Systempartition (%.2f%% verschlüsselt)</entry>
     <entry lang="de" key="HID_VOL_DAMAGE_PREVENTED">Ja (vor Beschädigung bewahrt!)</entry>
     <entry lang="de" key="NONE">Keins</entry>
-    <entry lang="de" key="KEY_SIZE">Primärschlüssel Größe</entry>
+    <entry lang="de" key="KEY_SIZE">Primärschlüsselgröße</entry>
     <entry lang="de" key="SECONDARY_KEY_SIZE_XTS">Sekundärschlüssellänge (XTS-Modus)</entry>
     <entry lang="de" key="SECONDARY_KEY_SIZE_LRW">Tweak-Schlüssellänge (LRW-Modus)</entry>
     <entry lang="de" key="BITS">Bit</entry>
@@ -1008,7 +1008,7 @@
     <entry lang="de" key="FREE_SPACE_FOR_WRITING_TO_OUTER_VOLUME">WARNUNG: Wenn Sie nachträglich noch weitere Daten/Dateien im äußeren Volume speichern möchten, dann sollten Sie eine kleinere Größe des versteckten Volumes in Betracht ziehen.\n\nMöchten Sie tatsächlich mit der von Ihnen angegebenen Größe fortsetzen?</entry>
     <entry lang="de" key="NO_VOLUME_SELECTED">Es wurde kein Volume ausgewählt.\n\nKlicken Sie bitte auf „Datenträger“ oder „Datei“ und wählen Sie ein VeraCrypt-Volume aus.</entry>
     <entry lang="de" key="NO_SYSENC_PARTITION_SELECTED">Keine Partition ausgewählt.\n\nKlicken Sie „Datenträger ...“ um eine getrennte Partition zu wählen, welche sonst Prä-Boot-Authentifikation voraussetzt (z.B. eine Partition auf einem verschlüsselten Systemlaufwerk mit einem Betriebssystem darauf welches gerade nicht läuft, oder die verschlüsselte Systempartition eines anderen Betriebssystems).\n\nHinweis: Die Ausgewählte Partition wird als reguläres VeraCrypt-Volume eingebunden, ohne Prä-Boot-Authentifikation. Das ist hilfreich für Sicherungs- oder Reparaturvorgänge.</entry>
-    <entry lang="de" key="CONFIRM_SAVE_DEFAULT_KEYFILES">WARNUNG: Wenn Standardschlüsseldateien festgelegt und aktiviert sind, dann können Volumes, die diese nicht verwenden, nicht eingebunden werden. Daher sollten Sie, nachdem Sie die Standardschlüsseldateien aktiviert haben, das Häkchen bei „Schlüsseldat. verw.“ (unterhalb des Passwort-Eingabefeldes) entfernen sobald Sie solche Volumes einbinden möchten.\n\nSind Sie sicher dass Sie die Schlüsseldateien/-pfade als Standard speichern möchten?</entry>
+    <entry lang="de" key="CONFIRM_SAVE_DEFAULT_KEYFILES">WARNUNG: Wenn Standardschlüsseldateien festgelegt und aktiviert sind, dann können Volumes, die diese nicht verwenden, nicht eingebunden werden. Daher sollten Sie, nachdem Sie die Standardschlüsseldateien aktiviert haben, das Häkchen bei „Schlüsseldatei verwenden“ (unterhalb des Passwort-Eingabefeldes) entfernen sobald Sie solche Volumes einbinden möchten.\n\nSind Sie sicher dass Sie die Schlüsseldateien/-pfade als Standard speichern möchten?</entry>
     <entry lang="de" key="HK_AUTOMOUNT_DEVICES">Alle Datenträger-Volumes automatisch einbinden</entry>
     <entry lang="de" key="HK_DISMOUNT_ALL">Alle Volumes trennen</entry>
     <entry lang="de" key="HK_WIPE_CACHE">Cache sicher löschen</entry>
@@ -1381,7 +1381,7 @@
     <entry lang="de" key="IDC_BOOT_LOADER_CACHE_PIM">&amp;PIM beim Zwischenspeichern eines Prä-Boot-Authentifikationspasswortes einbeziehen</entry>
     <entry lang="de" key="IDC_PREF_CACHE_PIM">PIM beim Zwischenspeichern eines Passwortes einbeziehen</entry>
     <entry lang="de" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Getrennte Netzlaufwerke zum Einbinden verfügbar machen</entry>
-    <entry lang="de" key="PASSWORD_UTF8_TOO_LONG">Das eingegebene Passwort ist zu lang: Kodiert mit UTF-8 überschreitet es 64 Byte.</entry>
+    <entry lang="de" key="PASSWORD_UTF8_TOO_LONG">Das eingegebene Passwort ist zu lang: Kodiert mit UTF-8 überschreitet es 128 Byte.</entry>
     <entry lang="de" key="PASSWORD_UTF8_INVALID">Das eingegebene Passwort enthält Unicode-Zeichen, die nicht mit UTF-8 kodiert werden können.</entry>
     <entry lang="de" key="INIT_DLL">Fehler: Kann eine Systembibliothek nicht laden.</entry>
     <entry lang="de" key="ERR_EXFAT_INVALID_VOLUME_SIZE">Die auf der Kommandozeile angegebene Volume-Größe ist nicht mit dem gewählten exFAT Dateisystem kompatibel.</entry>
@@ -1424,12 +1424,22 @@
     <entry lang="de" key="IDC_BLOCK_SYSENC_TRIM">TRIM-Befehl auf Systempartition/Laufwerk blockieren</entry>
     <entry lang="de" key="WINDOWS_EFI_BOOT_LOADER_MISSING">FEHLER: Windows-EFI-Systemlader konnte nicht auf der Festplatte gefunden werden. Operation wird abgebrochen.</entry>
     <entry lang="de" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Es ist derzeit nicht möglich, ein System zu verschlüsseln, wenn SecureBoot aktiviert ist und keine benutzerdefinierten Schlüssel von VeraCrypt in die Maschinen-Firmware geladen sind. SecureBoot muss in der BIOS-Konfiguration deaktiviert werden, damit die Systemverschlüsselung fortgesetzt werden kann.</entry>
-    <entry lang="de" key="PASSWORD_PASTED_TRUNCATED">Eingefügter Text wurde abgeschnitten, da die maximale Länge des Passworts 64 Zeichen beträgt</entry>
-    <entry lang="de" key="PASSWORD_MAXLENGTH_REACHED">Passwort hat bereits seine maximale Länge von 64 Zeichen erreicht.\nEs ist kein zusätzliches Zeichen erlaubt.</entry>
+    <entry lang="de" key="PASSWORD_PASTED_TRUNCATED">Eingefügter Text wurde abgeschnitten, da die maximale Länge des Passworts 128 Zeichen beträgt</entry>
+    <entry lang="de" key="PASSWORD_MAXLENGTH_REACHED">Passwort hat bereits seine maximale Länge von 128 Zeichen erreicht.\nEs ist kein zusätzliches Zeichen erlaubt.</entry>
     <entry lang="de" key="IDC_SELECT_LANGUAGE_LABEL">Wählen Sie die Sprache aus, die während der Installation benutzt werden soll:</entry>
     <entry lang="de" key="VOLUME_TOO_LARGE_FOR_HOST">FEHLER: Der Datei-Container ist größer als der verfügbare freie Speicherplatz auf der Festplatte.</entry>
     <entry lang="de" key="IDC_ALLOW_WINDOWS_DEFRAG">Windows-Festplattendefragmentierung die Defragmentierung von Nicht-Systempartitionen/-laufwerken erlauben</entry>    
     <entry lang="de" key="CONFIRM_ALLOW_WINDOWS_DEFRAG">WARNUNG: Defragmentierung von Nicht-Systempartitionen/-laufwerken kann Metadaten über ihren Inhalt preisgeben oder Probleme mit versteckten Volumes verursachen, die sie enthalten können.\n\nFortsetzen?</entry>
+    <entry lang="de" key="VIRTUAL_DEVICE">Virtuelles Gerät</entry>
+    <entry lang="de" key="MOUNTED_VOLUME_NOT_ASSOCIATED">Das ausgewählte eingebundene Volume ist nicht mit seinem Laufwerksbuchstaben in Windows verknüpft und kann daher nicht im Windows Explorer geöffnet werden.</entry>
+    <entry lang="de" key="IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION">Verschlüsselungsschlüssel aus dem Speicher löschen, wenn ein neues Gerät eingesteckt wird</entry>
+    <entry lang="de" key="CLEAR_KEYS_ON_DEVICE_INSERTION_WARNING">WICHTIGE HINWEISE:\n - Bitte beachten Sie, dass diese Option nach einem Herunterfahren/Neustart nicht erhalten bleibt, so dass Sie sie beim nächsten Start der Maschine erneut auswählen müssen.\n\n - Wenn diese Option aktiviert ist, wird der Rechner nach dem Anschließen eines neuen Geräts einfrieren und schließlich mit einem BSOD abstürzen, da Windows nach dem Löschen seiner Schlüssel aus dem Speicher nicht mehr auf die verschlüsselte Festplatte zugreifen kann.\n</entry>
+    <entry lang="de" key="STARTING">Wird gestartet</entry>
+    <entry lang="de" key="IDC_ENABLE_CPU_RNG">CPU-Hardware-Zufallsgenerator als zusätzliche Entropiequelle verwenden</entry>
+    <entry lang="de" key="IDC_USE_LEGACY_MAX_PASSWORD_LENGTH">Alte maximale Passwortlänge verwenden (64 Zeichen)</entry>
+    <entry lang="de" key="IDC_ENABLE_RAM_ENCRYPTION">Verschlüsselung der im Arbeitsspeicher gespeicherten Schlüssel und Passwörter aktivieren</entry>
+    <entry lang="de" key="IDT_BENCHMARK">Benchmark:</entry>
+    <entry lang="de" key="IDC_DISABLE_MOUNT_MANAGER">Nur virtuelles Gerät erstellen ohne Einbinden auf dem ausgewählten Laufwerksbuchstaben</entry>
   </localization>
   <!-- XML-Schema -->
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">

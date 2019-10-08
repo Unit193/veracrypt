@@ -92,6 +92,102 @@ void localcleanup (void)
 	CloseAppSetupMutex ();
 }
 
+#define WAIT_PERIOD 3
+
+BOOL StartStopService (HWND hwndDlg, wchar_t *lpszService, BOOL bStart, DWORD argc, LPCWSTR* argv)
+{
+	SC_HANDLE hManager, hService = NULL;
+	BOOL bOK = FALSE, bRet;
+	SERVICE_STATUS status = {0};
+	int x;
+	DWORD dwExpectedState = bStart? SERVICE_RUNNING : SERVICE_STOPPED;
+
+	hManager = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	if (hManager == NULL)
+		goto error;
+
+	hService = OpenService (hManager, lpszService, SERVICE_ALL_ACCESS);
+	if (hService == NULL)
+		goto error;
+
+	if (bStart)
+		StatusMessageParam (hwndDlg, "STARTING", lpszService);
+	else
+		StatusMessageParam (hwndDlg, "STOPPING", lpszService);
+
+	if (bStart)
+	{
+		if (!StartService (hService, argc, argv) && (GetLastError () != ERROR_SERVICE_ALREADY_RUNNING))
+			goto error;
+	}
+	else
+		ControlService (hService, SERVICE_CONTROL_STOP, &status);
+
+	for (x = 0; x < WAIT_PERIOD; x++)
+	{
+		bRet = QueryServiceStatus (hService, &status);
+		if (bRet != TRUE)
+			goto error;
+
+		if (status.dwCurrentState == dwExpectedState)
+			break;
+
+		Sleep (1000);
+	}
+
+	bRet = QueryServiceStatus (hService, &status);
+	if (bRet != TRUE)
+		goto error;
+
+	if (status.dwCurrentState != dwExpectedState)
+		goto error;
+
+	bOK = TRUE;
+
+error:
+
+	if (bOK == FALSE && GetLastError () == ERROR_SERVICE_DOES_NOT_EXIST)
+	{
+		bOK = TRUE;
+	}
+
+	if (hService != NULL)
+		CloseServiceHandle (hService);
+
+	if (hManager != NULL)
+		CloseServiceHandle (hManager);
+
+	return bOK;
+}
+
+BOOL ForceCopyFile (LPCWSTR szSrcFile, LPCWSTR szDestFile)
+{
+	BOOL bRet = CopyFileW (szSrcFile, szDestFile, FALSE);
+	if (!bRet)
+	{
+		wstring renamedPath = szDestFile;
+		renamedPath += VC_FILENAME_RENAMED_SUFFIX;
+
+		/* rename the locked file in order to be able to create a new one */
+		if (MoveFileExW (szDestFile, renamedPath.c_str(), MOVEFILE_REPLACE_EXISTING))
+		{
+			bRet = CopyFileW (szSrcFile, szDestFile, FALSE);
+			if (bRet)
+			{
+				/* delete the renamed file when the machine reboots */
+				MoveFileEx (renamedPath.c_str(), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+			}
+			else
+			{
+				/* restore the original file name */
+				MoveFileEx (renamedPath.c_str(), szDestFile, MOVEFILE_REPLACE_EXISTING);
+			}
+		}
+	}
+
+	return bRet;
+}
+
 BOOL ForceDeleteFile (LPCWSTR szFileName)
 {
 	if (!DeleteFile (szFileName))
@@ -562,6 +658,53 @@ void IconMessage (HWND hwndDlg, const wchar_t *txt)
 	StatusMessageParam (hwndDlg, "ADDING_ICON", txt);
 }
 
+#ifdef VC_EFI_CUSTOM_MODE
+BOOL CheckSecureBootCompatibility (HWND hWnd)
+{
+	BOOL bRet = FALSE;
+	BOOL bDriverAttached = FALSE;
+	if (hDriver == INVALID_HANDLE_VALUE)
+	{
+		int status = DriverAttach();
+		if (status || (hDriver == INVALID_HANDLE_VALUE))
+			return FALSE;
+		bDriverAttached = TRUE;
+	}	
+
+	try
+	{
+		BootEncryption bootEnc (hWnd);
+		if (bootEnc.GetDriverServiceStartType() == SERVICE_BOOT_START)
+		{
+			SystemDriveConfiguration config = bootEnc.GetSystemDriveConfiguration ();
+			if (config.SystemPartition.IsGPT)
+			{
+				BOOL bSecureBootEnabled = FALSE, bVeraCryptKeysLoaded = FALSE;
+				bootEnc.GetSecureBootConfig (&bSecureBootEnabled, &bVeraCryptKeysLoaded);
+				if (!bSecureBootEnabled || bVeraCryptKeysLoaded)
+				{
+					bRet = TRUE;
+				}
+			}
+			else
+				bRet = TRUE;
+		}
+		else
+			bRet = TRUE;
+	}
+	catch (...)
+	{
+	}
+
+	if (bDriverAttached)
+	{
+		CloseHandle (hDriver);
+		hDriver = INVALID_HANDLE_VALUE;
+	}
+	return bRet;
+}
+#endif
+
 void DetermineUpgradeDowngradeStatus (BOOL bCloseDriverHandle, LONG *driverVersionPtr)
 {
 	LONG driverVersion = VERSION_NUM;
@@ -814,14 +957,6 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 					wstring favoritesFile = GetServiceConfigPath (TC_APPD_FILENAME_SYSTEM_FAVORITE_VOLUMES, false);
 					wstring favoritesLegacyFile = GetServiceConfigPath (TC_APPD_FILENAME_SYSTEM_FAVORITE_VOLUMES, true);
 
-					if (	FileExists (servicePath.c_str())
-						||	(Is64BitOs () && FileExists (serviceLegacyPath.c_str()))
-						)
-					{
-						CopyMessage (hwndDlg, (wchar_t *) servicePath.c_str());
-						bResult = CopyFile (szTmp, servicePath.c_str(), FALSE);
-					}
-
 					if (bResult && Is64BitOs ()
 						&& FileExists (favoritesLegacyFile.c_str())
 						&& !FileExists (favoritesFile.c_str()))
@@ -830,7 +965,7 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 						bResult = CopyFile (favoritesLegacyFile.c_str(), favoritesFile.c_str(), FALSE);
 					}
 
-					if (bResult && Is64BitOs () && FileExists (favoritesFile.c_str()) && FileExists (servicePath.c_str()))
+					if (bResult)
 					{
 						// Update the path of the service
 						BootEncryption BootEncObj (hwndDlg);
@@ -839,7 +974,33 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 						{
 							if (BootEncObj.GetDriverServiceStartType() == SERVICE_BOOT_START)
 							{
+								uint32 driverFlags = ReadDriverConfigurationFlags ();
+								uint32 serviceFlags = BootEncObj.ReadServiceConfigurationFlags ();
+
 								BootEncObj.UpdateSystemFavoritesService ();
+
+								CopyMessage (hwndDlg, (wchar_t *) servicePath.c_str());
+
+								// Tell the service not to update loader on stop
+								BootEncObj.SetServiceConfigurationFlag (VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER, true);
+
+								if (StartStopService (hwndDlg, TC_SYSTEM_FAVORITES_SERVICE_NAME, FALSE, 0, NULL))
+								{
+									// we tell the service not to load system favorites on startup
+									LPCWSTR szArgs[2] = { TC_SYSTEM_FAVORITES_SERVICE_NAME, VC_SYSTEM_FAVORITES_SERVICE_ARG_SKIP_MOUNT};
+									if (!CopyFile (szTmp, servicePath.c_str(), FALSE))
+										ForceCopyFile (szTmp, servicePath.c_str());
+
+									StartStopService (hwndDlg, TC_SYSTEM_FAVORITES_SERVICE_NAME, TRUE, 2, szArgs);
+								}
+								else
+									ForceCopyFile (szTmp, servicePath.c_str());
+
+								BootEncObj.SetDriverConfigurationFlag (driverFlags, true);
+
+								// remove the service flag if it was set originally
+								if (!(serviceFlags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
+									BootEncObj.SetServiceConfigurationFlag (VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER, false);
 							}
 						}
 						catch (...) {}
@@ -1019,7 +1180,7 @@ BOOL DoRegInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bInstallType)
 		if (RegCreateKeyEx (HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VeraCrypt",
 			0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_32KEY, NULL, &hkey, &dw) == ERROR_SUCCESS)
 		{
-			StringCbCopyW (szTmp, sizeof(szTmp), _T(VERSION_STRING));
+			StringCbCopyW (szTmp, sizeof(szTmp), _T(VERSION_STRING) _T(VERSION_STRING_SUFFIX));
 			RegSetValueEx (hkey, L"DisplayVersion", 0, REG_SZ, (BYTE *) szTmp, (wcslen (szTmp) + 1) * sizeof (wchar_t));
 
 			StringCbCopyW (szTmp, sizeof(szTmp), TC_HOMEPAGE);
@@ -1135,7 +1296,7 @@ BOOL DoRegInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bInstallType)
 	if (RegSetValueEx (hkey, L"DisplayIcon", 0, REG_SZ, (BYTE *) szTmp, (wcslen (szTmp) + 1) * sizeof (wchar_t)) != ERROR_SUCCESS)
 		goto error;
 
-	StringCbCopyW (szTmp, sizeof(szTmp), _T(VERSION_STRING));
+	StringCbCopyW (szTmp, sizeof(szTmp), _T(VERSION_STRING) _T(VERSION_STRING_SUFFIX));
 	if (RegSetValueEx (hkey, L"DisplayVersion", 0, REG_SZ, (BYTE *) szTmp, (wcslen (szTmp) + 1) * sizeof (wchar_t)) != ERROR_SUCCESS)
 		goto error;
 
@@ -1354,8 +1515,6 @@ retry:
 	}
 	else
 		StatusMessageParam (hwndDlg, "STOPPING", lpszService);
-
-#define WAIT_PERIOD 3
 
 	for (x = 0; x < WAIT_PERIOD; x++)
 	{
@@ -1709,11 +1868,6 @@ BOOL DoShortcutsUninstall (HWND hwndDlg, wchar_t *szDestDir)
 	if (StatDeleteFile (szTmp2, FALSE) == FALSE)
 		goto error;
 
-	StringCbPrintfW (szTmp2, sizeof(szTmp2), L"%s%s", szLinkDir, L"\\Uninstall VeraCrypt.lnk");
-	RemoveMessage (hwndDlg, szTmp2);
-	if (StatDeleteFile (szTmp2, FALSE) == FALSE)
-		goto error;
-
 	StringCbPrintfW (szTmp2, sizeof(szTmp2), L"%s%s", szLinkDir, L"\\VeraCrypt User's Guide.lnk");
 	StatDeleteFile (szTmp2, FALSE);
 
@@ -1746,7 +1900,7 @@ error:
 BOOL DoShortcutsInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bProgGroup, BOOL bDesktopIcon)
 {
 	wchar_t szLinkDir[TC_MAX_PATH], szDir[TC_MAX_PATH];
-	wchar_t szTmp[TC_MAX_PATH], szTmp2[TC_MAX_PATH], szTmp3[TC_MAX_PATH];
+	wchar_t szTmp[TC_MAX_PATH], szTmp2[TC_MAX_PATH];
 	BOOL bSlash, bOK = FALSE;
 	HRESULT hOle;
 	int x;
@@ -1823,18 +1977,8 @@ BOOL DoShortcutsInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bProgGroup, BOOL
 		else
 			goto error;
 
-		StringCbPrintfW (szTmp, sizeof(szTmp), L"%s%s", szDir, L"VeraCrypt Setup.exe");
 		StringCbPrintfW (szTmp2, sizeof(szTmp2), L"%s%s", szLinkDir, L"\\Uninstall VeraCrypt.lnk");
-		if (GetSystemDirectory (szTmp3, ARRAYSIZE(szTmp3)))
-		{
-			StringCbCatW (szTmp3, sizeof(szTmp3), L"\\control.exe");
-		}
-		else
-			StringCbCopyW(szTmp3, sizeof(szTmp3), L"C:\\Windows\\System32\\control.exe");
-
-		IconMessage (hwndDlg, szTmp2);
-		if (CreateLink (szTmp3, L"appwiz.cpl", szTmp2, szTmp, 0) != S_OK)
-			goto error;
+		StatDeleteFile (szTmp2, FALSE);
 
 		StringCbPrintfW (szTmp2, sizeof(szTmp2), L"%s%s", szLinkDir, L"\\VeraCrypt User's Guide.lnk");
 		StatDeleteFile (szTmp2, FALSE);

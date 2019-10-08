@@ -1,6 +1,6 @@
 /*
   zip_source_buffer.c -- create zip data source from buffer
-  Copyright (C) 1999-2017 Dieter Baron and Thomas Klausner
+  Copyright (C) 1999-2018 Dieter Baron and Thomas Klausner
 
   This file is part of libzip, a library to manipulate ZIP archives.
   The authors can be contacted at <libzip@nih.at>
@@ -389,8 +389,8 @@ buffer_grow_fragments(buffer_t *buffer, zip_uint64_t capacity, zip_error_t *erro
     }
 
     if ((fragments = realloc(buffer->fragments, sizeof(buffer->fragments[0]) * capacity)) == NULL) {
-        zip_error_set(error, ZIP_ER_MEMORY, 0);
-        return false;
+	zip_error_set(error, ZIP_ER_MEMORY, 0);
+	return false;
     }
     buffer->fragments = fragments;
     if ((offsets = realloc(buffer->fragment_offsets, sizeof(buffer->fragment_offsets[0]) * (capacity + 1))) == NULL) {
@@ -562,7 +562,7 @@ buffer_write(buffer_t *buffer, const zip_uint8_t *data, zip_uint64_t length, zip
 
 	memcpy(buffer->fragments[i].data + fragment_offset, data + n, left);
 
-	if (n == buffer->fragments[i].length - fragment_offset) {
+	if (left == buffer->fragments[i].length - fragment_offset) {
 	    i++;
 	}
 	n += left;

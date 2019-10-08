@@ -124,6 +124,8 @@ extern BOOL bHideWaitingDialog;
 extern BOOL bCmdHideWaitingDialog;
 extern BOOL bCmdHideWaitingDialogValid;
 extern BOOL bUseSecureDesktop;
+extern BOOL bSecureDesktopOngoing;
+extern BOOL bUseLegacyMaxPasswordLength;
 extern BOOL bCmdUseSecureDesktop;
 extern BOOL bCmdUseSecureDesktopValid;
 extern BOOL bStartOnLogon;
@@ -162,6 +164,9 @@ extern BOOL LastMountedVolumeDirty;
 extern BOOL MountVolumesAsSystemFavorite;
 extern BOOL FavoriteMountOnArrivalInProgress;
 extern BOOL MultipleMountOperationInProgress;
+
+extern volatile BOOL NeedPeriodicDeviceListUpdate;
+extern BOOL DisablePeriodicDeviceListUpdate;
 
 #ifndef SETUP
 extern BOOL bLanguageSetInSetup;
@@ -515,7 +520,7 @@ BOOL LaunchWindowsIsoBurner (HWND hwnd, const wchar_t *isoPath);
 BOOL IsApplicationInstalled (const wchar_t *appName);
 int GetPim (HWND hwndDlg, UINT ctrlId, int defaultPim);
 void SetPim (HWND hwndDlg, UINT ctrlId, int pim);
-BOOL GetPassword (HWND hwndDlg, UINT ctrlID, char* passValue, int bufSize, BOOL bShowError);
+BOOL GetPassword (HWND hwndDlg, UINT ctrlID, char* passValue, int bufSize, BOOL bLegacyPassword, BOOL bShowError);
 void SetPassword (HWND hwndDlg, UINT ctrlID, char* passValue);
 void HandleShowPasswordFieldAction (HWND hwndDlg, UINT checkBoxId, UINT edit1Id, UINT edit2Id);
 HKEY OpenDeviceClassRegKey (const GUID *deviceClassGuid);
@@ -537,6 +542,10 @@ BOOL VerifyModuleSignature (const wchar_t* path);
 void GetInstallationPath (HWND hwndDlg, wchar_t* szInstallPath, DWORD cchSize, BOOL* pbInstallPathDetermined);
 BOOL GetSetupconfigLocation (wchar_t* path, DWORD cchSize);
 BOOL BufferHasPattern (const unsigned char* buffer, size_t bufferLen, const void* pattern, size_t patternLen);
+BOOL EnableProcessProtection();
+#ifdef _WIN64
+void GetAppRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed);
+#endif
 #ifdef __cplusplus
 }
 

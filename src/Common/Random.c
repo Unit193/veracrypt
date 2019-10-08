@@ -14,6 +14,9 @@
 #include "Tcdefs.h"
 #include "Crc.h"
 #include "Random.h"
+#include "Crypto\cpu.h"
+#include "Crypto\jitterentropy.h"
+#include "Crypto\rdrand.h"
 #include <Strsafe.h>
 
 static unsigned __int8 buffer[RNG_POOL_SIZE];
@@ -91,14 +94,21 @@ HCRYPTPROV hCryptProv;
 
 
 /* Init the random number generator, setup the hooks, and start the thread */
-int Randinit ()
+int RandinitWithCheck ( int* pAlreadyInitialized)
 {
 	DWORD dwLastError = ERROR_SUCCESS;
 	if (GetMaxPkcs5OutSize() > RNG_POOL_SIZE)
 		TC_THROW_FATAL_EXCEPTION;
 
 	if(bRandDidInit)
+	{
+		if (pAlreadyInitialized)
+			*pAlreadyInitialized = 1;
 		return 0;
+	}
+
+	if (pAlreadyInitialized)
+		*pAlreadyInitialized = 0;
 
 	InitializeCriticalSection (&critRandProt);
 
@@ -148,6 +158,11 @@ error:
 	RandStop (TRUE);
 	SetLastError (dwLastError);
 	return 1;
+}
+
+int Randinit ()
+{
+	return RandinitWithCheck (NULL);
 }
 
 /* Close everything down, including the thread which is closed down by
@@ -766,10 +781,6 @@ BOOL SlowPoll (void)
 	if (CryptGenRandom (hCryptProv, sizeof (buffer), buffer))
 	{
 		RandaddBuf (buffer, sizeof (buffer));
-
-		burn(buffer, sizeof (buffer));
-		Randmix();
-		return TRUE;
 	}
 	else
 	{
@@ -777,6 +788,33 @@ BOOL SlowPoll (void)
 		CryptoAPILastError = GetLastError ();
 		return FALSE;
 	}
+
+	/* use JitterEntropy library to get good quality random bytes based on CPU timing jitter */
+	if (0 == jent_entropy_init ())
+	{
+		struct rand_data *ec = jent_entropy_collector_alloc (1, 0);
+		if (ec)
+		{
+			ssize_t rndLen = jent_read_entropy (ec, (char*) buffer, sizeof (buffer));
+			if (rndLen > 0)
+				RandaddBuf (buffer, (int) rndLen);
+			jent_entropy_collector_free (ec);
+		}
+	}
+
+	// use RDSEED or RDRAND from CPU as source of entropy if present
+	if (	IsCpuRngEnabled() && 
+		(	(HasRDSEED() && RDSEED_getBytes (buffer, sizeof (buffer)))
+		||	(HasRDRAND() && RDRAND_getBytes (buffer, sizeof (buffer)))
+		))
+	{
+		RandaddBuf (buffer, sizeof (buffer));
+	}
+
+	burn(buffer, sizeof (buffer));
+	Randmix();
+
+	return TRUE;
 }
 
 
@@ -888,7 +926,6 @@ BOOL FastPoll (void)
 	if (CryptGenRandom (hCryptProv, sizeof (buffer), buffer))
 	{
 		RandaddBuf (buffer, sizeof (buffer));
-		burn (buffer, sizeof(buffer));
 	}
 	else
 	{
@@ -896,6 +933,17 @@ BOOL FastPoll (void)
 		CryptoAPILastError = GetLastError ();
 		return FALSE;
 	}
+
+	// use RDSEED or RDRAND from CPU as source of entropy if enabled
+	if (	IsCpuRngEnabled() && 
+		(	(HasRDSEED() && RDSEED_getBytes (buffer, sizeof (buffer)))
+		||	(HasRDRAND() && RDRAND_getBytes (buffer, sizeof (buffer)))
+		))
+	{
+		RandaddBuf (buffer, sizeof (buffer));
+	}
+
+	burn (buffer, sizeof(buffer));
 
 	/* Apply the pool mixing function */
 	Randmix();

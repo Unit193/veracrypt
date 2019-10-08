@@ -208,6 +208,12 @@ typedef struct
 #	include "GostCipher.h"
 #	include "kuznyechik.h"
 #	include "Camellia.h"
+#if !defined (_UEFI)
+#   include "chachaRng.h"
+#   ifdef _WIN64
+#   include "t1ha.h"
+#   endif
+#endif
 #else
 #	include "CamelliaSmall.h"
 #endif
@@ -245,17 +251,16 @@ typedef struct CRYPTO_INFO_t
 #ifndef TC_WINDOWS_BOOT
 	uint16 HeaderVersion;
 
-	GfCtx gf_ctx; 
-
+#ifdef TC_WINDOWS_DRIVER
+	unsigned __int8 master_keydata_hash[RIPEMD160_DIGESTSIZE];
+#else
 	CRYPTOPP_ALIGN_DATA(16) unsigned __int8 master_keydata[MASTER_KEYDATA_SIZE];	/* This holds the volume header area containing concatenated master key(s) and secondary key(s) (XTS mode). For LRW (deprecated/legacy), it contains the tweak key before the master key(s). For CBC (deprecated/legacy), it contains the IV seed before the master key(s). */
 	CRYPTOPP_ALIGN_DATA(16) unsigned __int8 k2[MASTER_KEYDATA_SIZE];				/* For XTS, this contains the secondary key (if cascade, multiple concatenated). For LRW (deprecated/legacy), it contains the tweak key. For CBC (deprecated/legacy), it contains the IV seed. */
-	unsigned __int8 salt[PKCS5_SALT_SIZE];
+#endif
+
 	int noIterations;	
 	BOOL bTrueCryptMode;
 	int volumePim;
-
-	uint64 volume_creation_time;	// Legacy
-	uint64 header_creation_time;	// Legacy
 
 	BOOL bProtectHiddenVolume;			// Indicates whether the volume contains a hidden volume to be protected against overwriting
 	BOOL bHiddenVolProtectionAction;		// TRUE if a write operation has been denied by the driver in order to prevent the hidden volume from being overwritten (set to FALSE upon volume mount).
@@ -306,6 +311,7 @@ typedef struct BOOT_CRYPTO_HEADER_t
 PCRYPTO_INFO crypto_open (void);
 #ifndef TC_WINDOWS_BOOT
 void crypto_loadkey (PKEY_INFO keyInfo, char *lpszUserKey, int nUserKeyLen);
+void crypto_eraseKeys (PCRYPTO_INFO cryptoInfo);
 #endif
 void crypto_close (PCRYPTO_INFO cryptoInfo);
 
@@ -324,7 +330,7 @@ int EAInit (int ea, unsigned char *key, unsigned char *ks);
 #else
 int EAInit (unsigned char *key, unsigned char *ks);
 #endif
-BOOL EAInitMode (PCRYPTO_INFO ci);
+BOOL EAInitMode (PCRYPTO_INFO ci, unsigned char* key2);
 void EncipherBlock(int cipher, void *data, void *ks);
 void DecipherBlock(int cipher, void *data, void *ks);
 #ifndef TC_WINDOWS_BOOT
@@ -381,9 +387,38 @@ void DecryptDataUnitsCurrentThread (unsigned __int8 *buf, const UINT64_STRUCT *s
 void EncryptBuffer (unsigned __int8 *buf, TC_LARGEST_COMPILER_UINT len, PCRYPTO_INFO cryptoInfo);
 void DecryptBuffer (unsigned __int8 *buf, TC_LARGEST_COMPILER_UINT len, PCRYPTO_INFO cryptoInfo);
 
+#if defined(_WIN64) && !defined (_UEFI)
+BOOL InitializeSecurityParameters(GetRandSeedFn rngCallback);
+void ClearSecurityParameters();
+#ifdef TC_WINDOWS_DRIVER
+void VcProtectMemory (uint64 encID, unsigned char* pbData, size_t cbData, unsigned char* pbData2, size_t cbData2);
+#else
+void VcProtectMemory (uint64 encID, unsigned char* pbData, size_t cbData, 
+							unsigned char* pbData2, size_t cbData2,
+							unsigned char* pbData3, size_t cbData3,
+							unsigned char* pbData4, size_t cbData4);
+#endif
+uint64 VcGetEncryptionID (PCRYPTO_INFO pCryptoInfo);
+void VcProtectKeys (PCRYPTO_INFO pCryptoInfo, uint64 encID);
+void VcUnprotectKeys (PCRYPTO_INFO pCryptoInfo, uint64 encID);
+void EncryptDataUnitsCurrentThreadEx (unsigned __int8 *buf, const UINT64_STRUCT *structUnitNo, TC_LARGEST_COMPILER_UINT nbrUnits, PCRYPTO_INFO ci);
+void DecryptDataUnitsCurrentThreadEx (unsigned __int8 *buf, const UINT64_STRUCT *structUnitNo, TC_LARGEST_COMPILER_UINT nbrUnits, PCRYPTO_INFO ci);
+#else
+#define EncryptDataUnitsCurrentThreadEx EncryptDataUnitsCurrentThread
+#define DecryptDataUnitsCurrentThreadEx DecryptDataUnitsCurrentThread
+#endif
+
 BOOL IsAesHwCpuSupported ();
 void EnableHwEncryption (BOOL enable);
 BOOL IsHwEncryptionEnabled ();
+
+BOOL IsCpuRngSupported ();
+void EnableCpuRng (BOOL enable);
+BOOL IsCpuRngEnabled ();
+
+BOOL IsRamEncryptionSupported ();
+void EnableRamEncryption (BOOL enable);
+BOOL IsRamEncryptionEnabled ();
 
 #ifdef __cplusplus
 }

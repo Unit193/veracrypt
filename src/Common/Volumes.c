@@ -392,11 +392,12 @@ KeyReady:	;
 
 				if (cryptoInfo->mode == XTS)
 				{
+#ifndef TC_WINDOWS_DRIVER
 					// Copy the secondary key (if cascade, multiple concatenated)
 					memcpy (cryptoInfo->k2, dk + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
-
+#endif
 					// Secondary key schedule
-					if (!EAInitMode (cryptoInfo))
+					if (!EAInitMode (cryptoInfo, dk + EAGetKeySize (cryptoInfo->ea)))
 					{
 						status = ERR_MODE_INIT_FAILED;
 						goto err;
@@ -465,13 +466,13 @@ KeyReady:	;
 
 				// Header version
 				cryptoInfo->HeaderVersion = headerVersion;
-
+#if 0
 				// Volume creation time (legacy)
 				cryptoInfo->volume_creation_time = GetHeaderField64 (header, TC_HEADER_OFFSET_VOLUME_CREATION_TIME).Value;
 
 				// Header creation time (legacy)
 				cryptoInfo->header_creation_time = GetHeaderField64 (header, TC_HEADER_OFFSET_MODIFICATION_TIME).Value;
-
+#endif
 				// Hidden volume size (if any)
 				cryptoInfo->hiddenVolumeSize = GetHeaderField64 (header, TC_HEADER_OFFSET_HIDDEN_VOLUME_SIZE).Value;
 
@@ -526,10 +527,19 @@ KeyReady:	;
 
 				// Master key data
 				memcpy (keyInfo.master_keydata, header + HEADER_MASTER_KEYDATA_OFFSET, MASTER_KEYDATA_SIZE);
+#ifdef TC_WINDOWS_DRIVER
+				{
+					RMD160_CTX ctx;
+					RMD160Init (&ctx);
+					RMD160Update (&ctx, keyInfo.master_keydata, MASTER_KEYDATA_SIZE);
+					RMD160Update (&ctx, header, sizeof(header));
+					RMD160Final (cryptoInfo->master_keydata_hash, &ctx);
+					burn(&ctx, sizeof (ctx));
+				}
+#else
 				memcpy (cryptoInfo->master_keydata, keyInfo.master_keydata, MASTER_KEYDATA_SIZE);
-
+#endif
 				// PKCS #5
-				memcpy (cryptoInfo->salt, keyInfo.salt, PKCS5_SALT_SIZE);
 				cryptoInfo->pkcs5 = pkcs5_prf;
 				cryptoInfo->noIterations = keyInfo.noIterations;
 				cryptoInfo->bTrueCryptMode = truecryptMode;
@@ -539,17 +549,11 @@ KeyReady:	;
 				status = EAInit (cryptoInfo->ea, keyInfo.master_keydata + primaryKeyOffset, cryptoInfo->ks);
 				if (status == ERR_CIPHER_INIT_FAILURE)
 					goto err;
-
-				switch (cryptoInfo->mode)
-				{
-
-				default:
-					// The secondary master key (if cascade, multiple concatenated)
-					memcpy (cryptoInfo->k2, keyInfo.master_keydata + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
-
-				}
-
-				if (!EAInitMode (cryptoInfo))
+#ifndef TC_WINDOWS_DRIVER
+				// The secondary master key (if cascade, multiple concatenated)
+				memcpy (cryptoInfo->k2, keyInfo.master_keydata + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
+#endif
+				if (!EAInitMode (cryptoInfo, keyInfo.master_keydata + EAGetKeySize (cryptoInfo->ea)))
 				{
 					status = ERR_MODE_INIT_FAILED;
 					goto err;
@@ -1032,14 +1036,11 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 
 	/* Header encryption */
 
-	switch (mode)
-	{
-
-	default:
-		// The secondary key (if cascade, multiple concatenated)
-		memcpy (cryptoInfo->k2, dk + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
-		primaryKeyOffset = 0;
-	}
+#ifndef TC_WINDOWS_DRIVER
+	// The secondary key (if cascade, multiple concatenated)
+	memcpy (cryptoInfo->k2, dk + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
+	primaryKeyOffset = 0;
+#endif
 
 	retVal = EAInit (cryptoInfo->ea, dk + primaryKeyOffset, cryptoInfo->ks);
 	if (retVal != ERR_SUCCESS)
@@ -1049,7 +1050,7 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 	}
 
 	// Mode of operation
-	if (!EAInitMode (cryptoInfo))
+	if (!EAInitMode (cryptoInfo, dk + EAGetKeySize (cryptoInfo->ea)))
 	{
 		crypto_close (cryptoInfo);
 		retVal = ERR_OUTOFMEMORY;
@@ -1075,16 +1076,13 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 
 	memcpy (cryptoInfo->master_keydata, keyInfo.master_keydata, MASTER_KEYDATA_SIZE);
 
-	switch (cryptoInfo->mode)
-	{
-
-	default:
-		// The secondary master key (if cascade, multiple concatenated)
-		memcpy (cryptoInfo->k2, keyInfo.master_keydata + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
-	}
+#ifndef TC_WINDOWS_DRIVER
+	// The secondary master key (if cascade, multiple concatenated)
+	memcpy (cryptoInfo->k2, keyInfo.master_keydata + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea));
+#endif
 
 	// Mode of operation
-	if (!EAInitMode (cryptoInfo))
+	if (!EAInitMode (cryptoInfo, keyInfo.master_keydata + EAGetKeySize (cryptoInfo->ea)))
 	{
 		crypto_close (cryptoInfo);
 		retVal = ERR_OUTOFMEMORY;
@@ -1283,7 +1281,7 @@ int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO 
 		if (nStatus != ERR_SUCCESS)
 			goto final_seq;
 
-		if (!EAInitMode (cryptoInfo))
+		if (!EAInitMode (cryptoInfo, cryptoInfo->k2))
 		{
 			nStatus = ERR_MODE_INIT_FAILED;
 			goto final_seq;
@@ -1345,7 +1343,7 @@ int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO 
 	if (nStatus != ERR_SUCCESS)
 		goto final_seq;
 
-	if (!EAInitMode (cryptoInfo))
+	if (!EAInitMode (cryptoInfo, cryptoInfo->k2))
 	{
 		nStatus = ERR_MODE_INIT_FAILED;
 		goto final_seq;

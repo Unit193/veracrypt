@@ -35,6 +35,101 @@
 <div class="wikidoc">
 <h1>Release Notes</h1>
 
+<p>
+<strong>Note to users who created volumes with 1.17 version of VeraCrypt or earlier: </strong><br/>
+<span style="color:#ff0000;">To avoid hinting whether your volumes contain a hidden volume or not, or if you depend on plausible deniability when using hidden volumes/OS, then you must recreate both the outer and hidden volumes including system encryption and hidden OS, discarding existing volumes created prior to 1.18a version of VeraCrypt.</span></li>
+</p>
+<p><strong style="text-align:left">1.24 </strong>(October 6<sup>th</sup>, 2019):</p>
+<ul>
+<li><strong>All OSs:</strong>
+<ul>
+<li>Increase password maximum length to 128 bytes in UTF-8 encoding for non-system volumes.</li>
+<ul>
+<li>Add option to use legacy maximum password length (64) instead of new one for compatibility reasons.</li>
+</ul>
+<li>Use Hardware RNG based on CPU timing jitter "Jitterentropy" by Stephan Mueller as a good alternative to CPU RDRAND (<a href="http://www.chronox.de/jent.html" target="_blank">http://www.chronox.de/jent.html</a>)</li>
+<li>Speed optimization of XTS mode on 64-bit machine using SSE2 (up to 10% faster).</li>
+<li>Fix detection of CPU features AVX2/BMI2. Add detection of RDRAND/RDSEED CPU features. Detect Hygon CPU as AMD one.</li>
+</ul>
+</li>
+<li><strong>Windows:</strong>
+<ul>
+<li>Implement RAM encryption for keys and passwords using ChaCha12 cipher, t1ha non-cryptographic fast hash and ChaCha20 based CSPRNG.</li>
+<ul>
+<li>Available only on 64-bit machines.</li>
+<li>Disabled by default. Can be enabled using option in UI.</li>
+<li>Less than 10% overhead on modern CPUs.</li>
+<li>Side effect: Windows Hibernate is not possible if VeraCrypt System Encryption is also being used.</li>
+</ul>
+<li>Mitigate some memory attacks by making VeraCrypt applications memory inaccessible to non-admin users (based on KeePassXC implementation)</li>
+<li>New security features:</li>
+<ul>
+<li>Erase system encryption keys from memory during shutdown/reboot to help mitigate some cold boot attacks</li>
+<li>Add option when system encryption is used to erase all encryption keys from memory when a new device is connected to the system.</li>
+<li>Add new driver entry point that can be called by applications to erase encryption keys from memory in case of emergency.</li>
+</ul>
+<li>MBR Bootloader: dynamically determine boot loader memory segment instead of hardcoded values (proposed by neos6464)</li>
+<li>MBR Bootloader: workaround for issue affecting creation of hidden OS on some SSD drives.</li>
+<li>Fix issue related to Windows Update breaking VeraCrypt UEFI bootloader.</li>
+<li>Several enhancements and fixes for EFI bootloader:</li>
+<ul>
+<li>Implement timeout mechanism for password input. Set default timeout value to 3 minutes and default timeout action to "shutdown".</li>
+<li>Implement new actions "shutdown" and "reboot" for EFI DcsProp config file.</li>
+<li>Enhance Rescue Disk implementation of restoring VeraCrypt loader.</li>
+<li>Fix ESC on password prompt during Pre-Test not starting Windows.</li>
+<li>Add menu entry in Rescue Disk that enables starting original Windows loader.</li>
+<li>Fix issue that was preventing Streebog hash from being selected manually during Pre-Boot authentication.</li>
+<li>If "VeraCrypt" folder is missing from Rescue Disk, it will boot PC directly from bootloader stored on hard drive</li>
+<ul>
+<li>This makes it easy to create a bootable disk for VeraCrypt from Rescue Disk just by removing/renaming its "VeraCrypt" folder.</li>
+</ul>
+</ul>
+<li>Add option (disabled by default) to use CPU RDRAND or RDSEED as an additional entropy source for our random generator when available.</li>
+<li>Add mount option (both UI and command line) that allows mounting a volume without attaching it to the specified drive letter.</li>
+<li>Update libzip to version 1.5.2</li>
+<li>Do not create uninstall shortcut in startmenu when installing VeraCrypt. (by Sven Strickroth)</li>
+<li>Enable selection of Quick Format for file containers creation. Separate Quick Format and Dynamic Volume options in the wizard UI.</li>
+<li>Fix editor of EFI system encryption configuration file not accepting ENTER key to add new lines.</li>
+<li>Avoid simultaneous calls of favorites mounting, for example if corresponding hotkey is pressed multiple times.</li>
+<li>Ensure that only one thread at a time can create a secure desktop.</li> 
+<li>Resize some dialogs in Format and Mount Options to to fix some text truncation issues with non-English languages.</li>
+<li>Fix high CPU usage when using favorites and add switch to disable periodic check on devices to reduce CPU load.</li>
+<li>Minor UI changes.</li>
+<li>Updates and corrections to translations and documentation.</li>
+</ul>
+</li>
+<li><strong>MacOSX:</strong>
+<ul>
+<li>Add check on size of file container during creation to ensure it's smaller than available free disk space. Add CLI switch --no-size-check to disable this check.</li>
+</ul>
+</li>
+<li><strong>Linux:</strong>
+<ul>
+<li>Make CLI switch --import-token-keyfiles compatible with Non-Interactive mode.</li>
+<li>Add check on size of file container during creation to ensure it's smaller than available free disk space. Add CLI switch --no-size-check to disable this check.</li>
+</ul>
+</li>
+</ul>
+
+<p><strong style="text-align:left">1.23-Hotfix-2 </strong>(October 8<sup>th</sup>, 2018):</p>
+<ul>
+<li><strong>Windows:</strong>
+<ul>
+<li>Fix low severity vulnerability inherited from TrueCrypt that allowed reading 3 bytes of kernel stack memory (with a rare possibility of 25 additional bytes).
+<ul>
+<li>Reported by Tim Harrison.</li>
+</ul>
+</li>
+<li>Disable quick format when creating file containers from command line. Add /quick switch to enable it in this case if needed.</li>
+<li>Add /nosizecheck switch to disable checking container size against available free space during its creation.
+<ul>
+<li>This enables to workaround a bug in Microsoft Distributed File System (DFS).</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
 <p><strong style="text-align:left">1.23 </strong>(September 12<sup>th</sup>, 2018):</p>
 <ul>
 <li><strong>Windows:</strong>
@@ -247,11 +342,12 @@
 <ul>
 <li>Support Japanese encryption standard Camellia, including for Windows system encryption (MBR &amp; EFI).
 </li><li>Support Russian encryption and hash standards Kuznyechik, Magma and Streebog, including for Windows EFI system encryption.
+</li><li>Fix TrueCrypt vulnerability allowing detection of hidden volumes presence (reported by Ivanov Aleksey Mikhailovich, alekc96 [at] mail dot ru)
+<ul><li> <strong style="color:#ff0000;">To avoid hinting whether your volumes contain a hidden volume or not, or if you depend on plausible deniability when using hidden volumes/OS, then you must recreate both the outer and hidden volumes including system encryption and hidden OS, discarding existing volumes created prior to 1.18a version of VeraCrypt.</strong></li></ul>
 </li></ul>
 </li><li><strong>Windows:</strong>
 <ul>
 <li>Support EFI Windows system encryption (limitations: no hidden os, no boot custom message)
-</li><li>Fix TrueCrypt vulnerability allowing detection of hidden volumes presence(reported by Ivanov Aleksey Mikhailovich, alekc96 [at] mail dot ru)
 </li><li>Enhanced protection against dll hijacking attacks. </li><li>Fix boot issues on some machines by increasing required memory by 1 KiB </li><li>Add benchmarking of hash algorithms and PRF with PIM (including for pre-boot).
 </li><li>Move build system to Visual C&#43;&#43; 2010 for better stability. </li><li>Workaround for AES-NI support under Hyper-V on Windows Server 2008 R2. </li><li>Correctly remove driver file veracrypt.sys during uninstall on Windows 64-bit.
 </li><li>Implement passing smart card PIN as command line argument (/tokenpin) when explicitly mounting a volume.
