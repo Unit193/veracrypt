@@ -4,7 +4,7 @@
 #export DH_VERBOSE=1
 
 DPKG_EXPORT_BUILDFLAGS = 1
-include /usr/share/dpkg/buildflags.mk
+include /usr/share/dpkg/default.mk
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
@@ -16,7 +16,7 @@ export TC_EXTRA_LFLAGS = $(LDFLAGS)
 	dh  $@ --sourcedirectory=src
 
 override_dh_auto_build:
-	dh_auto_build -- VERBOSE=1 NOSTRIP=1
+	dh_auto_build -- VERBOSE=1 NOSTRIP=1 ARCH=$(DEB_HOST_ARCH)
 	unset DISPLAY && src/Main/veracrypt --text --help 2>/dev/null | debian/veracrypt_help_to_troff.pl > veracrypt.1
 
 override_dh_clean:
