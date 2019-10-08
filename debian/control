@@ -3,9 +3,9 @@ Section: non-free/utils
 Priority: optional
 Maintainer: Unit 193 <unit193@ubuntu.com>
 Build-Depends: debhelper (>= 11),
- libayatana-appindicator-dev | libappindicator-dev,
+ libayatana-appindicator3-dev | libappindicator3-dev,
  libfuse-dev,
- libwxgtk3.0-dev,
+ libwxgtk3.0-gtk3-dev,
  pkg-config,
  yasm [any-i386 any-amd64]
 Standards-Version: 4.2.1
