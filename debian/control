@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 11),
  libwxgtk3.0-gtk3-dev,
  pkg-config,
  yasm [any-i386 any-amd64]
+Rules-Requires-Root: no
 Standards-Version: 4.2.1
 Homepage: https://veracrypt.fr/
 
