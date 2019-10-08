@@ -191,6 +191,10 @@
 #define IDC_BLOCK_SYSENC_TRIM           1168
 #define IDC_ALLOW_WINDOWS_DEFRAG        1169
 #define IDC_LOWER_BOX                   1170
+#define IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION 1171
+#define IDC_ENABLE_CPU_RNG              1172
+#define IDC_ENABLE_RAM_ENCRYPTION       1173
+#define IDC_USE_LEGACY_MAX_PASSWORD_LENGTH 1174
 #define IDM_HELP                        40001
 #define IDM_ABOUT                       40002
 #define IDM_UNMOUNT_VOLUME              40003
@@ -267,7 +271,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40069
-#define _APS_NEXT_CONTROL_VALUE         1171
+#define _APS_NEXT_CONTROL_VALUE         1175
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

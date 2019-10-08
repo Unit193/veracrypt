@@ -190,6 +190,8 @@ BOOL IsVolumeAccessibleByCurrentUser (PEXTENSION volumeDeviceExtension);
 void GetElapsedTimeInit (LARGE_INTEGER *lastPerfCounter);
 int64 GetElapsedTime (LARGE_INTEGER *lastPerfCounter);
 BOOL IsOSAtLeast (OSVersionEnum reqMinOS);
+PDEVICE_OBJECT GetVirtualVolumeDeviceObject (int driveNumber);
+void GetDriverRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed);
 
 #define TC_BUG_CHECK(status) KeBugCheckEx (SECURITY_SYSTEM, __LINE__, (ULONG_PTR) status, 0, 'VC')
 

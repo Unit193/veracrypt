@@ -199,8 +199,7 @@ namespace VeraCrypt
 	public:
 		EfiBoot();
 
-		void MountBootPartition(WCHAR letter);
-		void DismountBootPartition();
+		void PrepareBootPartition();
 		bool IsEfiBoot();
 
 		void DeleteStartExec(uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL);
@@ -211,7 +210,7 @@ namespace VeraCrypt
 		void CopyFile(const wchar_t* name, const wchar_t* targetName);
 		bool FileExists(const wchar_t* name);
 
-		BOOL RenameFile(const wchar_t* name, wchar_t* nameNew, BOOL bForce);
+		BOOL RenameFile(const wchar_t* name, const wchar_t* nameNew, BOOL bForce);
 		BOOL DelFile(const wchar_t* name);
 		BOOL MkDir(const wchar_t* name, bool& bAlreadyExists);
 		BOOL ReadConfig (const wchar_t* name, EfiBootConf& conf);
@@ -219,17 +218,16 @@ namespace VeraCrypt
 		BOOL WriteConfig (const wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg);
 		BOOL DelDir(const wchar_t* name);
 		void SelectBootVolumeESP();
-		void SelectBootVolume(WCHAR* bootVolumePath);
 		PSTORAGE_DEVICE_NUMBER GetStorageDeviceNumber () { return &sdn;}
 
 	protected:
 		bool m_bMounted;
-		WCHAR	EfiBootPartPath[3];
+		std::wstring	EfiBootPartPath;
 		STORAGE_DEVICE_NUMBER sdn;
 		PARTITION_INFORMATION_EX partInfo;
 		WCHAR     tempBuf[1024];
 		bool  bBootVolumePathSelected;
-		WCHAR BootVolumePath[MAX_PATH];
+		std::wstring BootVolumePath;
 	};
 
 	class BootEncryption
@@ -282,6 +280,7 @@ namespace VeraCrypt
 		void ProbeRealSystemDriveSize ();
 		bool ReadBootSectorConfig (byte *config, size_t bufLength, byte *userConfig = nullptr, string *customUserMessage = nullptr, uint16 *bootLoaderVersion = nullptr);
 		uint32 ReadDriverConfigurationFlags ();
+		uint32 ReadServiceConfigurationFlags ();
 		void RegisterBootDriver (bool hiddenSystem);
 		void RegisterFilterDriver (bool registerDriver, FilterType filterType);
 		void RegisterSystemFavoritesService (BOOL registerService);
@@ -292,6 +291,7 @@ namespace VeraCrypt
 		void InitialSecurityChecksForHiddenOS ();
 		void RestrictPagingFilesToSystemPartition ();
 		void SetDriverConfigurationFlag (uint32 flag, bool state);
+		void SetServiceConfigurationFlag (uint32 flag, bool state);
 		void SetDriverServiceStartType (DWORD startType);
 		void SetHiddenOSCreationPhase (unsigned int newPhase);
 		void StartDecryption (BOOL discardUnreadableEncryptedSectors);
@@ -358,6 +358,9 @@ namespace VeraCrypt
 #define TC_SYSTEM_FAVORITES_SERVICE_NAME				_T(TC_APP_NAME) L"SystemFavorites"
 #define	TC_SYSTEM_FAVORITES_SERVICE_LOAD_ORDER_GROUP	L"Event Log"
 #define TC_SYSTEM_FAVORITES_SERVICE_CMDLINE_OPTION		L"/systemFavoritesService"
+#define VC_SYSTEM_FAVORITES_SERVICE_ARG_SKIP_MOUNT		L"/SkipMount"
+
+#define VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER			0x1
 
 #define VC_WINDOWS_UPGRADE_POSTOOBE_CMDLINE_OPTION		L"/PostOOBE"
 

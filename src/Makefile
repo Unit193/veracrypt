@@ -23,6 +23,7 @@
 # SSSE3:		Enable SSSE3 support in compiler
 # SSE41:		Enable SSE4.1 support in compiler
 # NOSSE2:		Disable SEE2 support in compiler
+# WITHGTK3:		Build wxWidgets against GTK3
 
 #------ Targets ------
 # all
@@ -132,7 +133,7 @@ export PLATFORM_UNSUPPORTED := 0
 export CPU_ARCH ?= unknown
 export SIMD_SUPPORTED := 0
 
-ARCH = $(shell uname -m)
+ARCH ?= $(shell uname -m)
 
 ifneq (,$(filter i386 i486 i586 i686 x86,$(ARCH)))
 	CPU_ARCH = x86
@@ -372,12 +373,17 @@ WX_CONFIGURE_FLAGS += --enable-unicode -disable-shared --disable-dependency-trac
 	--disable-richtext --disable-dialupman --disable-debugreport --disable-filesystem --disable-rearrangectrl --disable-treelist --disable-richmsgdlg \
 	--disable-richtooltip --disable-propgrid --disable-stc --without-libnotify \
 	--without-gtkprint --without-gnomevfs --disable-fsvolume --disable-fswatcher \
-	--disable-graphics_ctx --disable-sound --disable-mediactrl --disable-joystick --disable-apple_ieee \
+	--disable-sound --disable-mediactrl --disable-joystick --disable-apple_ieee \
 	--disable-gif --disable-pcx --disable-tga --disable-iff --disable-gif --disable-pnm --disable-svg \
 	--without-expat --without-libtiff --without-libjpeg --without-libpng -without-regex --without-zlib
 
 ifeq "$(PLATFORM)" "Linux"
 WX_CONFIGURE_FLAGS += --disable-tooltips
+ifeq "$(origin WITHGTK3)" "command line"
+	WX_CONFIGURE_FLAGS += --with-gtk=3
+else
+	WX_CONFIGURE_FLAGS += --disable-graphics_ctx
+endif
 endif
 
 #------ Project build ------

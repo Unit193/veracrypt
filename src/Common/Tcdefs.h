@@ -55,15 +55,21 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.23"
+#define VERSION_STRING					"1.24"
+
+#ifdef VC_EFI_CUSTOM_MODE
+#define VERSION_STRING_SUFFIX			"-CustomEFI"
+#else
+#define VERSION_STRING_SUFFIX			""
+#endif
 
 // Version number to compare against driver
-#define VERSION_NUM						0x0123
+#define VERSION_NUM						0x0124
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"September 12, 2018"
-#define TC_RELEASE_DATE_YEAR			2018
-#define TC_RELEASE_DATE_MONTH			 09
+#define TC_STR_RELEASE_DATE			L"October 6, 2019"
+#define TC_RELEASE_DATE_YEAR			2019
+#define TC_RELEASE_DATE_MONTH			 10
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -242,9 +248,14 @@ void ThrowFatalException(int line);
 /* variables used in the implementation of enhanced protection of NX pool under Windows 8 and later */
 extern POOL_TYPE ExDefaultNonPagedPoolType;
 extern ULONG ExDefaultMdlProtection;
+#ifdef _WIN64
+extern ULONG AllocTag;
+#else
+#define AllocTag 'MMCV'
+#endif
 
-#define TCalloc(size) ((void *) ExAllocatePoolWithTag( ExDefaultNonPagedPoolType, size, 'MMCV' ))
-#define TCfree(memblock) ExFreePoolWithTag( memblock, 'MMCV' )
+#define TCalloc(size) ((void *) ExAllocatePoolWithTag( ExDefaultNonPagedPoolType, size, AllocTag ))
+#define TCfree(memblock) ExFreePoolWithTag( memblock, AllocTag )
 
 #define DEVICE_DRIVER
 
@@ -269,6 +280,14 @@ typedef NTSTATUS (NTAPI *KeSaveExtendedProcessorStateFn) (
 typedef VOID (NTAPI *KeRestoreExtendedProcessorStateFn) (
 	PXSTATE_SAVE XStateSave
 	);
+
+typedef NTSTATUS (NTAPI *ExGetFirmwareEnvironmentVariableFn) (
+  PUNICODE_STRING VariableName,
+  LPGUID          VendorGuid,
+  PVOID           Value,
+  PULONG          ValueLength,
+  PULONG          Attributes
+);
 
 extern NTSTATUS NTAPI KeSaveExtendedProcessorState (
     __in ULONG64 Mask,
@@ -324,6 +343,9 @@ extern VOID NTAPI KeRestoreExtendedProcessorState (
 #		define Dump(...)
 #		define DumpMem(...)
 #	endif
+#elif !defined (TC_WINDOWS_BOOT)
+#	define Dump(...)
+#	define DumpMem(...)
 #endif
 
 #if !defined (trace_msg) && !defined (TC_WINDOWS_BOOT)
@@ -355,6 +377,8 @@ extern VOID NTAPI KeRestoreExtendedProcessorState (
 #else
 #define burn(mem,size) do { volatile char *burnm = (volatile char *)(mem); int burnc = size; while (burnc--) *burnm++ = 0; } while (0)
 #endif
+
+#define volatile_memcpy(d,s,size) do { volatile char *destm = (volatile char *)(d); volatile char *srcm = (volatile char *)(s); size_t memc = size; while (memc--) *destm++ = *srcm++; } while (0)
 
 // The size of the memory area to wipe is in bytes amd it must be a multiple of 8.
 #ifndef TC_NO_COMPILER_INT64

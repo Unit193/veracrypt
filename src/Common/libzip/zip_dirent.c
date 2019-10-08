@@ -1,6 +1,6 @@
 /*
   zip_dirent.c -- read directory entry (local or central), clean dirent
-  Copyright (C) 1999-2017 Dieter Baron and Thomas Klausner
+  Copyright (C) 1999-2019 Dieter Baron and Thomas Klausner
 
   This file is part of libzip, a library to manipulate ZIP archives.
   The authors can be contacted at <libzip@nih.at>
@@ -536,7 +536,7 @@ _zip_dirent_read(zip_dirent_t *zde, zip_source_t *src, zip_buffer_t *buffer, boo
 	    if (zde->offset == ZIP_UINT32_MAX)
 		zde->offset = _zip_buffer_get_64(ef_buffer);
 	    if (zde->disk_number == ZIP_UINT16_MAX)
-		zde->disk_number = _zip_buffer_get_32(buffer);
+		zde->disk_number = _zip_buffer_get_32(ef_buffer);
 	}
 
 	if (!_zip_buffer_eof(ef_buffer)) {
@@ -1069,6 +1069,12 @@ _zip_u2d_time(time_t intime, zip_uint16_t *dtime, zip_uint16_t *ddate) {
     struct tm *tm;
 
     tm = localtime(&intime);
+    if (tm == NULL) {
+        /* if localtime() fails, return an arbitrary date (1980-01-01 00:00:00) */
+	*ddate = (1 << 5) + 1;
+	*dtime = 0;
+	return;
+    }
     if (tm->tm_year < 80) {
 	tm->tm_year = 80;
     }

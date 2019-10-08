@@ -532,13 +532,13 @@ int EAInit (int ea, unsigned char *key, unsigned __int8 *ks)
 
 #ifndef TC_WINDOWS_BOOT
 
-BOOL EAInitMode (PCRYPTO_INFO ci)
+BOOL EAInitMode (PCRYPTO_INFO ci, unsigned char* key2)
 {
 	switch (ci->mode)
 	{
 	case XTS:
 		// Secondary key schedule
-		if (EAInit (ci->ea, ci->k2, ci->ks2) != ERR_SUCCESS)
+		if (EAInit (ci->ea, key2, ci->ks2) != ERR_SUCCESS)
 			return FALSE;
 
 		/* Note: XTS mode could potentially be initialized with a weak key causing all blocks in one data unit
@@ -884,6 +884,20 @@ void crypto_loadkey (PKEY_INFO keyInfo, char *lpszUserKey, int nUserKeyLen)
 	burn (keyInfo->userKey, sizeof (keyInfo->userKey));
 	memcpy (keyInfo->userKey, lpszUserKey, nUserKeyLen);
 }
+
+void crypto_eraseKeys (PCRYPTO_INFO cryptoInfo)
+{
+	burn (cryptoInfo->ks, sizeof (cryptoInfo->ks));
+	burn (cryptoInfo->ks2, sizeof (cryptoInfo->ks2));
+#ifdef TC_WINDOWS_DRIVER
+	burn (cryptoInfo->master_keydata_hash, sizeof (cryptoInfo->master_keydata_hash));
+#else
+	burn (cryptoInfo->master_keydata, sizeof (cryptoInfo->master_keydata));
+	burn (cryptoInfo->k2, sizeof (cryptoInfo->k2));
+#endif
+	burn (&cryptoInfo->noIterations, sizeof (cryptoInfo->noIterations));
+	burn (&cryptoInfo->volumePim, sizeof (cryptoInfo->volumePim));
+}
 #endif
 
 void crypto_close (PCRYPTO_INFO cryptoInfo)
@@ -1202,3 +1216,260 @@ BOOL IsHwEncryptionEnabled ()
 }
 
 #endif // !TC_WINDOWS_BOOT
+
+#if !defined (TC_WINDOWS_BOOT) && !defined (_UEFI)
+
+static BOOL CpuRngDisabled = TRUE;
+static BOOL RamEncryptionEnabled = FALSE;
+
+BOOL IsCpuRngSupported ()
+{
+	if (HasRDSEED() || HasRDRAND())
+		return TRUE;
+	else
+		return FALSE;
+}
+
+void EnableCpuRng (BOOL enable)
+{
+	CpuRngDisabled = !enable;
+}
+
+BOOL IsCpuRngEnabled ()
+{
+	return !CpuRngDisabled;
+}
+
+BOOL IsRamEncryptionSupported ()
+{
+#ifdef _WIN64
+	return TRUE;
+#else
+	return FALSE;
+#endif
+}
+
+void EnableRamEncryption (BOOL enable)
+{
+	RamEncryptionEnabled = enable;
+}
+
+BOOL IsRamEncryptionEnabled ()
+{
+	return RamEncryptionEnabled;
+}
+
+/* masking for random index to remove bias */
+byte GetRngMask (byte count)
+{
+	if (count >= 128)
+		return 0xFF;
+	if (count >= 64)
+		return 0x7F;
+	if (count >= 32)
+		return 0x3F;
+	if (count >= 16)
+		return 0x1F;
+	if (count >= 8)
+		return 0x0F;
+	if (count >= 4)
+		return 0x07;
+	if (count >= 2)
+		return 0x03;
+	return 1;
+}
+
+byte GetRandomIndex (ChaCha20RngCtx* pCtx, byte elementsCount)
+{
+	byte index = 0;
+	byte mask = GetRngMask (elementsCount);
+
+	while (TRUE)
+	{
+		ChaCha20RngGetBytes (pCtx, &index, 1);
+		index &= mask;
+		if (index < elementsCount)
+			break;
+	}
+
+	return index;
+}
+
+#if defined(_WIN64) && !defined (_UEFI)
+/* declaration of variables and functions used for RAM encryption on 64-bit build */
+static byte* pbKeyDerivationArea = NULL;
+static ULONG cbKeyDerivationArea = 0;
+
+static uint64 HashSeedMask = 0;
+static uint64 CipherIVMask = 0;
+#ifdef TC_WINDOWS_DRIVER
+ULONG AllocTag = 'MMCV';
+#endif
+
+#if !defined(PAGE_SIZE)
+#define PAGE_SIZE 4096
+#endif
+
+BOOL InitializeSecurityParameters(GetRandSeedFn rngCallback)
+{
+	ChaCha20RngCtx ctx;
+	byte pbSeed[CHACHA20RNG_KEYSZ + CHACHA20RNG_IVSZ];
+#ifdef TC_WINDOWS_DRIVER
+	byte i, tagLength;
+
+	Dump ("InitializeSecurityParameters BEGIN\n");
+#endif
+
+	rngCallback (pbSeed, sizeof (pbSeed));
+
+	ChaCha20RngInit (&ctx, pbSeed, rngCallback, 0);
+
+#ifdef TC_WINDOWS_DRIVER
+	/* generate random tag length between 1 and 4 */
+	tagLength = GetRandomIndex (&ctx, 4) + 1;
+
+	/* generate random value for tag:
+	 * Each ASCII character in the tag must be a value in the range 0x20 (space) to 0x7E (tilde)
+	 * So we have 95 possibility
+	 */
+	AllocTag = 0;
+	for (i = 0; i < tagLength; i++)
+	{
+		AllocTag = (AllocTag << 8) + (((ULONG) GetRandomIndex (&ctx, 95)) + 0x20);
+	}
+
+#endif
+
+	cbKeyDerivationArea = 1024 * 1024;
+	pbKeyDerivationArea = (byte*) TCalloc(cbKeyDerivationArea);
+	if (!pbKeyDerivationArea)
+	{
+		cbKeyDerivationArea = 2 * PAGE_SIZE;
+		pbKeyDerivationArea = (byte*) TCalloc(cbKeyDerivationArea);
+	}
+
+	if (!pbKeyDerivationArea)
+	{
+		cbKeyDerivationArea = 0;
+		Dump ("InitializeSecurityParameters return=FALSE END\n");
+		return FALSE;
+	}
+
+	/* fill key derivation area with random bytes */
+	ChaCha20RngGetBytes (&ctx, pbKeyDerivationArea, cbKeyDerivationArea);
+
+	/* generate hash seed mask */
+	ChaCha20RngGetBytes(&ctx, (unsigned char*) &HashSeedMask, sizeof (HashSeedMask));	
+
+	/* generate IV mask */
+	ChaCha20RngGetBytes(&ctx, (unsigned char*) &CipherIVMask, sizeof (CipherIVMask));	
+
+	FAST_ERASE64 (pbSeed, sizeof (pbSeed));
+	burn (&ctx, sizeof (ctx));
+#ifdef TC_WINDOWS_DRIVER
+	burn (&tagLength, 1);
+
+	Dump ("InitializeSecurityParameters return=TRUE END\n");
+#endif
+	return TRUE;
+}
+
+void ClearSecurityParameters()
+{
+	Dump ("ClearSecurityParameters BEGIN\n");
+	if (pbKeyDerivationArea)
+	{
+		FAST_ERASE64 (pbKeyDerivationArea, cbKeyDerivationArea);
+		TCfree (pbKeyDerivationArea);
+		pbKeyDerivationArea =NULL;
+		cbKeyDerivationArea = 0;
+	}
+
+	FAST_ERASE64 (&HashSeedMask, 8);
+	FAST_ERASE64 (&CipherIVMask, 8);
+#ifdef TC_WINDOWS_DRIVER
+	burn (&AllocTag, sizeof (AllocTag));
+#endif
+	Dump ("ClearSecurityParameters END\n");
+}
+
+#ifdef TC_WINDOWS_DRIVER
+void VcProtectMemory (uint64 encID, unsigned char* pbData, size_t cbData, unsigned char* pbData2, size_t cbData2)
+#else
+void VcProtectMemory (uint64 encID, unsigned char* pbData, size_t cbData, 
+							unsigned char* pbData2, size_t cbData2,
+							unsigned char* pbData3, size_t cbData3,
+							unsigned char* pbData4, size_t cbData4)
+#endif
+{
+	if (pbKeyDerivationArea)
+	{
+		uint64 hashLow, hashHigh, hashSeed, cipherIV;
+		uint64 pbKey[4];
+		ChaCha256Ctx ctx;
+
+		hashSeed = (((uint64) pbKeyDerivationArea) + encID) ^ HashSeedMask;
+		hashLow = t1ha2_atonce128(&hashHigh, pbKeyDerivationArea, cbKeyDerivationArea, hashSeed);
+
+		/* set the key to the hash result */
+		pbKey[0] = pbKey[2] = hashLow;
+		pbKey[1] = pbKey[3] = hashHigh;
+
+		/* Initialize ChaCha12 cipher */
+		cipherIV = encID ^ CipherIVMask;
+		ChaCha256Init (&ctx, (unsigned char*) pbKey, (unsigned char*) &cipherIV, 12);
+
+		ChaCha256Encrypt (&ctx, pbData, cbData, pbData);
+		ChaCha256Encrypt (&ctx, pbData2, cbData2, pbData2);
+#ifndef TC_WINDOWS_DRIVER
+		ChaCha256Encrypt (&ctx, pbData3, cbData3, pbData3);
+		ChaCha256Encrypt (&ctx, pbData4, cbData4, pbData4);
+#endif
+		FAST_ERASE64 (pbKey, sizeof(pbKey));
+		FAST_ERASE64 (&hashLow, 8);
+		FAST_ERASE64 (&hashHigh, 8);
+		FAST_ERASE64 (&hashSeed, 8);
+		FAST_ERASE64 (&cipherIV, 8);
+		burn (&ctx, sizeof (ctx));
+	}
+}
+
+uint64 VcGetEncryptionID (PCRYPTO_INFO pCryptoInfo)
+{
+	return ((uint64) pCryptoInfo->ks) + ((uint64) pCryptoInfo->ks2)
+#ifndef TC_WINDOWS_DRIVER
+		+ ((uint64) pCryptoInfo->master_keydata) + ((uint64) pCryptoInfo->k2)
+#endif
+		;
+}
+
+static void VcInternalProtectKeys (PCRYPTO_INFO pCryptoInfo, uint64 encID)
+{
+#ifdef TC_WINDOWS_DRIVER
+	VcProtectMemory (encID, pCryptoInfo->ks, MAX_EXPANDED_KEY, pCryptoInfo->ks2, MAX_EXPANDED_KEY);
+#else
+	VcProtectMemory (encID, pCryptoInfo->ks, MAX_EXPANDED_KEY,
+					pCryptoInfo->ks2, MAX_EXPANDED_KEY,
+					pCryptoInfo->master_keydata, MASTER_KEYDATA_SIZE,
+					pCryptoInfo->k2, MASTER_KEYDATA_SIZE);
+#endif
+
+}
+
+void VcProtectKeys (PCRYPTO_INFO pCryptoInfo, uint64 encID)
+{
+	Dump ("VcProtectKeys BEGIN\n");
+	VcInternalProtectKeys (pCryptoInfo, encID);
+	Dump ("VcProtectKeys END\n");
+}
+
+void VcUnprotectKeys (PCRYPTO_INFO pCryptoInfo, uint64 encID)
+{
+	Dump ("VcUnprotectKeys BEGIN\n");
+	VcInternalProtectKeys (pCryptoInfo, encID);
+	Dump ("VcUnprotectKeys END\n");
+}
+#endif
+
+#endif
+

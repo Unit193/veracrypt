@@ -25,6 +25,21 @@
 	#define ATT_NOPREFIX
 #endif
 
+#if defined (_MSC_VER) && !defined (TC_WINDOWS_BOOT) 
+#if defined(TC_WINDOWS_DRIVER) || defined (_UEFI)
+#if defined(__cplusplus)
+extern "C" {
+#endif
+extern unsigned __int64 __rdtsc();
+#if defined(__cplusplus)
+}
+#endif
+#else
+#include <intrin.h>
+#pragma intrinsic(__rdtsc)
+#endif
+#endif
+
 #ifdef CRYPTOPP_GENERATE_X64_MASM
 
 #define CRYPTOPP_X86_ASM_AVAILABLE
@@ -89,8 +104,10 @@ extern __m128i _mm_unpacklo_epi64(__m128i _A, __m128i _B);
 extern void _mm_store_si128(__m128i *_P, __m128i _B);
 extern __m64 _m_pxor(__m64 _MM1, __m64 _MM2);
 extern __m128i _mm_set_epi64(__m64 _Q1, __m64 _Q0);
+extern __m128i _mm_set1_epi64(__m64 q);
 extern __m128i _mm_setr_epi32(int _I0, int _I1, int _I2, int _I3);
 extern __m128i _mm_loadu_si128(__m128i const*_P);
+extern __m128i _mm_set_epi8(char b15, char b14, char b13, char b12, char b11, char b10, char b9, char b8, char b7, char b6, char b5, char b4, char b3, char b2, char b1, char b0);
 extern __m128i _mm_set_epi32(int _I3, int _I2, int _I1, int _I0);
 extern __m128i _mm_set1_epi32(int _I);
 extern void _mm_storeu_si128(__m128i *_P, __m128i _B);
@@ -99,6 +116,7 @@ extern __m128i _mm_slli_epi32(__m128i _A, int _Count);
 extern __m128i _mm_srli_epi32(__m128i _A, int _Count);
 extern __m128i _mm_add_epi32(__m128i _A, __m128i _B);
 extern __m128i _mm_sub_epi32(__m128i _A, __m128i _B);
+extern __m128i _mm_add_epi64 (__m128i a, __m128i b);
 extern __m128i _mm_or_si128(__m128i _A, __m128i _B);
 extern __m128i _mm_and_si128(__m128i _A, __m128i _B);
 extern __m128i _mm_andnot_si128(__m128i _A, __m128i _B);
@@ -109,6 +127,9 @@ extern __m128i _mm_unpackhi_epi32(__m128i _A, __m128i _B);
 extern __m128i _mm_unpackhi_epi64(__m128i _A, __m128i _B);
 extern __m128i _mm_srli_epi16(__m128i _A, int _Count);
 extern __m128i _mm_slli_epi16(__m128i _A, int _Count);
+extern __m128i _mm_shuffle_epi32 (__m128i a, int imm8);
+extern __m128i _mm_set_epi64x (__int64 e1, __int64 e0);
+extern __m128i _mm_set1_epi64x (__int64 a);
 #define _mm_xor_si64      _m_pxor
 #define _mm_empty         _m_empty
 #define _MM_SHUFFLE(fp3,fp2,fp1,fp0) (((fp3) << 6) | ((fp2) << 4) | \
@@ -122,8 +143,8 @@ extern __m128i _mm_slli_epi16(__m128i _A, int _Count);
 #endif
 #endif
 
-#if CRYPTOPP_BOOL_AESNI_INTRINSICS_AVAILABLE
-#if defined(__SSSE3__) || defined(__INTEL_COMPILER)
+#if CRYPTOPP_SSSE3_AVAILABLE || defined(__INTEL_COMPILER)
+#if defined (_MSC_VER) && !defined (TC_WINDOWS_BOOT)
 #if defined(TC_WINDOWS_DRIVER) || defined (_UEFI)
 #if defined(__cplusplus)
 extern "C" {
@@ -199,6 +220,8 @@ extern volatile int g_hasSSSE3;
 extern volatile int g_hasAESNI;
 extern volatile int g_hasCLMUL;
 extern volatile int g_isP4;
+extern volatile int g_hasRDRAND;
+extern volatile int g_hasRDSEED;
 extern volatile int g_isIntel;
 extern volatile int g_isAMD;
 extern volatile uint32 g_cacheLineSize;
@@ -208,8 +231,13 @@ int CpuId(uint32 input, uint32 *output);
 // been enabled by DetectX86Features.
 void DisableCPUExtendedFeatures (); 
 
+#ifdef CRYPTOPP_BOOL_X64
+#define HasSSE2()	1
+#define HasISSE()	1
+#else
 #define HasSSE2()	g_hasSSE2
 #define HasISSE()	g_hasISSE
+#endif
 #define HasMMX()	g_hasMMX
 #define HasSSE42() g_hasSSE42
 #define HasSSE41() g_hasSSE41
@@ -220,6 +248,8 @@ void DisableCPUExtendedFeatures ();
 #define HasAESNI() g_hasAESNI
 #define HasCLMUL() g_hasCLMUL
 #define IsP4() g_isP4
+#define HasRDRAND() g_hasRDRAND
+#define HasRDSEED() g_hasRDSEED
 #define IsCpuIntel() g_isIntel
 #define IsCpuAMD() g_isAMD
 #define GetCacheLineSize() g_cacheLineSize

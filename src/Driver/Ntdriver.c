@@ -30,6 +30,9 @@
 #include "Cache.h"
 #include "Volumes.h"
 #include "VolumeFilter.h"
+#include "cpu.h"
+#include "rdrand.h"
+#include "jitterentropy.h"
 
 #include <tchar.h>
 #include <initguid.h>
@@ -135,13 +138,117 @@ static BOOL SystemFavoriteVolumeDirty = FALSE;
 static BOOL PagingFileCreationPrevented = FALSE;
 static BOOL EnableExtendedIoctlSupport = FALSE;
 static BOOL AllowTrimCommand = FALSE;
+static BOOL RamEncryptionActivated = FALSE;
 static KeSaveExtendedProcessorStateFn KeSaveExtendedProcessorStatePtr = NULL;
 static KeRestoreExtendedProcessorStateFn KeRestoreExtendedProcessorStatePtr = NULL;
+static ExGetFirmwareEnvironmentVariableFn ExGetFirmwareEnvironmentVariablePtr = NULL;
 
 POOL_TYPE ExDefaultNonPagedPoolType = NonPagedPool;
 ULONG ExDefaultMdlProtection = 0;
 
 PDEVICE_OBJECT VirtualVolumeDeviceObjects[MAX_MOUNTED_VOLUME_DRIVE_NUMBER + 1];
+
+BOOL IsUefiBoot ()
+{
+	BOOL bStatus = FALSE;
+	NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
+	
+	Dump ("IsUefiBoot BEGIN\n");
+	ASSERT (KeGetCurrentIrql() == PASSIVE_LEVEL);
+
+	if (ExGetFirmwareEnvironmentVariablePtr)
+	{
+		ULONG valueLengh = 0;
+		UNICODE_STRING emptyName;
+		GUID guid;
+		RtlInitUnicodeString(&emptyName, L"");
+		memset (&guid, 0, sizeof(guid));
+		Dump ("IsUefiBoot calling ExGetFirmwareEnvironmentVariable\n");
+		ntStatus = ExGetFirmwareEnvironmentVariablePtr (&emptyName, &guid, NULL, &valueLengh, NULL);
+		Dump ("IsUefiBoot ExGetFirmwareEnvironmentVariable returned 0x%08x\n", ntStatus);
+	}
+	else
+	{
+		Dump ("IsUefiBoot ExGetFirmwareEnvironmentVariable not found on the system\n");
+	}
+	
+	if (STATUS_NOT_IMPLEMENTED != ntStatus)
+		bStatus = TRUE;
+
+	Dump ("IsUefiBoot bStatus = %s END\n", bStatus? "TRUE" : "FALSE");
+	return bStatus;
+}
+
+void GetDriverRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed)
+{
+	LARGE_INTEGER iSeed, iSeed2;
+	byte digest[WHIRLPOOL_DIGESTSIZE];
+	WHIRLPOOL_CTX tctx;
+	size_t count;
+
+#ifndef _WIN64
+	KFLOATING_SAVE floatingPointState;
+	NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+	if (HasISSE())
+		saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+
+	while (cbRandSeed)
+	{	
+		WHIRLPOOL_init (&tctx);
+		// we hash current content of digest buffer which is uninitialized the first time
+		WHIRLPOOL_add (digest, WHIRLPOOL_DIGESTSIZE, &tctx);
+
+		// we use various time information as source of entropy
+		KeQuerySystemTime( &iSeed );
+		WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
+		iSeed = KeQueryPerformanceCounter (&iSeed2);
+		WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
+		WHIRLPOOL_add ((unsigned char *) &(iSeed2.QuadPart), sizeof(iSeed2.QuadPart), &tctx);
+		iSeed.QuadPart = KeQueryInterruptTime ();
+		WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
+
+		/* use JitterEntropy library to get good quality random bytes based on CPU timing jitter */
+		if (0 == jent_entropy_init ())
+		{
+			struct rand_data *ec = jent_entropy_collector_alloc (1, 0);
+			if (ec)
+			{
+				ssize_t rndLen = jent_read_entropy (ec, (char*) digest, sizeof (digest));
+				if (rndLen > 0)
+					WHIRLPOOL_add (digest, (unsigned int) rndLen, &tctx);
+				jent_entropy_collector_free (ec);
+			}
+		}
+
+		// use RDSEED or RDRAND from CPU as source of entropy if enabled
+		if (	IsCpuRngEnabled() && 
+			(	(HasRDSEED() && RDSEED_getBytes (digest, sizeof (digest)))
+			||	(HasRDRAND() && RDRAND_getBytes (digest, sizeof (digest)))
+			))
+		{
+			WHIRLPOOL_add (digest, sizeof(digest), &tctx);
+		}
+		WHIRLPOOL_finalize (&tctx, digest);
+
+		count = VC_MIN (cbRandSeed, sizeof (digest));
+
+		// copy digest value to seed buffer
+		memcpy (pbRandSeed, digest, count);
+		cbRandSeed -= count;
+		pbRandSeed += count;
+	}
+
+#if !defined (_WIN64)
+	if (NT_SUCCESS (saveStatus))
+		KeRestoreFloatingPointState (&floatingPointState);
+#endif
+
+	FAST_ERASE64 (digest, sizeof (digest));
+	FAST_ERASE64 (&iSeed.QuadPart, 8);
+	FAST_ERASE64 (&iSeed2.QuadPart, 8);
+	burn (&tctx, sizeof(tctx));
+}
 
 
 NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
@@ -150,7 +257,7 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	LONG version;
 	int i;
 
-	Dump ("DriverEntry " TC_APP_NAME " " VERSION_STRING "\n");
+	Dump ("DriverEntry " TC_APP_NAME " " VERSION_STRING VERSION_STRING_SUFFIX "\n");
 
 	DetectX86Features ();
 
@@ -173,6 +280,14 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		RtlInitUnicodeString(&restoreFuncName, L"KeRestoreExtendedProcessorState");
 		KeSaveExtendedProcessorStatePtr = (KeSaveExtendedProcessorStateFn) MmGetSystemRoutineAddress(&saveFuncName);
 		KeRestoreExtendedProcessorStatePtr = (KeRestoreExtendedProcessorStateFn) MmGetSystemRoutineAddress(&restoreFuncName);
+	}
+	
+	// ExGetFirmwareEnvironmentVariable is available starting from Windows 8
+	if ((OsMajorVersion > 6) || (OsMajorVersion == 6 && OsMinorVersion >= 2))
+	{
+		UNICODE_STRING funcName;
+		RtlInitUnicodeString(&funcName, L"ExGetFirmwareEnvironmentVariable");
+		ExGetFirmwareEnvironmentVariablePtr = (ExGetFirmwareEnvironmentVariableFn) MmGetSystemRoutineAddress(&funcName);
 	}
 
 	// Load dump filter if the main driver is already loaded
@@ -204,7 +319,7 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 					TC_BUG_CHECK (STATUS_INVALID_PARAMETER);
 			}
 
-			LoadBootArguments();
+			LoadBootArguments(IsUefiBoot ());
 			VolumeClassFilterRegistered = IsVolumeClassFilterRegistered();
 
 			DriverObject->DriverExtension->AddDevice = DriverAddDevice;
@@ -212,6 +327,22 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 		TCfree (startKeyValue);
 	}
+
+#ifdef _WIN64
+	if ((OsMajorVersion > 6) || (OsMajorVersion == 6 && OsMinorVersion >= 1))
+	{
+		// we enable RAM encryption only starting from Windows 7
+		if (RamEncryptionActivated)
+		{
+			if (t1ha_selfcheck__t1ha2() != 0)
+				TC_BUG_CHECK (STATUS_INVALID_PARAMETER);
+			if (!InitializeSecurityParameters(GetDriverRandomSeed))
+				TC_BUG_CHECK (STATUS_INVALID_PARAMETER);
+
+			EnableRamEncryption (TRUE);
+		}
+	}
+#endif
 
 	for (i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; ++i)
 	{
@@ -252,7 +383,7 @@ NTSTATUS DriverAddDevice (PDRIVER_OBJECT driverObject, PDEVICE_OBJECT pdo)
 	return DriveFilterAddDevice (driverObject, pdo);
 }
 
-
+#if defined (DEBUG) || defined (DEBUG_TRACE)
 // Dumps a memory region to debug output
 void DumpMemory (void *mem, int size)
 {
@@ -277,6 +408,7 @@ void DumpMemory (void *mem, int size)
 		m+=8;
 	}
 }
+#endif
 
 BOOL IsAllZeroes (unsigned char* pbData, DWORD dwDataLen)
 {
@@ -286,6 +418,54 @@ BOOL IsAllZeroes (unsigned char* pbData, DWORD dwDataLen)
 			return FALSE;
 		pbData++;
 	}
+	return TRUE;
+}
+
+static wchar_t UpperCaseUnicodeChar (wchar_t c)
+{
+	if (c >= L'a' && c <= L'z')
+		return (c - L'a') + L'A';
+	return c;
+}
+
+static BOOL StringNoCaseCompare (const wchar_t* str1, const wchar_t* str2, size_t len)
+{
+	if (str1 && str2)
+	{
+		while (len)
+		{
+			if (UpperCaseUnicodeChar (*str1) != UpperCaseUnicodeChar (*str2))
+				return FALSE;
+			str1++;
+			str2++;
+			len--;
+		}
+	}
+
+	return TRUE;
+}
+
+static BOOL CheckStringLength (const wchar_t* str, size_t cchSize, size_t minLength, size_t maxLength, size_t* pcchLength)
+{
+	size_t actualLength;
+	for (actualLength = 0; actualLength < cchSize; actualLength++)
+	{
+		if (str[actualLength] == 0)
+			break;
+	}
+
+	if (pcchLength)
+		*pcchLength = actualLength;
+
+	if (actualLength == cchSize)
+		return FALSE;
+
+	if ((minLength != ((size_t) -1)) && (actualLength < minLength))
+		return FALSE;
+
+	if ((maxLength != ((size_t) -1)) && (actualLength > maxLength))
+		return FALSE;
+
 	return TRUE;
 }
 
@@ -1042,8 +1222,8 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 						}
 					}
 				}
-			}
-		}
+					}
+				}
 
 		break;
 
@@ -1653,9 +1833,9 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 		Irp->IoStatus.Information = 0;		
 		break;
 	default:
-		Dump ("ProcessVolumeDeviceControlIrp (unknown code 0x%.8X)\n", irpSp->Parameters.DeviceIoControl.IoControlCode);
-		return TCCompleteIrp (Irp, STATUS_INVALID_DEVICE_REQUEST, 0);
-	}
+				Dump ("ProcessVolumeDeviceControlIrp (unknown code 0x%.8X)\n", irpSp->Parameters.DeviceIoControl.IoControlCode);
+				return TCCompleteIrp (Irp, STATUS_INVALID_DEVICE_REQUEST, 0);
+			}
 
 #if defined(DEBUG) || defined (DEBG_TRACE)
 	if (!NT_SUCCESS (Irp->IoStatus.Status))
@@ -1745,9 +1925,29 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 			IO_STATUS_BLOCK IoStatus;
 			LARGE_INTEGER offset;
 			ACCESS_MASK access = FILE_READ_ATTRIBUTES;
+			PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation (Irp);
 
 			if (!ValidateIOBufferSize (Irp, sizeof (OPEN_TEST_STRUCT), ValidateInputOutput))
 				break;
+
+			if (irpSp->Parameters.DeviceIoControl.InputBufferLength != sizeof (OPEN_TEST_STRUCT))
+			{
+				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
+			// check that opentest->wszFileName is a device path that starts with "\\Device\\Harddisk"
+			// 16 is the length of "\\Device\\Harddisk" which is the minimum
+			if (	!CheckStringLength (opentest->wszFileName, TC_MAX_PATH, 16, (size_t) -1, NULL)
+				||	(!StringNoCaseCompare (opentest->wszFileName, L"\\Device\\Harddisk", 16))
+				)
+			{
+				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
 
 			EnsureNullTerminatedString (opentest->wszFileName, sizeof (opentest->wszFileName));
 			RtlInitUnicodeString (&FullFileName, opentest->wszFileName);
@@ -1866,7 +2066,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 								&offset,
 								NULL);
 
-								if (NT_SUCCESS (ntStatus))
+								if (NT_SUCCESS (ntStatus) && (IoStatus.Information >= TC_VOLUME_HEADER_EFFECTIVE_SIZE))
 								{
 									/* compute the ID of this volume: SHA-256 of the effective header */
 									sha256 (opentest->volumeIDs[volumeType], readBuffer, TC_VOLUME_HEADER_EFFECTIVE_SIZE);
@@ -1902,10 +2102,25 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 			UNICODE_STRING FullFileName;
 			IO_STATUS_BLOCK IoStatus;
 			LARGE_INTEGER offset;
-			byte readBuffer [TC_SECTOR_SIZE_BIOS];
+			size_t devicePathLen = 0;
+			WCHAR* wszPath = NULL;
 
 			if (!ValidateIOBufferSize (Irp, sizeof (GetSystemDriveConfigurationRequest), ValidateInputOutput))
 				break;
+
+			// check that request->DevicePath has the expected format "\\Device\\HarddiskXXX\\Partition0"
+			// 28 is the length of "\\Device\\Harddisk0\\Partition0" which is the minimum
+			// 30 is the length of "\\Device\\Harddisk255\\Partition0" which is the maximum
+			wszPath = request->DevicePath;
+			if (	!CheckStringLength (wszPath, TC_MAX_PATH, 28, 30, &devicePathLen)
+				||	(memcmp (wszPath, L"\\Device\\Harddisk", 16 * sizeof (WCHAR)))
+				||	(memcmp (wszPath + (devicePathLen - 11), L"\\Partition0", 11 * sizeof (WCHAR)))
+				)
+			{
+				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
 
 			EnsureNullTerminatedString (request->DevicePath, sizeof (request->DevicePath));
 			RtlInitUnicodeString (&FullFileName, request->DevicePath);
@@ -1918,68 +2133,88 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 
 			if (NT_SUCCESS (ntStatus))
 			{
-				// Determine if the first sector contains a portion of the VeraCrypt Boot Loader
-				offset.QuadPart = 0;	// MBR
-
-				ntStatus = ZwReadFile (NtFileHandle,
-					NULL,
-					NULL,
-					NULL,
-					&IoStatus,
-					readBuffer,
-					sizeof(readBuffer),
-					&offset,
-					NULL);
-
-				if (NT_SUCCESS (ntStatus))
+				byte *readBuffer = TCalloc (TC_MAX_VOLUME_SECTOR_SIZE);
+				if (!readBuffer)
 				{
-					size_t i;
-
-					// Check for dynamic drive
-					request->DriveIsDynamic = FALSE;
-
-					if (readBuffer[510] == 0x55 && readBuffer[511] == 0xaa)
-					{
-						int i;
-						for (i = 0; i < 4; ++i)
-						{
-							if (readBuffer[446 + i * 16 + 4] == PARTITION_LDM)
-							{
-								request->DriveIsDynamic = TRUE;
-								break;
-							}
-						}
-					}
-
-					request->BootLoaderVersion = 0;
-					request->Configuration = 0;
-					request->UserConfiguration = 0;
-					request->CustomUserMessage[0] = 0;
-
-					// Search for the string "VeraCrypt"
-					for (i = 0; i < sizeof (readBuffer) - strlen (TC_APP_NAME); ++i)
-					{
-						if (memcmp (readBuffer + i, TC_APP_NAME, strlen (TC_APP_NAME)) == 0)
-						{
-							request->BootLoaderVersion = BE16 (*(uint16 *) (readBuffer + TC_BOOT_SECTOR_VERSION_OFFSET));
-							request->Configuration = readBuffer[TC_BOOT_SECTOR_CONFIG_OFFSET];
-
-							if (request->BootLoaderVersion != 0 && request->BootLoaderVersion <= VERSION_NUM)
-							{
-								request->UserConfiguration = readBuffer[TC_BOOT_SECTOR_USER_CONFIG_OFFSET];
-								memcpy (request->CustomUserMessage, readBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET, TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH);
-							}
-							break;
-						}
-					}
-
-					Irp->IoStatus.Status = STATUS_SUCCESS;
-					Irp->IoStatus.Information = sizeof (*request);
+					Irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
+					Irp->IoStatus.Information = 0;
 				}
 				else
 				{
-					Irp->IoStatus.Status = ntStatus;
-					Irp->IoStatus.Information = 0;
+					// Determine if the first sector contains a portion of the VeraCrypt Boot Loader
+					offset.QuadPart = 0;	// MBR
+
+					ntStatus = ZwReadFile (NtFileHandle,
+						NULL,
+						NULL,
+						NULL,
+						&IoStatus,
+						readBuffer,
+						TC_MAX_VOLUME_SECTOR_SIZE,
+						&offset,
+						NULL);
+
+					if (NT_SUCCESS (ntStatus))
+					{
+						// check that we could read all needed data
+						if (IoStatus.Information >= TC_SECTOR_SIZE_BIOS)
+						{
+							size_t i;
+
+							// Check for dynamic drive
+							request->DriveIsDynamic = FALSE;
+
+							if (readBuffer[510] == 0x55 && readBuffer[511] == 0xaa)
+							{
+								int i;
+								for (i = 0; i < 4; ++i)
+								{
+									if (readBuffer[446 + i * 16 + 4] == PARTITION_LDM)
+									{
+										request->DriveIsDynamic = TRUE;
+										break;
+									}
+								}
+							}
+
+							request->BootLoaderVersion = 0;
+							request->Configuration = 0;
+							request->UserConfiguration = 0;
+							request->CustomUserMessage[0] = 0;
+
+							// Search for the string "VeraCrypt"
+							for (i = 0; i < TC_SECTOR_SIZE_BIOS - strlen (TC_APP_NAME); ++i)
+							{
+								if (memcmp (readBuffer + i, TC_APP_NAME, strlen (TC_APP_NAME)) == 0)
+								{
+									request->BootLoaderVersion = BE16 (*(uint16 *) (readBuffer + TC_BOOT_SECTOR_VERSION_OFFSET));
+									request->Configuration = readBuffer[TC_BOOT_SECTOR_CONFIG_OFFSET];
+
+									if (request->BootLoaderVersion != 0 && request->BootLoaderVersion <= VERSION_NUM)
+									{
+										request->UserConfiguration = readBuffer[TC_BOOT_SECTOR_USER_CONFIG_OFFSET];
+										memcpy (request->CustomUserMessage, readBuffer + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET, TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH);
+									}
+									break;
+								}
+							}
+
+							Irp->IoStatus.Status = STATUS_SUCCESS;
+							Irp->IoStatus.Information = sizeof (*request);
+						}
+						else
+						{
+							Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+							Irp->IoStatus.Information = 0;
+						}
+					}
+					else
+					{
+						Irp->IoStatus.Status = ntStatus;
+						Irp->IoStatus.Information = 0;
+					}
+
+					TCfree (readBuffer);
 				}
 
 				ZwClose (NtFileHandle);
@@ -2114,6 +2349,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 					prop->volumeHeaderFlags = ListExtension->cryptoInfo->HeaderFlags;
 					prop->readOnly = ListExtension->bReadOnly;
 					prop->removable = ListExtension->bRemovable;
+					prop->mountDisabled = ListExtension->bMountManager? FALSE : TRUE;
 					prop->partitionInInactiveSysEncScope = ListExtension->PartitionInInactiveSysEncScope;
 					prop->hiddenVolume = ListExtension->cryptoInfo->hiddenVolume;
 
@@ -2349,8 +2585,10 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 		if (ValidateIOBufferSize (Irp, sizeof (MOUNT_STRUCT), ValidateInputOutput))
 		{
 			MOUNT_STRUCT *mount = (MOUNT_STRUCT *) Irp->AssociatedIrp.SystemBuffer;
+			PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation (Irp);
 
-			if (mount->VolumePassword.Length > MAX_PASSWORD || mount->ProtectedHidVolPassword.Length > MAX_PASSWORD
+			if ((irpSp->Parameters.DeviceIoControl.InputBufferLength != sizeof (MOUNT_STRUCT))
+				|| mount->VolumePassword.Length > MAX_PASSWORD || mount->ProtectedHidVolPassword.Length > MAX_PASSWORD
 				||	mount->pkcs5_prf < 0 || mount->pkcs5_prf > LAST_PRF_ID
 				||	mount->VolumePim < -1 || mount->VolumePim == INT_MAX
 				|| mount->ProtectedHidVolPkcs5Prf < 0 || mount->ProtectedHidVolPkcs5Prf > LAST_PRF_ID
@@ -2383,6 +2621,14 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 		{
 			UNMOUNT_STRUCT *unmount = (UNMOUNT_STRUCT *) Irp->AssociatedIrp.SystemBuffer;
 			PDEVICE_OBJECT ListDevice = GetVirtualVolumeDeviceObject (unmount->nDosDriveNo);
+			PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation (Irp);
+
+			if (irpSp->Parameters.DeviceIoControl.InputBufferLength != sizeof (UNMOUNT_STRUCT))
+			{
+				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
 
 			unmount->nReturnCode = ERR_DRIVE_NOT_FOUND;
 
@@ -2403,12 +2649,25 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 		if (ValidateIOBufferSize (Irp, sizeof (UNMOUNT_STRUCT), ValidateInputOutput))
 		{
 			UNMOUNT_STRUCT *unmount = (UNMOUNT_STRUCT *) Irp->AssociatedIrp.SystemBuffer;
+			PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation (Irp);
+
+			if (irpSp->Parameters.DeviceIoControl.InputBufferLength != sizeof (UNMOUNT_STRUCT))
+			{
+				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
 
 			unmount->nReturnCode = UnmountAllDevices (unmount, unmount->ignoreOpenFiles);
 
 			Irp->IoStatus.Information = sizeof (UNMOUNT_STRUCT);
 			Irp->IoStatus.Status = STATUS_SUCCESS;
 		}
+		break;
+
+	case VC_IOCTL_EMERGENCY_CLEAR_ALL_KEYS:
+		EmergencyClearAllKeys (Irp, irpSp);
+		WipeCache();
 		break;
 
 	case TC_IOCTL_BOOT_ENCRYPTION_SETUP:
@@ -2534,6 +2793,15 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
 				Irp->IoStatus.Information = 0;
 			}
+		}
+		break;
+
+	case VC_IOCTL_IS_RAM_ENCRYPTION_ENABLED:
+		if (ValidateIOBufferSize (Irp, sizeof (int), ValidateOutput))
+		{
+			*(int *) Irp->AssociatedIrp.SystemBuffer = IsRamEncryptionEnabled() ? 1 : 0;
+			Irp->IoStatus.Information = sizeof (int);
+			Irp->IoStatus.Status = STATUS_SUCCESS;
 		}
 		break;
 
@@ -2945,6 +3213,8 @@ LPWSTR TCTranslateCode (ULONG ulCode)
 		TC_CASE_RET_NAME (TC_IOCTL_WIPE_PASSWORD_CACHE);
 		TC_CASE_RET_NAME (TC_IOCTL_WRITE_BOOT_DRIVE_SECTOR);
 		TC_CASE_RET_NAME (VC_IOCTL_GET_DRIVE_GEOMETRY_EX);
+		TC_CASE_RET_NAME (VC_IOCTL_EMERGENCY_CLEAR_ALL_KEYS);
+		TC_CASE_RET_NAME (VC_IOCTL_IS_RAM_ENCRYPTION_ENABLED);
 
 		TC_CASE_RET_NAME (IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS);
 
@@ -3687,17 +3957,18 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 				}
 
 				if (mount->bMountManager)
+				{
 					MountManagerMount (mount);
+					// We create symbolic link even if mount manager is notified of
+					// arriving volume as it apparently sometimes fails to create the link
+					CreateDriveLink (mount->nDosDriveNo);
+				}
 
 				NewExtension->bMountManager = mount->bMountManager;
 
-				// We create symbolic link even if mount manager is notified of
-				// arriving volume as it apparently sometimes fails to create the link
-				CreateDriveLink (mount->nDosDriveNo);
-
 				mount->FilesystemDirty = FALSE;
 
-				if (NT_SUCCESS (TCOpenFsVolume (NewExtension, &volumeHandle, &volumeFileObject)))
+				if (mount->bMountManager && NT_SUCCESS (TCOpenFsVolume (NewExtension, &volumeHandle, &volumeFileObject)))
 				{
 					__try
 					{
@@ -4244,9 +4515,19 @@ NTSTATUS ReadRegistryConfigFlags (BOOL driverEntry)
 
 				if (flags & VC_DRIVER_CONFIG_BLOCK_SYS_TRIM)
 					BlockSystemTrimCommand = TRUE;
+
+				/* clear VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION if it is set */
+				if (flags & VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION)
+				{
+					flags ^= VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION;
+					WriteRegistryConfigFlags (flags);
+				}
+
+				RamEncryptionActivated = (flags & VC_DRIVER_CONFIG_ENABLE_RAM_ENCRYPTION) ? TRUE : FALSE;
 			}
 
 			EnableHwEncryption ((flags & TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION) ? FALSE : TRUE);
+			EnableCpuRng ((flags & VC_DRIVER_CONFIG_ENABLE_CPU_RNG) ? TRUE : FALSE);
 
 			EnableExtendedIoctlSupport = (flags & TC_DRIVER_CONFIG_ENABLE_EXTENDED_IOCTL)? TRUE : FALSE;
 			AllowTrimCommand = (flags & VC_DRIVER_CONFIG_ALLOW_NONSYS_TRIM)? TRUE : FALSE;

@@ -607,6 +607,11 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 				goto error;
 			}
 
+#ifdef _WIN64
+			if (IsRamEncryptionEnabled() && (volumeType == TC_VOLUME_TYPE_NORMAL || !mount->bProtectHiddenVolume))
+				VcProtectKeys (Extension->cryptoInfo, VcGetEncryptionID (Extension->cryptoInfo));
+#endif
+
 			Dump ("Volume header decrypted\n");
 			Dump ("Required program version = %x\n", (int) Extension->cryptoInfo->RequiredProgramVersion);
 			Dump ("Legacy volume = %d\n", (int) Extension->cryptoInfo->LegacyVolume);
@@ -663,7 +668,7 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 			if (Extension->cryptoInfo->hiddenVolume && IsHiddenSystemRunning())
 			{
 				// Prevent mount of a hidden system partition if the system hosted on it is currently running
-				if (memcmp (Extension->cryptoInfo->master_keydata, GetSystemDriveCryptoInfo()->master_keydata, EAGetKeySize (Extension->cryptoInfo->ea)) == 0)
+				if (memcmp (Extension->cryptoInfo->master_keydata_hash, GetSystemDriveCryptoInfo()->master_keydata_hash, sizeof(Extension->cryptoInfo->master_keydata_hash)) == 0)
 				{
 					mount->nReturnCode = ERR_VOL_ALREADY_MOUNTED;
 					ntStatus = STATUS_SUCCESS;
