@@ -170,7 +170,7 @@ Index: veracrypt/src/Makefile
 ===================================================================
 --- veracrypt.orig/src/Makefile
 +++ veracrypt/src/Makefile
-@@ -57,6 +57,21 @@ export WXCONFIG_CFLAGS :=
+@@ -58,6 +58,21 @@ export WXCONFIG_CFLAGS :=
  export WXCONFIG_CXXFLAGS :=
  WX_ROOT ?= ..
  
