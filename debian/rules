@@ -22,5 +22,9 @@ override_dh_auto_build:
 override_dh_clean:
 	dh_clean veracrypt.1
 
+override_dh_install:
+	dh_install
+	rm -f debian/veracrypt/usr/share/doc/veracrypt/License.txt debian/veracrypt/usr/bin/veracrypt-uninstall.sh
+
 override_dh_installinit:
 	dh_installinit --no-start -- stop 10 0 1 6 .
