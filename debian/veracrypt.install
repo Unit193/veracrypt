@@ -1,4 +1,5 @@
 debian/scripts/30veracrypt       usr/lib/pm-utils/sleep.d/
 debian/scripts/veracrypt         lib/systemd/system-sleep/
+debian/scripts/mount.veracrypt   usr/bin/
 debian/veracrypt.desktop         usr/share/applications/
 debian/veracrypt.xml             usr/share/mime/packages/
