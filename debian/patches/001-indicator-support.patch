@@ -22,7 +22,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  		ListItemRightClickEventPending (false),
  		SelectedItemIndex (-1),
  		SelectedSlotNumber (0),
-@@ -1552,6 +1555,32 @@ namespace VeraCrypt
+@@ -1550,6 +1553,32 @@ namespace VeraCrypt
  		}
  	}
  
@@ -55,7 +55,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  	void MainFrame::ShowTaskBarIcon (bool show)
  	{
  		if (!show && mTaskBarIcon->IsIconInstalled())
-@@ -1561,8 +1590,47 @@ namespace VeraCrypt
+@@ -1559,8 +1588,47 @@ namespace VeraCrypt
  		else if (show && !mTaskBarIcon->IsIconInstalled())
  		{
  #ifndef TC_MACOSX
