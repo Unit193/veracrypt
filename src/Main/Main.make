@@ -210,16 +210,26 @@ endif
 	cp $(BASE_DIR)/../doc/html/* $(APPNAME).app/Contents/Resources/doc/HTML
 
 	echo -n APPLTRUE >$(APPNAME).app/Contents/PkgInfo
+ifdef VC_LEGACY_BUILD
+	sed -e 's/_VERSION_/$(patsubst %a,%.1,$(patsubst %b,%.2,$(TC_VERSION)))/' ../Build/Resources/MacOSX/Info.plist.legacy.xml >$(APPNAME).app/Contents/Info.plist
+else
 	sed -e 's/_VERSION_/$(patsubst %a,%.1,$(patsubst %b,%.2,$(TC_VERSION)))/' ../Build/Resources/MacOSX/Info.plist.xml >$(APPNAME).app/Contents/Info.plist
+endif
 	codesign -s "Developer ID Application: IDRIX (Z933746L2S)" --timestamp $(APPNAME).app
 
 install: prepare
 	cp -R $(APPNAME).app /Applications/.
 
 package: prepare
+ifdef VC_LEGACY_BUILD
+	/usr/local/bin/packagesbuild $(BASE_DIR)/Setup/MacOSX/veracrypt_Legacy.pkgproj
+	productsign --sign "Developer ID Installer: IDRIX (Z933746L2S)" --timestamp "$(BASE_DIR)/Setup/MacOSX/VeraCrypt Legacy $(TC_VERSION).pkg" $(BASE_DIR)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg
+	rm -f $(APPNAME)_Legacy_$(TC_VERSION).dmg
+else
 	/usr/local/bin/packagesbuild $(BASE_DIR)/Setup/MacOSX/veracrypt.pkgproj
 	productsign --sign "Developer ID Installer: IDRIX (Z933746L2S)" --timestamp "$(BASE_DIR)/Setup/MacOSX/VeraCrypt $(TC_VERSION).pkg" $(BASE_DIR)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg
 	rm -f $(APPNAME)_$(TC_VERSION).dmg
+endif
 	rm -f "$(BASE_DIR)/Setup/MacOSX/template.dmg"
 	rm -fr "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_dmg"
 	mkdir -p "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_dmg"
@@ -227,7 +237,11 @@ package: prepare
 	hdiutil attach "$(BASE_DIR)/Setup/MacOSX/template.dmg" -noautoopen -quiet -mountpoint "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_dmg"
 	cp "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_$(TC_VERSION).pkg" "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_dmg/VeraCrypt_Installer.pkg"
 	hdiutil detach "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_dmg" -quiet -force
+ifdef VC_LEGACY_BUILD
+	hdiutil convert "$(BASE_DIR)/Setup/MacOSX/template.dmg" -quiet -format UDZO -imagekey zlib-level=9 -o $(APPNAME)_Legacy_$(TC_VERSION).dmg
+else
 	hdiutil convert "$(BASE_DIR)/Setup/MacOSX/template.dmg" -quiet -format UDZO -imagekey zlib-level=9 -o $(APPNAME)_$(TC_VERSION).dmg
+endif
 	rm -f "$(BASE_DIR)/Setup/MacOSX/template.dmg"
 	rm -fr "$(BASE_DIR)/Setup/MacOSX/VeraCrypt_dmg"
 endif
