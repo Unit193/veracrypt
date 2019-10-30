@@ -1,3 +1,10 @@
+veracrypt (1.24-Hotfix1-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.24-Hotfix1
+    - Refresh patches.
+
+ -- Unit 193 <unit193@ubuntu.com>  Wed, 30 Oct 2019 19:07:18 -0400
+
 veracrypt (1.24-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.24
