@@ -29,6 +29,10 @@ typedef NTSTATUS (WINAPI *NtQuerySystemInformationFn)(
 		PULONG                   ReturnLength
 );
 
+typedef ULONG (WINAPI *RtlNtStatusToDosErrorFn)(
+  NTSTATUS Status
+);
+
 using namespace std;
 
 namespace VeraCrypt
@@ -189,9 +193,11 @@ namespace VeraCrypt
 		BOOL Load (const wchar_t* fileName);
 		void Load (char* configContent);
 		BOOL Save (const wchar_t* fileName, HWND hwnd);
+		static BOOL IsPostExecFileField (const string& szFieldValue, string& filePath);
+		static BOOL IsPostExecFileField (const string& szFieldValue, wstring& filePath);
 	};
 
-	void GetVolumeESP(wstring& path);
+	void GetVolumeESP(wstring& path, wstring& bootVolumePath);
 	std::string ReadESPFile (LPCWSTR szFilePath, bool bSkipUTF8BOM);
 	void WriteESPFile (LPCWSTR szFilePath, LPBYTE pbData, DWORD dwDataLen, bool bAddUTF8BOM);
 
@@ -199,16 +205,18 @@ namespace VeraCrypt
 	public:
 		EfiBoot();
 
-		void PrepareBootPartition();
+		void PrepareBootPartition(bool bDisableException = false);
 		bool IsEfiBoot();
 
 		void DeleteStartExec(uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL);
-		void SetStartExec(wstring description, wstring execPath, uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL, uint32 attr = 1);
+		void SetStartExec(wstring description, wstring execPath, bool setBootNext = true, uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL, uint32 attr = 1);
 		void SaveFile(const wchar_t* name, byte* data, DWORD size);
 		void GetFileSize(const wchar_t* name, unsigned __int64& size);
 		void ReadFile(const wchar_t* name, byte* data, DWORD size);
 		void CopyFile(const wchar_t* name, const wchar_t* targetName);
 		bool FileExists(const wchar_t* name);
+		static bool CompareFiles (const wchar_t* fileName1, const wchar_t* fileName2);
+		static bool CompareFileData (const wchar_t* fileName, const byte* data, DWORD size);
 
 		BOOL RenameFile(const wchar_t* name, const wchar_t* nameNew, BOOL bForce);
 		BOOL DelFile(const wchar_t* name);
@@ -217,23 +225,22 @@ namespace VeraCrypt
 		BOOL UpdateConfig (const wchar_t* name, int pim, int hashAlgo, HWND hwndDlg);
 		BOOL WriteConfig (const wchar_t* name, bool preserveUserConfig, int pim, int hashAlgo, const char* passPromptMsg, HWND hwndDlg);
 		BOOL DelDir(const wchar_t* name);
-		void SelectBootVolumeESP();
-		PSTORAGE_DEVICE_NUMBER GetStorageDeviceNumber () { return &sdn;}
+		PSTORAGE_DEVICE_NUMBER GetStorageDeviceNumber () { if (bDeviceInfoValid) return &sdn; else { SetLastError (ERROR_INVALID_DRIVE); throw SystemException(SRC_POS);}}
 
 	protected:
 		bool m_bMounted;
 		std::wstring	EfiBootPartPath;
 		STORAGE_DEVICE_NUMBER sdn;
 		PARTITION_INFORMATION_EX partInfo;
+		bool bDeviceInfoValid;
 		WCHAR     tempBuf[1024];
-		bool  bBootVolumePathSelected;
 		std::wstring BootVolumePath;
 	};
 
 	class BootEncryption
 	{
 	public:
-		BootEncryption (HWND parent, bool postOOBE = false);
+		BootEncryption (HWND parent, bool postOOBE = false, bool setBootNext = false);
 		~BootEncryption ();
 
 		enum FilterType
@@ -285,6 +292,7 @@ namespace VeraCrypt
 		void RegisterFilterDriver (bool registerDriver, FilterType filterType);
 		void RegisterSystemFavoritesService (BOOL registerService);
 		void RegisterSystemFavoritesService (BOOL registerService, BOOL noFileHandling);
+		bool IsSystemFavoritesServiceRunning ();
 		void UpdateSystemFavoritesService ();
 		void RenameDeprecatedSystemLoaderBackup ();
 		bool RestartComputer (BOOL bShutdown = FALSE);
@@ -344,6 +352,7 @@ namespace VeraCrypt
 		bool RescueVolumeHeaderValid;
 		bool VolumeHeaderValid;
 		bool PostOOBEMode;
+		bool SetBootNext;
 	};
 }
 
@@ -361,6 +370,7 @@ namespace VeraCrypt
 #define VC_SYSTEM_FAVORITES_SERVICE_ARG_SKIP_MOUNT		L"/SkipMount"
 
 #define VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER			0x1
+#define VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT			0x2
 
 #define VC_WINDOWS_UPGRADE_POSTOOBE_CMDLINE_OPTION		L"/PostOOBE"
 

@@ -9422,24 +9422,23 @@ static DWORD WINAPI SystemFavoritesServiceCtrlHandler (	DWORD dwControl,
 	case SERVICE_CONTROL_STOP:
 		SystemFavoritesServiceSetStatus (SERVICE_STOP_PENDING);
 
-		if (bSystemIsGPT)
+		if (!(BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
 		{
-			uint32 serviceFlags = BootEncObj->ReadServiceConfigurationFlags ();
-			if (!(serviceFlags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
+			try
 			{
-				try
+				BootEncryption::UpdateSetupConfigFile (true);
+				if (!BootEncStatus.HiddenSystem)
 				{
-					BootEncryption::UpdateSetupConfigFile (true);
-					if (!BootEncStatus.HiddenSystem)
-					{
-						// re-install our bootloader again in case the update process has removed it.
-						BootEncryption bootEnc (NULL, true);
-						bootEnc.InstallBootLoader (true);
-					}
+					// re-install our bootloader again in case the update process has removed it.
+					bool bForceSetNextBoot = false;
+					if (BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT)
+						bForceSetNextBoot = true;
+					BootEncryption bootEnc (NULL, true, bForceSetNextBoot);
+					bootEnc.InstallBootLoader (true);
 				}
-				catch (...)
-				{
-				}
+			}
+			catch (...)
+			{
 			}
 		}
 
@@ -11600,6 +11599,8 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 {
 	WORD lw = LOWORD (wParam);
 	static std::string platforminfo;
+	static byte currentUserConfig;
+	static string currentCustomUserMessage;
 
 	switch (msg)
 	{
@@ -11626,12 +11627,24 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				BOOL bClearKeysEnabled = (driverConfig & VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION)? TRUE : FALSE;
 				BOOL bIsHiddenOS = IsHiddenOSRunning ();
 
+				if (bClearKeysEnabled)
+				{
+					// the clear keys option works only if the service is running
+					if (!BootEncObj->IsSystemFavoritesServiceRunning())
+						bClearKeysEnabled = false;
+				}
+
+
 				if (!BootEncObj->ReadBootSectorConfig (nullptr, 0, &userConfig, &customUserMessage, &bootLoaderVersion))
 				{
 					// operations canceled
 					EndDialog (hwndDlg, IDCANCEL);
 					return 1;
 				}
+
+				// we store current configuration in order to be able to detect if user changed it or not after clicking OK
+				currentUserConfig = userConfig;
+				currentCustomUserMessage = customUserMessage;
 
 				if (bootLoaderVersion != VERSION_NUM)
 					Warning ("BOOT_LOADER_VERSION_INCORRECT_PREFERENCES", hwndDlg);
@@ -11702,11 +11715,16 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 			{
 				try
 				{
-					std::string dcsprop = ReadESPFile (L"\\EFI\\VeraCrypt\\DcsProp", true);
+					std::string currentDcsprop = ReadESPFile (L"\\EFI\\VeraCrypt\\DcsProp", true);
+					std::string dcsprop = currentDcsprop;
 
 					while (TextEditDialogBox(FALSE, hwndDlg, GetString ("BOOT_LOADER_CONFIGURATION_FILE"), dcsprop) == IDOK)
 					{
-						if (validateDcsPropXml (dcsprop.c_str()))
+						if (0 == strcmp(dcsprop.c_str(), currentDcsprop.c_str()))
+						{
+							break;
+						}
+						else if (validateDcsPropXml (dcsprop.c_str()))
 						{
 							WriteESPFile (L"\\EFI\\VeraCrypt\\DcsProp", (LPBYTE) dcsprop.c_str(), (DWORD) dcsprop.size(), true);
 							break;
@@ -11746,17 +11764,7 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				if (!bSystemIsGPT)
 					GetDlgItemTextA (hwndDlg, IDC_CUSTOM_BOOT_LOADER_MESSAGE, customUserMessage, sizeof (customUserMessage));
 
-				byte userConfig;
-				try
-				{
-					if (!BootEncObj->ReadBootSectorConfig (nullptr, 0, &userConfig))
-						return 1;
-				}
-				catch (Exception &e)
-				{
-					e.Show (hwndDlg);
-					return 1;
-				}
+				byte userConfig = currentUserConfig;
 
 				if (IsDlgButtonChecked (hwndDlg, IDC_DISABLE_BOOT_LOADER_PIM_PROMPT))
 					userConfig |= TC_BOOT_USER_CFG_FLAG_DISABLE_PIM;
@@ -11765,22 +11773,22 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 
 				if (bSystemIsGPT)
 				{
-				if (IsDlgButtonChecked (hwndDlg, IDC_DISABLE_BOOT_LOADER_HASH_PROMPT))
-					userConfig |= TC_BOOT_USER_CFG_FLAG_STORE_HASH;
-				else
-					userConfig &= ~TC_BOOT_USER_CFG_FLAG_STORE_HASH;
+					if (IsDlgButtonChecked (hwndDlg, IDC_DISABLE_BOOT_LOADER_HASH_PROMPT))
+						userConfig |= TC_BOOT_USER_CFG_FLAG_STORE_HASH;
+					else
+						userConfig &= ~TC_BOOT_USER_CFG_FLAG_STORE_HASH;
 				}
 				else
 				{
 					if (IsDlgButtonChecked (hwndDlg, IDC_DISABLE_BOOT_LOADER_OUTPUT))
-					userConfig |= TC_BOOT_USER_CFG_FLAG_SILENT_MODE;
-				else
-					userConfig &= ~TC_BOOT_USER_CFG_FLAG_SILENT_MODE;
+						userConfig |= TC_BOOT_USER_CFG_FLAG_SILENT_MODE;
+					else
+						userConfig &= ~TC_BOOT_USER_CFG_FLAG_SILENT_MODE;
 
-				if (!IsDlgButtonChecked (hwndDlg, IDC_ALLOW_ESC_PBA_BYPASS))
-					userConfig |= TC_BOOT_USER_CFG_FLAG_DISABLE_ESC;
-				else
-					userConfig &= ~TC_BOOT_USER_CFG_FLAG_DISABLE_ESC;
+					if (!IsDlgButtonChecked (hwndDlg, IDC_ALLOW_ESC_PBA_BYPASS))
+						userConfig |= TC_BOOT_USER_CFG_FLAG_DISABLE_ESC;
+					else
+						userConfig &= ~TC_BOOT_USER_CFG_FLAG_DISABLE_ESC;
 				}
 
 				try
@@ -11789,7 +11797,21 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 					BOOL bPimCacheEnabled = IsDlgButtonChecked (hwndDlg, IDC_BOOT_LOADER_CACHE_PIM);
 					BOOL bBlockSysEncTrimEnabled = IsDlgButtonChecked (hwndDlg, IDC_BLOCK_SYSENC_TRIM);
 					BOOL bClearKeysEnabled = IsDlgButtonChecked (hwndDlg, IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION);
-					BootEncObj->WriteBootSectorUserConfig (userConfig, customUserMessage, prop.volumePim, prop.pkcs5);
+
+					if (bClearKeysEnabled && !BootEncObj->IsSystemFavoritesServiceRunning())
+					{
+						// the system favorite service service should be running
+						// if it is not the case, report a failure and quit
+						std::string techInfo = SRC_POS;
+						techInfo += "\nIsSystemFavoritesServiceRunning = False.";
+						ReportUnexpectedState (techInfo.c_str());
+						return 1;
+					}
+
+					// only write boot configuration if something changed
+					if ((userConfig != currentUserConfig) || (!bSystemIsGPT && (customUserMessage != currentCustomUserMessage)))
+						BootEncObj->WriteBootSectorUserConfig (userConfig, customUserMessage, prop.volumePim, prop.pkcs5);
+
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD, bPasswordCacheEnabled);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PIM, (bPasswordCacheEnabled && bPimCacheEnabled)? TRUE : FALSE);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_DISABLE_EVIL_MAID_ATTACK_DETECTION, IsDlgButtonChecked (hwndDlg, IDC_DISABLE_EVIL_MAID_ATTACK_DETECTION));
@@ -11841,7 +11863,18 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 		case IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION:
 			if (IsDlgButtonChecked (hwndDlg, IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION))
 			{
-				Warning ("CLEAR_KEYS_ON_DEVICE_INSERTION_WARNING", hwndDlg);
+				if (!BootEncObj->IsSystemFavoritesServiceRunning())
+				{
+					// the system favorite service service should be running
+					// if it is not the case, report a failure
+					std::string techInfo = SRC_POS;
+					techInfo += "\nIsSystemFavoritesServiceRunning = False.";
+					ReportUnexpectedState (techInfo.c_str());
+
+					CheckDlgButton (hwndDlg, IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION, BST_UNCHECKED);
+				}
+				else
+					Warning ("CLEAR_KEYS_ON_DEVICE_INSERTION_WARNING", hwndDlg);
 			}
 
 			break;

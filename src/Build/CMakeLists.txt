@@ -10,6 +10,11 @@ elseif ( NOT DEFINED NOGUI )
 	MESSAGE(FATAL_ERROR "NOGUI variable MUST BE set to TRUE if building 'Console' version, 'FALSE' otherwise")
 endif()
 
+# - Set version of the package
+set( FULL_VERSION 		"1.24-Hotfix1" )
+set( VERSION 			"1.24.7" )
+set( RELEASE 			"1" )
+
 # - Set PROJECT_NAME and CONFLICT_PACKAGE values
 if (NOGUI)
 	set( PROJECT_NAME 		"veracrypt-console" )
@@ -53,21 +58,22 @@ endif( )
 
 # - Detect OSX, CentOS, Debian, Ubuntu or openSUSE platform of the build system
 #   The following variable(s) will be set
-#   	$PLATFORM						Debian		Ubuntu 		CentOS		openSUSE 
+#   	$PLATFORM						Debian		Ubuntu 		CentOS		openSUSE (TODO)
 #   	$PLATFORM_VERSION	
 #										9.x 		16.04		7.X			42.3
 #										10.X		18.04		8.X			15.0
+#										...			...			...			...
 # 		$DISTRO_NAME					${PLATFORM}-${PLATFORM_VERSION}
 if ( UNIX )
 
 	# /etc/debian_version exists for both Debian and Ubuntu
-	if(EXISTS "/etc/debian_version")		
+	if(EXISTS "/etc/debian_version")
 	
 		set ( PLATFORM "Debian" )
 	
 		# Read lsb-release to get flavour name and flavour release version (only supported one for now is Ubuntu)
 		if(EXISTS "/etc/lsb-release")		
-		
+			
 			file(READ "/etc/lsb-release" LSB_RELEASE_ID)
 			string(REGEX MATCH "DISTRIB_ID=([a-zA-Z0-9 /\\.]+)" _ ${LSB_RELEASE_ID})
 			set(FULL_FLAVOUR ${CMAKE_MATCH_1})
@@ -83,22 +89,18 @@ if ( UNIX )
 			else()
 			
 				file(READ "/etc/debian_version" DEBIAN_RELEASE)
-				string(REGEX MATCH "[a-zA-Z0-9 /\\.]+" _ ${DEBIAN_RELEASE})
+				string(REGEX MATCH "([0-9]+\\.[0-9]+)" _ ${DEBIAN_RELEASE})
 				set(PLATFORM_VERSION ${CMAKE_MATCH_1})
-				
-				if( PLATFORM_VERSION STREQUAL "stretch/sid" )
-					set( PLATFORM_VERSION "9" )
-				endif( PLATFORM_VERSION STREQUAL "stretch/sid" )
 				
 			endif()
 			
 		# Get debian release version
 		elseif(EXISTS "/etc/debian_version")
-		
+			
 			file(READ "/etc/debian_version" DEBIAN_RELEASE)
-			string(REGEX MATCH "[a-zA-Z0-9 /\\.]+" _ ${DEBIAN_RELEASE})
+			string(REGEX MATCH "([0-9]+\\.[0-9]+)" _ ${DEBIAN_RELEASE})
 			set(PLATFORM_VERSION ${CMAKE_MATCH_1})
-					
+			
 		endif()
 	
 	# Get centos release version
@@ -158,30 +160,24 @@ if ( PLATFORM STREQUAL "Debian" OR PLATFORM STREQUAL "Ubuntu" )
 		elseif (SUFFIX STREQUAL "64")
 			SET(ARCHITECTURE amd64)
 		endif()
-	else(NOT DPKG_CMD)
+	else( )
 		execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
-	endif(NOT DPKG_CMD)
+	endif( )
 	
 elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) )
 
 	execute_process(COMMAND arch OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
 	
-elseif ( PLATFORM STREQUAL "OSX" )
+else ()
 
-	if ( UNIVERSAL )
-		set ( ARCHITECTURE "Univesal-Binary" )
-	else ( UNIVERSAL )
-		# arch reports Intel using the i386 label rather than intel
-		# We use uname -m instead
-		execute_process(COMMAND uname -m OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
-	endif( UNIVERSAL )
+	MESSAGE(FATAL_ERROR "Unrecognized / unsupported distribution")
 	
 endif ( )
 MESSAGE ( STATUS "Architecture = ${ARCHITECTURE}" )
 
 # - Create installation folder directory at install time
 #	This won't lead to the files being actually installed (in CMAKE_INSTALL_PREFIX)
-#	unless "cmake --build . --target install" is executed, which is not the case here/
+#	unless "cmake --build . --target install" is executed, which is not the case here.
 # 	
 #	Doing things like the following
 #		-	install(DIRECTORY 	${VERACRYPT_BUILD_DIR}/usr DESTINATION /)
@@ -215,21 +211,6 @@ set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Packaging)	# creates the Packaging directory under build directory when CMake generates the build system
 
-# - We excute 'grep VERSION_STRING ../../Common/Tcdefs.h | head -n 1' to get the line which include 'VERSION_STRING'
-#	Then we delete all first characters from the beginning of the line until the first '"' to get the version in the format : "X.YYY..."
-#	Then, we remove the leading and trailing '"' characters
-#	Then, we retrieve the 'version' and the 'release'
-#	Finally, we replace '-' in the release if it exists with a '.' because CPack does not like '-' in the release
-execute_process(COMMAND grep VERSION_STRING "$ENV{SOURCEPATH}/Common/Tcdefs.h"
-				COMMAND head -n 1
-				OUTPUT_VARIABLE FULL_VERSION_LINE OUTPUT_STRIP_TRAILING_WHITESPACE)
-string(REGEX REPLACE "^[^\"]+" "" FULL_VERSION ${FULL_VERSION_LINE})
-string(REGEX REPLACE "\"" "" FULL_VERSION ${FULL_VERSION})
-string(REPLACE "." ";" FULL_VERSION_LIST ${FULL_VERSION})
-list(GET FULL_VERSION_LIST 0 VERSION)
-list(GET FULL_VERSION_LIST 1 RELEASE)
-string(REPLACE "-" "." RELEASE ${RELEASE})
-
 set( VENDOR "IDRIX" )
 set( LICENSE "VeraCrypt License" )
 set( CONTACT "VeraCrypt Team <veracrypt@idrix.fr>" )
@@ -261,16 +242,27 @@ if ( ( PLATFORM STREQUAL "Debian" ) OR ( PLATFORM STREQUAL "Ubuntu" ) )
 	set( CPACK_DEBIAN_PACKAGE_RELEASE 		${CPACK_PACKAGE_RELEASE} )
 	set( CPACK_DEBIAN_PACKAGE_ARCHITECTURE 	${ARCHITECTURE} )																	# mandatory
 	
-	set( CPACK_DEBIAN_PACKAGE_DEPENDS 		"libwxgtk3.0-0v5, libfuse2, dmsetup")
+	# Link against gtk3 version of wxWidgets if >= Debian 10 or >= Ubuntu 18.04
+	# Otherwise, link against gtk2 version of wxWidgets
+	if ( ( ( PLATFORM STREQUAL "Debian" ) AND ( PLATFORM_VERSION VERSION_GREATER_EQUAL "10" ) ) 
+		OR ( ( PLATFORM STREQUAL "Ubuntu" ) AND ( PLATFORM_VERSION VERSION_GREATER_EQUAL "18.04" ) ) )
+		
+		set( CPACK_DEBIAN_PACKAGE_DEPENDS 		"libwxgtk3.0-gtk3-0v5, libfuse2, dmsetup" )										
+		
+	else ()
+	
+		set( CPACK_DEBIAN_PACKAGE_DEPENDS 		"libwxgtk3.0-0v5, libfuse2, dmsetup" )
+		
+	endif()
 		
 	set( CPACK_DEBIAN_PACKAGE_MAINTAINER 	${CONTACT} )																		# mandatory
 	set( CPACK_DEBIAN_PACKAGE_DESCRIPTION 	${CPACK_PACKAGE_DESCRIPTION_SUMMARY} )												# mandatory
 	set( CPACK_DEBIAN_ARCHIVE_TYPE 			"gnutar")																			# mandatory
 	set( CPACK_DEBIAN_COMPRESSION_TYPE 		"gzip")																				# mandatory
 	set( CPACK_DEBIAN_PACKAGE_PRIORITY 		"optional" )																		# mandatory
-	set( CPACK_DEBIAN_PACKAGE_SECTION 		"libs" )		 																	# recommended, to do, Section relative to Debian sections (https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections)
+	set( CPACK_DEBIAN_PACKAGE_SECTION 		"libs" )		 																	# recommended, Section relative to Debian sections (https://www.debian.org/doc/debian-policy/ch-archive.html#s-subsections)
 	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA 	${DEBIAN_PREINST};${DEBIAN_POSTINST};${DEBIAN_PRERM};${DEBIAN_POSTRM})
-	set(CPACK_DEBIAN_PACKAGE_CONFLICTS 		${CONFLICT_PACKAGE})
+	set(CPACK_DEBIAN_PACKAGE_CONFLICTS 		"${CONFLICT_PACKAGE}")
 	
 elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) )
 	
@@ -293,9 +285,16 @@ elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) )
 	set( CPACK_RPM_PACKAGE_AUTOREQ 		"no" ) 																					# disable automatic shared libraries dependency detection (most of the time buggy)
 	
 	if ( PLATFORM STREQUAL "CentOS" )
-		set( CPACK_RPM_PACKAGE_REQUIRES 	"fuse, device-mapper, gtk3")
+			
+		if ( DEFINED WITHGTK3 AND WITHGTK3 )
+			set( CPACK_RPM_PACKAGE_REQUIRES 	"fuse, device-mapper, gtk3" )
+		else ()
+			set( CPACK_RPM_PACKAGE_REQUIRES 	"fuse, device-mapper, gtk2" )
+		endif()
+		
 	elseif ( PLATFORM STREQUAL "openSUSE" )
-		#	TODO
+		
+		set( CPACK_RPM_PACKAGE_REQUIRES 	"fuse, device-mapper, gtk2" )
 	endif()
 	
 	set( CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE 			${RPM_PRERM})															# optional

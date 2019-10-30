@@ -12,6 +12,7 @@
 
 OBJS :=
 OBJSEX :=
+OBJSNOOPT :=
 OBJS += Cipher.o
 OBJS += EncryptionAlgorithm.o
 OBJS += EncryptionMode.o
@@ -80,6 +81,8 @@ OBJS += ../Crypto/GostCipher.o
 OBJS += ../Crypto/Streebog.o
 OBJS += ../Crypto/kuznyechik.o
 OBJS += ../Crypto/kuznyechik_simd.o
+
+OBJSNOOPT += ../Crypto/jitterentropy-base.o0
 
 OBJS += ../Common/Crc.o
 OBJS += ../Common/Endian.o

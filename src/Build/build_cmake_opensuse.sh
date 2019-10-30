@@ -23,12 +23,14 @@ echo "Building GUI version of VeraCrypt for RPM using wxWidgets static libraries
 # This will be the temporary wxWidgets directory
 export WX_BUILD_DIR=$PARENTDIR/wxBuildGui
 
-make WXSTATIC=1 WITHGTK3=1 wxbuild || exit 1
-make WXSTATIC=1 clean 	|| exit 1
-make WXSTATIC=1 		|| exit 1
+# To build wxWidgets using GTK-2
+make WXSTATIC=1 wxbuild 	|| exit 1
+ln -s $WX_BUILD_DIR/lib  $WX_BUILD_DIR/lib64
+make WXSTATIC=1 clean 				|| exit 1
+make WXSTATIC=1 					|| exit 1
 make WXSTATIC=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/GUI"	|| exit 1
 
-# Uncomment below and comment line above to reuse existing wxWidgets build
+# Uncomment below and comment lines above to reuse existing wxWidgets build
 # make WXSTATIC=1 clean || exit 1
 # make WXSTATIC=1		|| exit 1
 # make WXSTATIC=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/GUI"	|| exit 1
@@ -42,9 +44,11 @@ echo "Building console version of VeraCrypt for RPM using wxWidgets static libra
 # This will be the temporary wxWidgets directory
 export WX_BUILD_DIR=$PARENTDIR/wxBuildConsole
 
-make WXSTATIC=1 WITHGTK3=1 NOGUI=1 wxbuild || exit 1
-make WXSTATIC=1 NOGUI=1 clean 	|| exit 1
-make WXSTATIC=1 NOGUI=1 		|| exit 1
+# To build wxWidgets using GTK-2
+make WXSTATIC=1 NOGUI=1 wxbuild 	|| exit 1
+ln -s $WX_BUILD_DIR/lib  $WX_BUILD_DIR/lib64
+make WXSTATIC=1 NOGUI=1 clean 				|| exit 1
+make WXSTATIC=1 NOGUI=1 					|| exit 1
 make WXSTATIC=1 NOGUI=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/Console"	|| exit 1
 
 # Uncomment below and comment lines above to reuse existing wxWidgets build
@@ -53,13 +57,15 @@ make WXSTATIC=1 NOGUI=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/Console"	|| 
 # make WXSTATIC=1 NOGUI=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/Console"	|| exit 1
 
 echo "Creating VeraCrypt RPM packages "
+
 # -DCPACK_RPM_PACKAGE_DEBUG=TRUE for debugging cpack RPM
 # -DCPACK_RPM_PACKAGE_DEBUG=TRUE for debugging cpack RPM
 
-mkdir $PARENTDIR/VeraCrypt_Packaging
+mkdir -p $PARENTDIR/VeraCrypt_Packaging/GUI
+mkdir -p $PARENTDIR/VeraCrypt_Packaging/Console
 
-cmake -H$SCRIPTPATH -B$PARENTDIR/VeraCrypt_Packaging -DVERACRYPT_BUILD_DIR="$PARENTDIR/VeraCrypt_Setup/GUI" -DNOGUI=FALSE || exit 1		
-cpack --config $PARENTDIR/VeraCrypt_Packaging/CPackConfig.cmake || exit 1
-
-cmake -H$SCRIPTPATH -B$PARENTDIR/VeraCrypt_Packaging -DVERACRYPT_BUILD_DIR="$PARENTDIR/VeraCrypt_Setup/Console" -DNOGUI=TRUE || exit 1
-cpack --config $PARENTDIR/VeraCrypt_Packaging/CPackConfig.cmake|| exit 1
+# wxWidgets was built using GTK-2
+cmake -H$SCRIPTPATH -B$PARENTDIR/VeraCrypt_Packaging/GUI -DVERACRYPT_BUILD_DIR="$PARENTDIR/VeraCrypt_Setup/GUI" -DWITHGTK3=TRUE -DNOGUI=FALSE || exit 1		
+cpack --config $PARENTDIR/VeraCrypt_Packaging/GUI/CPackConfig.cmake || exit 1
+cmake -H$SCRIPTPATH -B$PARENTDIR/VeraCrypt_Packaging/Console -DVERACRYPT_BUILD_DIR="$PARENTDIR/VeraCrypt_Setup/Console" -DWITHGTK3=TRUE -DNOGUI=TRUE || exit 1
+cpack --config $PARENTDIR/VeraCrypt_Packaging/Console/CPackConfig.cmake|| exit 1
