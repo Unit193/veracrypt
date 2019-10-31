@@ -1,1 +1,2 @@
 001-indicator-support.patch
+002-Fix_compilation_on_non-x86_platforms.patch
