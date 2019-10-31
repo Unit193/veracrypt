@@ -4,6 +4,8 @@ veracrypt (1.24-Hotfix1-0vanir1) unstable; urgency=medium
     - Refresh patches.
   * d/p/002-Fix_compilation_on_non-x86_platforms.patch:
     - Grab upstream commit to fix compilation on non-x86 platforms.
+  * d/p/003-Fix_compilation_error_if_type___u64_already_defined.patch:
+    - Fix compilation error if type __u64 is already defined by gcc.
 
  -- Unit 193 <unit193@ubuntu.com>  Wed, 30 Oct 2019 19:07:18 -0400
 
