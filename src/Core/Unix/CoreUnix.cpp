@@ -465,6 +465,7 @@ namespace VeraCrypt
 					continue;
 				}
 
+				options.Password.reset();
 				throw;
 			}
 
@@ -473,8 +474,10 @@ namespace VeraCrypt
 
 		if (options.Path->IsDevice())
 		{
-			if (volume->GetFile()->GetDeviceSectorSize() != volume->GetSectorSize())
-				throw ParameterIncorrect (SRC_POS);
+			const uint32 devSectorSize = volume->GetFile()->GetDeviceSectorSize();
+			const size_t volSectorSize = volume->GetSectorSize();
+			if (devSectorSize != volSectorSize)
+				throw DeviceSectorSizeMismatch (SRC_POS, StringConverter::ToWide(devSectorSize) + L" != " + StringConverter::ToWide((uint32) volSectorSize));
 		}
 
 		// Find a free mount point for FUSE service

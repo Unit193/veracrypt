@@ -105,7 +105,7 @@ void Print (const ChsAddress &chs)
 
 void PrintSectorCountInMB (const uint64 &sectorCount)
 {
-	Print (sectorCount >> (TC_LB_SIZE_BIT_SHIFT_DIVISOR + 2)); Print (" MB ");
+	Print (sectorCount >> (TC_LB_SIZE_BIT_SHIFT_DIVISOR + 2)); Print (" MiB ");
 }
 
 
@@ -237,7 +237,7 @@ static BiosResult ReadWriteSectors (bool write, BiosLbaPacket &dapPacket, byte d
 }
 
 
-static BiosResult ReadWriteSectors (bool write, byte *buffer, byte drive, const uint64 &sector, uint16 sectorCount, bool silent)
+BiosResult ReadWriteSectors (bool write, byte *buffer, byte drive, const uint64 &sector, uint16 sectorCount, bool silent)
 {
 	BiosLbaPacket dapPacket;
 	dapPacket.Buffer = (uint32) buffer;

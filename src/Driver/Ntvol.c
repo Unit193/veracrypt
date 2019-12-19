@@ -303,7 +303,7 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 	if (mount->bMountReadOnly || ntStatus == STATUS_ACCESS_DENIED)
 	{
 		ntStatus = ZwCreateFile (&Extension->hDeviceFile,
-			GENERIC_READ | SYNCHRONIZE,
+			GENERIC_READ | (!bRawDevice && mount->bPreserveTimestamp? FILE_WRITE_ATTRIBUTES : 0) | SYNCHRONIZE,
 			&oaFileAttributes,
 			&IoStatusBlock,
 			NULL,
@@ -317,6 +317,26 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 			FILE_SYNCHRONOUS_IO_NONALERT,
 			NULL,
 			0);
+
+		if (!NT_SUCCESS (ntStatus) && !bRawDevice && mount->bPreserveTimestamp)
+		{
+			/* try again without FILE_WRITE_ATTRIBUTES */
+			ntStatus = ZwCreateFile (&Extension->hDeviceFile,
+				GENERIC_READ | SYNCHRONIZE,
+				&oaFileAttributes,
+				&IoStatusBlock,
+				NULL,
+				FILE_ATTRIBUTE_NORMAL |
+				FILE_ATTRIBUTE_SYSTEM,
+				exclusiveAccess ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE,
+				FILE_OPEN,
+				FILE_RANDOM_ACCESS |
+				FILE_WRITE_THROUGH |
+				(disableBuffering ? FILE_NO_INTERMEDIATE_BUFFERING : 0) |
+				FILE_SYNCHRONOUS_IO_NONALERT,
+				NULL,
+				0);
+		}
 
 		if (NT_SUCCESS (ntStatus) && !mount->bMountReadOnly)
 			mount->VolumeMountedReadOnlyAfterAccessDenied = TRUE;
@@ -362,6 +382,18 @@ NTSTATUS TCOpenVolume (PDEVICE_OBJECT DeviceObject,
 				Extension->fileLastWriteTime = FileBasicInfo.LastWriteTime;
 				Extension->fileLastChangeTime = FileBasicInfo.ChangeTime;
 				Extension->bTimeStampValid = TRUE;
+
+				// we tell the system not to update LastAccessTime, LastWriteTime, and ChangeTime
+				FileBasicInfo.CreationTime.QuadPart = 0;
+				FileBasicInfo.LastAccessTime.QuadPart = -1;
+				FileBasicInfo.LastWriteTime.QuadPart = -1;
+				FileBasicInfo.ChangeTime.QuadPart = -1;
+
+				ZwSetInformationFile (Extension->hDeviceFile,
+					&IoStatusBlock,
+					&FileBasicInfo,
+					sizeof (FileBasicInfo),
+					FileBasicInformation);
 			}
 
 			ntStatus = ZwQueryInformationFile (Extension->hDeviceFile,
@@ -886,6 +918,18 @@ void TCCloseVolume (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension)
 	}
 }
 
+typedef struct
+{
+	PDEVICE_OBJECT deviceObject; PEXTENSION Extension; ULONG ioControlCode; void *inputBuffer; int inputBufferSize; void *outputBuffer; int outputBufferSize;
+	NTSTATUS Status;
+	KEVENT WorkItemCompletedEvent;
+} TCSendHostDeviceIoControlRequestExWorkItemArgs;
+
+static VOID TCSendHostDeviceIoControlRequestExWorkItemRoutine (PDEVICE_OBJECT rootDeviceObject, TCSendHostDeviceIoControlRequestExWorkItemArgs *arg)
+{
+	arg->Status = TCSendHostDeviceIoControlRequestEx (arg->deviceObject, arg->Extension, arg->ioControlCode, arg->inputBuffer, arg->inputBufferSize, arg->outputBuffer, arg->outputBufferSize);
+	KeSetEvent (&arg->WorkItemCompletedEvent, IO_NO_INCREMENT, FALSE);
+}
 
 NTSTATUS TCSendHostDeviceIoControlRequestEx (PDEVICE_OBJECT DeviceObject,
 			       PEXTENSION Extension,
@@ -900,6 +944,31 @@ NTSTATUS TCSendHostDeviceIoControlRequestEx (PDEVICE_OBJECT DeviceObject,
 	PIRP Irp;
 
 	UNREFERENCED_PARAMETER(DeviceObject);	/* Remove compiler warning */
+
+	if ((KeGetCurrentIrql() >= APC_LEVEL) || VC_KeAreAllApcsDisabled())
+	{
+		TCSendHostDeviceIoControlRequestExWorkItemArgs args;
+
+		PIO_WORKITEM workItem = IoAllocateWorkItem (RootDeviceObject);
+		if (!workItem)
+			return STATUS_INSUFFICIENT_RESOURCES;
+
+		args.deviceObject = DeviceObject;
+		args.Extension = Extension;
+		args.ioControlCode = IoControlCode;
+		args.inputBuffer = InputBuffer;
+		args.inputBufferSize = InputBufferSize;
+		args.outputBuffer = OutputBuffer;
+		args.outputBufferSize = OutputBufferSize;
+
+		KeInitializeEvent (&args.WorkItemCompletedEvent, SynchronizationEvent, FALSE);
+		IoQueueWorkItem (workItem, TCSendHostDeviceIoControlRequestExWorkItemRoutine, DelayedWorkQueue, &args);
+
+		KeWaitForSingleObject (&args.WorkItemCompletedEvent, Executive, KernelMode, FALSE, NULL);
+		IoFreeWorkItem (workItem);
+
+		return args.Status;
+	}
 
 	KeClearEvent (&Extension->keVolumeEvent);
 

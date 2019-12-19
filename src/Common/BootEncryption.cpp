@@ -275,6 +275,27 @@ bool ZipAdd (zip_t *z, const char* name, const unsigned char* pbData, DWORD cbDa
 	return true;
 }
 
+static BOOL IsWindowsMBR (const byte *buffer, size_t bufferSize)
+{
+	BOOL bRet = FALSE;
+	byte g_pbMsSignature[4] = {0x33, 0xc0, 0x8e, 0xd0};
+	const char* g_szStr1 = "Invalid partition table";
+	const char* g_szStr2 = "Error loading operating system";
+	const char* g_szStr3 = "Missing operating system";
+
+	if ((0 == memcmp (buffer, g_pbMsSignature, 4)) &&
+		(BufferContainsString (buffer, bufferSize, g_szStr1) 
+		|| BufferContainsString (buffer, bufferSize, g_szStr2) 
+		|| BufferContainsString (buffer, bufferSize, g_szStr3)
+		)
+		)
+	{
+		bRet = TRUE;
+	}
+
+	return bRet;
+}
+
 namespace VeraCrypt
 {
 #if !defined (SETUP)
@@ -1030,7 +1051,7 @@ namespace VeraCrypt
 
 	static EfiBoot EfiBootInst;
 
-	BootEncryption::BootEncryption (HWND parent, bool postOOBE, bool setBootNext)
+	BootEncryption::BootEncryption (HWND parent, bool postOOBE, bool setBootEntry, bool forceFirstBootEntry, bool setBootNext)
 		: DriveConfigValid (false),
 		ParentWindow (parent),
 		RealSystemDriveSizeValid (false),
@@ -1042,7 +1063,9 @@ namespace VeraCrypt
 		SelectedPrfAlgorithmId (0),
 		VolumeHeaderValid (false),
 		PostOOBEMode (postOOBE),
-		SetBootNext (setBootNext)
+		SetBootNext (setBootNext),
+		SetBootEntry (setBootEntry),
+		ForceFirstBootEntry (forceFirstBootEntry)
 	{
       HiddenOSCandidatePartition.IsGPT = FALSE;
       HiddenOSCandidatePartition.Number = (size_t) -1;
@@ -2682,7 +2705,7 @@ namespace VeraCrypt
 		}
 	}
 
-	void EfiBoot::SetStartExec(wstring description, wstring execPath, bool setBootNext, uint16 statrtOrderNum , wchar_t* type, uint32 attr) {
+	void EfiBoot::SetStartExec(wstring description, wstring execPath, bool setBootEntry, bool forceFirstBootEntry, bool setBootNext, uint16 statrtOrderNum , wchar_t* type, uint32 attr) {
 		SetPrivilege(SE_SYSTEM_ENVIRONMENT_NAME, TRUE);
 		// Check EFI
 		if (!IsEfiBoot()) {
@@ -2799,27 +2822,56 @@ namespace VeraCrypt
 			}
 		}
 
-		// Create new entry if absent
-		if (startOrderNumPos == UINT_MAX) {
-			if (bDeviceInfoValid)
+		if (setBootEntry)
+		{
+			// check if first entry in BootOrder is Windows one
+			bool bFirstEntryIsWindows = false;
+			if (startOrderNumPos != 0)
 			{
-				for (uint32 i = startOrderLen / 2; i > 0; --i) {
+				wchar_t	varName[256];
+				StringCchPrintfW(varName, ARRAYSIZE (varName), L"%s%04X", type == NULL ? L"Boot" : type, startOrder[0]);
+
+				byte* existingVar = new byte[512];
+				DWORD existingVarLen = GetFirmwareEnvironmentVariableW (varName, EfiVarGuid, existingVar, 512);
+				if (existingVarLen > 0)
+				{
+					if (BufferContainsWideString (existingVar, existingVarLen, L"EFI\\Microsoft\\Boot\\bootmgfw.efi"))
+						bFirstEntryIsWindows = true;
+				}
+
+				delete [] existingVar;
+			}
+
+
+			// Create new entry if absent
+			if (startOrderNumPos == UINT_MAX) {
+				if (bDeviceInfoValid)
+				{
+					if (forceFirstBootEntry && bFirstEntryIsWindows)
+					{
+						for (uint32 i = startOrderLen / 2; i > 0; --i) {
+							startOrder[i] = startOrder[i - 1];
+						}
+						startOrder[0] = statrtOrderNum;
+					}
+					else
+					{
+						startOrder[startOrderLen/2] = statrtOrderNum;
+					}
+					startOrderLen += 2;
+					startOrderUpdate = true;
+				}
+			} else if ((startOrderNumPos > 0) && forceFirstBootEntry && bFirstEntryIsWindows) {
+				for (uint32 i = startOrderNumPos; i > 0; --i) {
 					startOrder[i] = startOrder[i - 1];
 				}
 				startOrder[0] = statrtOrderNum;
-				startOrderLen += 2;
 				startOrderUpdate = true;
 			}
-		} else if (startOrderNumPos > 0) {
-			for (uint32 i = startOrderNumPos; i > 0; --i) {
-				startOrder[i] = startOrder[i - 1];
-			}
-			startOrder[0] = statrtOrderNum;
-			startOrderUpdate = true;
-		}
 
-		if (startOrderUpdate) {
-			SetFirmwareEnvironmentVariable(order.c_str(), EfiVarGuid, startOrder, startOrderLen);
+			if (startOrderUpdate) {
+				SetFirmwareEnvironmentVariable(order.c_str(), EfiVarGuid, startOrder, startOrderLen);
+			}
 		}
 
 		if (setBootNext)
@@ -3333,7 +3385,7 @@ namespace VeraCrypt
 
 					// restore boot menu entry in case of PostOOBE
 					if (PostOOBEMode)
-						EfiBootInst.SetStartExec(L"VeraCrypt BootLoader (DcsBoot)", L"\\EFI\\VeraCrypt\\DcsBoot.efi", SetBootNext);
+						EfiBootInst.SetStartExec(L"VeraCrypt BootLoader (DcsBoot)", L"\\EFI\\VeraCrypt\\DcsBoot.efi", SetBootEntry, ForceFirstBootEntry, SetBootNext);
 
 					if (EfiBootInst.FileExists (L"\\EFI\\Microsoft\\Boot\\bootmgfw_ms.vc"))
 					{
@@ -3534,8 +3586,10 @@ namespace VeraCrypt
 					}
 				}
 
-				// perform actual write only if content is different
-				if (memcmp (mbr, bootLoaderBuf, TC_MAX_MBR_BOOT_CODE_SIZE))
+				// perform actual write only if content is different and either we are not in PostOOBE mode or the MBR contains VeraCrypt/Windows signature.
+				// this last check is done to avoid interfering with multi-boot configuration where MBR belongs to a boot manager like Grub
+				if (memcmp (mbr, bootLoaderBuf, TC_MAX_MBR_BOOT_CODE_SIZE) 
+					&& (!PostOOBEMode || BufferContainsString (mbr, sizeof (mbr), TC_APP_NAME) || IsWindowsMBR (mbr, sizeof (mbr))))
 				{
 					memcpy (mbr, bootLoaderBuf, TC_MAX_MBR_BOOT_CODE_SIZE);
 

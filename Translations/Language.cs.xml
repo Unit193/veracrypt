@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Hotfix1">
+  <localization prog-version= "1.24-Update2">
     <language langid="cs" name="Čeština" en-name="Czech" version="1.1.0" translators="Vítek Moser, Lagardere" />
     <font lang="cs" class="normal" size="11" face="default" />
     <font lang="cs" class="bold" size="13" face="Arial" />
@@ -1433,10 +1433,11 @@
     <entry lang="cs" key="CLEAR_KEYS_ON_DEVICE_INSERTION_WARNING">DŮLEŽITÉ UPOZORNĚNÍ:\n - Mějte na paměti, že tato možnost nepřetrvá po vypnutí/restartu systému, proto ji budete muset znovu zapnout po spuštění.\n\n - Je-li tato možnost povolena a bude připojeno nové zařízení, počítač zamrzne a může přejít do BSOD, jelikož Windows nebude mít přístup k zašifrovanému disku, smažete-li klíče z paměti.\n</entry>
     <entry lang="cs" key="STARTING">Spuštění</entry>
     <entry lang="cs" key="IDC_ENABLE_CPU_RNG">Použít náhodné hardwarové generování v CPU jako dodatečný zdroj entropie</entry> 
-    <entry lang="en" key="IDC_USE_LEGACY_MAX_PASSWORD_LENGTH">Use legacy maximum password length (64 characters)</entry>
-    <entry lang="en" key="IDC_ENABLE_RAM_ENCRYPTION">Activate encryption of keys and passwords stored in RAM</entry>
+    <entry lang="cs" key="IDC_USE_LEGACY_MAX_PASSWORD_LENGTH">Použít starou maximální délku hesla (64 znaků)</entry>
+    <entry lang="cs" key="IDC_ENABLE_RAM_ENCRYPTION">Aktivovat šifrování klíčů a hesel uložených v paměti RAM</entry>
     <entry lang="cs" key="IDT_BENCHMARK">Test výkonu:</entry>
-    <entry lang="en" key="IDC_DISABLE_MOUNT_MANAGER">Only create virtual device without mounting on selected drive letter</entry>
+    <entry lang="cs" key="IDC_DISABLE_MOUNT_MANAGER">Vytvořit virtuální zařízení bez připojení na vybrané písmeno jednotky</entry>
+    <entry lang="cs" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Zadané heslo je moc dlouhé: jeho reprezentace v UTF-8 přesahuje 64 bajtů.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

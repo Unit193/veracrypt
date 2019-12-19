@@ -70,7 +70,6 @@ endif
 ifeq "$(origin NOGUI)" "command line"
 	export TC_NO_GUI := 1
 	C_CXX_FLAGS += -DTC_NO_GUI
-	WX_CONFIGURE_FLAGS += --disable-gui
 endif
 
 ifdef PKCS11_INC
@@ -151,6 +150,7 @@ endif
 
 ifeq "$(origin NOASM)" "command line"
 	CPU_ARCH = unknown
+	C_CXX_FLAGS += -DCRYPTOPP_DISABLE_X86ASM
 endif
 
 ifeq "$(CPU_ARCH)" "x86"
