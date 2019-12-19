@@ -22,7 +22,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  		ListItemRightClickEventPending (false),
  		SelectedItemIndex (-1),
  		SelectedSlotNumber (0),
-@@ -1550,6 +1553,32 @@ namespace VeraCrypt
+@@ -1557,6 +1560,32 @@ namespace VeraCrypt
  		}
  	}
  
@@ -55,7 +55,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.cpp
  	void MainFrame::ShowTaskBarIcon (bool show)
  	{
  		if (!show && mTaskBarIcon->IsIconInstalled())
-@@ -1559,8 +1588,47 @@ namespace VeraCrypt
+@@ -1566,8 +1595,47 @@ namespace VeraCrypt
  		else if (show && !mTaskBarIcon->IsIconInstalled())
  		{
  #ifndef TC_MACOSX
@@ -123,8 +123,8 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
 +
  #include "Forms.h"
  #include "ChangePasswordDialog.h"
- 
-@@ -35,6 +45,18 @@ namespace VeraCrypt
+ #ifdef TC_MACOSX
+@@ -38,6 +48,18 @@ namespace VeraCrypt
  		static FilePath GetShowRequestFifoPath () { return Application::GetConfigFilePath (L".show-request-queue", true); }
  #endif
  
@@ -143,7 +143,7 @@ Index: veracrypt/src/Main/Forms/MainFrame.h
  	protected:
  		enum
  		{
-@@ -68,7 +90,6 @@ namespace VeraCrypt
+@@ -71,7 +93,6 @@ namespace VeraCrypt
  		void LoadFavoriteVolumes ();
  		void LoadPreferences ();
  		void MountAllDevices ();

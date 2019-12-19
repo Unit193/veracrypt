@@ -1,3 +1,1 @@
 001-indicator-support.patch
-002-Fix_compilation_on_non-x86_platforms.patch
-003-Fix_compilation_error_if_type___u64_already_defined.patch
