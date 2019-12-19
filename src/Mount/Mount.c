@@ -3019,11 +3019,16 @@ BOOL CALLBACK PasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			if (keybLayout != 0x00000409 && keybLayout != 0x04090409)
 			{
 				Error ("CANT_CHANGE_KEYB_LAYOUT_FOR_SYS_ENCRYPTION", hwndDlg);
-				EndDialog (hwndDlg, IDCANCEL);
-				return 1;
+				/* don't be too agressive on enforcing an English keyboard layout. E.g. on WindowsPE this call fails and
+				 * then the user can only mount a system encrypted device using the command line by passing the password as a parameter
+				 * (which might not be obvious for not so advanced users).
+				 *
+				 * Now, we informed the user that English keyboard is required, if it is not available the volume can just not be mounted.
+				 * There should be no other drawback (as e.g., on the change password dialog, when you might change to a password which won't
+				 * work on the pre-start environment.
+				 */
 			}
-
-			if (SetTimer (hwndDlg, TIMER_ID_KEYB_LAYOUT_GUARD, TIMER_INTERVAL_KEYB_LAYOUT_GUARD, NULL) == 0)
+			else if (SetTimer (hwndDlg, TIMER_ID_KEYB_LAYOUT_GUARD, TIMER_INTERVAL_KEYB_LAYOUT_GUARD, NULL) == 0)
 			{
 				Error ("CANNOT_SET_TIMER", hwndDlg);
 				EndDialog (hwndDlg, IDCANCEL);
@@ -5056,7 +5061,7 @@ static BOOL Mount (HWND hwndDlg, int nDosDriveNo, wchar_t *szFileName, int pim, 
 		else if (!Silent)
 		{
 			int GuiPkcs5 = EffectiveVolumePkcs5;
-			BOOL GuiTrueCryptMode = EffectiveVolumeTrueCryptMode;
+			BOOL GuiTrueCryptMode = EffectiveVolumeTrueCryptMode || IsTrueCryptFileExtension (szFileName)? TRUE : FALSE;
 			int GuiPim = EffectiveVolumePim;
 			StringCbCopyW (PasswordDlgVolume, sizeof(PasswordDlgVolume), szFileName);
 
@@ -9431,9 +9436,16 @@ static DWORD WINAPI SystemFavoritesServiceCtrlHandler (	DWORD dwControl,
 				{
 					// re-install our bootloader again in case the update process has removed it.
 					bool bForceSetNextBoot = false;
-					if (BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT)
+					bool bSetBootentry = true;
+					bool bForceFirstBootEntry = true;
+					uint32 flags = BootEncObj->ReadServiceConfigurationFlags ();
+					if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT)
 						bForceSetNextBoot = true;
-					BootEncryption bootEnc (NULL, true, bForceSetNextBoot);
+					if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_SET_BOOTENTRY)
+						bSetBootentry = false;
+					if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_FORCE_FIRST_BOOTENTRY)
+						bForceFirstBootEntry = false;
+					BootEncryption bootEnc (NULL, true, bSetBootentry, bForceFirstBootEntry, bForceSetNextBoot);
 					bootEnc.InstallBootLoader (true);
 				}
 			}
@@ -10849,6 +10861,21 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 			nStatus = ERR_OS_ERROR;
 			goto error;
 		}
+		else if (!bDevice && bPreserveTimestamp)
+		{
+			// ensure that Last Access timestamp is not modified
+			ftLastAccessTime.dwHighDateTime = 0xFFFFFFFF;
+			ftLastAccessTime.dwLowDateTime = 0xFFFFFFFF;
+
+			SetFileTime (dev, NULL, &ftLastAccessTime, NULL);
+
+			/* Remember the container modification/creation date and time. */
+
+			if (GetFileTime ((HANDLE) dev, &ftCreationTime, &ftLastAccessTime, &ftLastWriteTime) == 0)
+				bTimeStampValid = FALSE;
+			else
+				bTimeStampValid = TRUE;
+		}
 
 		// Determine volume host size
 		if (bDevice)
@@ -10919,15 +10946,6 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 			hostSize = fileSize.QuadPart;
 		}
 
-		if (!bDevice && bPreserveTimestamp)
-		{
-			/* Remember the container modification/creation date and time. */
-
-			if (GetFileTime ((HANDLE) dev, &ftCreationTime, &ftLastAccessTime, &ftLastWriteTime) == 0)
-				bTimeStampValid = FALSE;
-			else
-				bTimeStampValid = TRUE;
-		}
 
 		/* Read the volume header from the backup file */
 		char buffer[TC_VOLUME_HEADER_GROUP_SIZE];
@@ -11720,13 +11738,14 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 
 					while (TextEditDialogBox(FALSE, hwndDlg, GetString ("BOOT_LOADER_CONFIGURATION_FILE"), dcsprop) == IDOK)
 					{
-						if (0 == strcmp(dcsprop.c_str(), currentDcsprop.c_str()))
+						const char* dcspropContent = dcsprop.c_str();
+						if (0 == strcmp(dcspropContent, currentDcsprop.c_str()))
 						{
 							break;
 						}
-						else if (validateDcsPropXml (dcsprop.c_str()))
+						else if (validateDcsPropXml (dcspropContent))
 						{
-							WriteESPFile (L"\\EFI\\VeraCrypt\\DcsProp", (LPBYTE) dcsprop.c_str(), (DWORD) dcsprop.size(), true);
+							WriteESPFile (L"\\EFI\\VeraCrypt\\DcsProp", (LPBYTE) dcspropContent, (DWORD) strlen (dcspropContent), true);
 							break;
 						}
 						else

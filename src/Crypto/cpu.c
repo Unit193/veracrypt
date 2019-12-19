@@ -2,6 +2,9 @@
 
 #include "cpu.h"
 #include "misc.h"
+#if defined(_MSC_VER) && !defined(_UEFI)
+#include "rdrand.h"
+#endif
 
 #ifndef EXCEPTION_EXECUTE_HANDLER
 #define EXCEPTION_EXECUTE_HANDLER 1
@@ -218,8 +221,8 @@ VC_INLINE int IsAMD(const uint32 output[4])
 {
 	// This is the "AuthenticAMD" string
 	return (output[1] /*EBX*/ == 0x68747541) &&
-    (output[2] /*ECX*/ == 0x69746E65) &&
-    (output[3] /*EDX*/ == 0x444D4163);
+    (output[2] /*ECX*/ == 0x444D4163) &&
+    (output[3] /*EDX*/ == 0x69746E65);
 }
 
 VC_INLINE int IsHygon(const uint32 output[4])
@@ -386,6 +389,32 @@ void DetectX86Features()
 			}
 		}
 	}
+#if defined(_MSC_VER) && !defined(_UEFI)
+	/* Add check fur buggy RDRAND (AMD Ryzen case) even if we always use RDSEED instead of RDRAND when RDSEED available */
+	if (g_hasRDRAND)
+	{
+		if (	RDRAND_getBytes ((unsigned char*) cpuid, sizeof (cpuid))
+			&&	(cpuid[0] == 0xFFFFFFFF) &&	(cpuid[1] == 0xFFFFFFFF)
+			&&	(cpuid[2] == 0xFFFFFFFF) &&	(cpuid[3] == 0xFFFFFFFF)
+			)
+		{
+			g_hasRDRAND = 0;
+			g_hasRDSEED = 0;
+		}
+	}
+
+	if (g_hasRDSEED)
+	{
+		if (	RDSEED_getBytes ((unsigned char*) cpuid, sizeof (cpuid))
+			&&	(cpuid[0] == 0xFFFFFFFF) &&	(cpuid[1] == 0xFFFFFFFF)
+			&&	(cpuid[2] == 0xFFFFFFFF) &&	(cpuid[3] == 0xFFFFFFFF)
+			)
+		{
+			g_hasRDRAND = 0;
+			g_hasRDSEED = 0;
+		}
+	}
+#endif
 
 	if (!g_cacheLineSize)
 		g_cacheLineSize = CRYPTOPP_L1_CACHE_LINE_SIZE;

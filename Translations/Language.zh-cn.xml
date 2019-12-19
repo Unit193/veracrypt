@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Hotfix1">
+  <localization prog-version= "1.24-Update2">
     <language langid="zh-cn" name="简体中文" en-name="Chinese (Simplified)" version="1.0.0" translators="Barney Li and Zhangjintao" />
     <font lang="zh-cn" class="normal" size="11" face="Tahoma" />
     <font lang="zh-cn" class="bold" size="14" face="Tahoma" />
@@ -1437,6 +1437,7 @@
     <entry lang="zh-cn" key="IDC_ENABLE_RAM_ENCRYPTION">激活存储在RAM中的密钥和密码加密</entry>
     <entry lang="zh-cn" key="IDT_BENCHMARK">基准测试:</entry>
     <entry lang="zh-cn" key="IDC_DISABLE_MOUNT_MANAGER">仅创建虚拟设备而不加载在选定的盘符上</entry>
+    <entry lang="zh-cn" key="LEGACY_PASSWORD_UTF8_TOO_LONG">键入的密码过长：在UTF-8下已超过64字节。</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

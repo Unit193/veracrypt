@@ -41,7 +41,9 @@ namespace VeraCrypt
 #endif
 		{
 			FInputStream.reset (new wxFFileInputStream (stdin));
-			TextInputStream.reset (new wxTextInputStream (*FInputStream));
+			// Set fallback encoding of the stream converter to UTF-8
+			// to make sure we interpret multibyte symbols properly
+			TextInputStream.reset (new wxTextInputStream (*FInputStream, wxT(" \t"), wxConvAuto(wxFONTENCODING_UTF8)));
 		}
 	}
 
@@ -125,7 +127,7 @@ namespace VeraCrypt
 
 			if (verify && verPhase)
 			{
-				shared_ptr <VolumePassword> verPassword = ToUTF8Password (passwordBuf, length);
+				shared_ptr <VolumePassword> verPassword = ToUTF8Password (passwordBuf, length, CmdLine->ArgUseLegacyPassword? VolumePassword::MaxLegacySize : VolumePassword::MaxSize);
 
 				if (*password != *verPassword)
 				{
@@ -136,7 +138,7 @@ namespace VeraCrypt
 				}
 			}
 
-			password = ToUTF8Password (passwordBuf, length);
+			password = ToUTF8Password (passwordBuf, length, CmdLine->ArgUseLegacyPassword? VolumePassword::MaxLegacySize : VolumePassword::MaxSize);
 
 			if (!verPhase)
 			{

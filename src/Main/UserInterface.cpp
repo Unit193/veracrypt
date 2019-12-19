@@ -444,6 +444,7 @@ namespace VeraCrypt
 	{
 #define EX2MSG(exception, message) do { if (ex == typeid (exception)) return (message); } while (false)
 		EX2MSG (DriveLetterUnavailable,				LangString["DRIVE_LETTER_UNAVAILABLE"]);
+		EX2MSG (DeviceSectorSizeMismatch,			_("Storage device and VC volume sector size mismatch"));
 		EX2MSG (EncryptedSystemRequired,			_("This operation must be performed only when the system hosted on the volume is running."));
 		EX2MSG (ExternalException,					LangString["EXCEPTION_OCCURRED"]);
 		EX2MSG (InsufficientData,					_("Not enough data available."));
@@ -464,6 +465,7 @@ namespace VeraCrypt
 		EX2MSG (PasswordOrMountOptionsIncorrect,	LangString["PASSWORD_OR_KEYFILE_OR_MODE_WRONG"] + _("\n\nNote: If you are attempting to mount a partition located on an encrypted system drive without pre-boot authentication or to mount the encrypted system partition of an operating system that is not running, you can do so by selecting 'Options >' > 'Mount partition using system encryption'."));
 		EX2MSG (PasswordTooLong,					StringFormatter (_("Password is longer than {0} characters."), (int) VolumePassword::MaxSize));
 		EX2MSG (PasswordUTF8TooLong,				LangString["PASSWORD_UTF8_TOO_LONG"]);
+		EX2MSG (PasswordLegacyUTF8TooLong,			LangString["LEGACY_PASSWORD_UTF8_TOO_LONG"]);
 		EX2MSG (PasswordUTF8Invalid,				LangString["PASSWORD_UTF8_INVALID"]);
 		EX2MSG (PartitionDeviceRequired,			_("Partition device required."));
 		EX2MSG (ProtectionPasswordIncorrect,		_("Incorrect password to the protected hidden volume or the hidden volume does not exist."));
@@ -532,6 +534,10 @@ namespace VeraCrypt
 
 			Core->SetAdminPasswordCallback (shared_ptr <GetStringFunctor> (new AdminPasswordRequestHandler));
 		}
+
+#if defined(TC_LINUX ) || defined (TC_FREEBSD)
+		Core->ForceUseDummySudoPassword (CmdLine->ArgUseDummySudoPassword);
+#endif
 
 		Core->WarningEvent.Connect (EventConnector <UserInterface> (this, &UserInterface::OnWarning));
 		Core->VolumeMountedEvent.Connect (EventConnector <UserInterface> (this, &UserInterface::OnVolumeMounted));
@@ -908,7 +914,8 @@ namespace VeraCrypt
 			wstring pwdInput;
 			getline(wcin, pwdInput);
 
-			cmdLine.ArgPassword = ToUTF8Password ( pwdInput.c_str (), pwdInput.size ());
+			size_t maxUtf8Len = cmdLine.ArgUseLegacyPassword? VolumePassword::MaxLegacySize : VolumePassword::MaxSize;
+			cmdLine.ArgPassword = ToUTF8Password ( pwdInput.c_str (), pwdInput.size (), maxUtf8Len);
 		}
 
 		switch (cmdLine.ArgCommand)
@@ -1265,7 +1272,7 @@ namespace VeraCrypt
 					"--size=SIZE[K|M|G|T]\n"
 					" Use specified size when creating a new volume. If no suffix is indicated,\n"
 					" then SIZE is interpreted in bytes. Suffixes K, M, G or T can be used to\n"
-					" indicate a value in KB, MB, GB or TB respectively.\n"
+					" indicate a value in KiB, MiB, GiB or TiB respectively.\n"
 					"\n"
 					"-t, --text\n"
 					" Use text user interface. Graphical user interface is used by default if\n"
@@ -1575,12 +1582,14 @@ namespace VeraCrypt
 		VC_CONVERT_EXCEPTION (PasswordEmpty);
 		VC_CONVERT_EXCEPTION (PasswordTooLong);
 		VC_CONVERT_EXCEPTION (PasswordUTF8TooLong);
+		VC_CONVERT_EXCEPTION (PasswordLegacyUTF8TooLong);
 		VC_CONVERT_EXCEPTION (PasswordUTF8Invalid);
 		VC_CONVERT_EXCEPTION (UnportablePassword);
 		VC_CONVERT_EXCEPTION (ElevationFailed);
 		VC_CONVERT_EXCEPTION (RootDeviceUnavailable);
 		VC_CONVERT_EXCEPTION (DriveLetterUnavailable);
 		VC_CONVERT_EXCEPTION (DriverError);
+		VC_CONVERT_EXCEPTION (DeviceSectorSizeMismatch);
 		VC_CONVERT_EXCEPTION (EncryptedSystemRequired);
 		VC_CONVERT_EXCEPTION (HigherFuseVersionRequired);
 		VC_CONVERT_EXCEPTION (KernelCryptoServiceTestFailed);

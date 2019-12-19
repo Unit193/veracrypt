@@ -10,7 +10,7 @@ and released into public domain.
 #include "Crypto/cpu.h"
 #include "Crypto/misc.h"
 
-#ifdef _UEFI
+#if defined(_UEFI) || defined(CRYPTOPP_DISABLE_ASM)
 #define NO_OPTIMIZED_VERSIONS
 #endif
 
@@ -774,7 +774,7 @@ void sha256_begin(sha256_ctx* ctx)
 	if (!sha256transfunc)
 	{
 #ifndef NO_OPTIMIZED_VERSIONS
-#ifdef _M_X64
+#if CRYPTOPP_BOOL_X64
 		if (g_isIntel && HasSAVX2() && HasSBMI2())
 			sha256transfunc = Avx2Sha256Transform;
 		else if (g_isIntel && HasSAVX())

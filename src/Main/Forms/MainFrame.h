@@ -15,6 +15,9 @@
 
 #include "Forms.h"
 #include "ChangePasswordDialog.h"
+#ifdef TC_MACOSX
+#include <wx/display.h>
+#endif
 
 namespace VeraCrypt
 {
@@ -161,6 +164,35 @@ namespace VeraCrypt
 		void UpdateVolumeList ();
 		void UpdateWipeCacheButton ();
 		void WipeCache ();
+
+#ifdef TC_MACOSX
+		void OnMoveHandler(wxMoveEvent& event);
+
+        void EnsureVisible(bool bOnlyHeadingBar = false)
+        {
+        	wxDisplay display (this);
+        	wxRect displayRect = display.GetClientArea();
+        	    
+        	bool bMove = false;
+        	wxPoint p = GetScreenPosition();
+        	wxRect r = GetRect ();
+        	wxRect rc = GetClientRect ();
+        	int titleBarHeight = r.height - rc.height; 	
+        	
+        	if (!bOnlyHeadingBar && (p.x < displayRect.x))
+        		p.x = 0, bMove = true;
+        	if (p.y < displayRect.y)
+        		p.y = displayRect.y, bMove = true;
+        	if (!bOnlyHeadingBar && (p.x + r.width > displayRect.x + displayRect.width))
+        		p.x = displayRect.x + displayRect.width - r.width, bMove = true;
+        	if (!bOnlyHeadingBar && (p.y + r.height > displayRect.y + displayRect.height))
+        		p.y = displayRect.y + displayRect.height - r.height, bMove = true;
+        	if (bOnlyHeadingBar && (p.y > (displayRect.y + displayRect.height - titleBarHeight)))
+        		p.y = displayRect.y + displayRect.height - titleBarHeight, bMove = true;
+        	if (bMove)
+        		Move (p);
+        }
+#endif
 
 		struct VolumeActivityMapEntry
 		{

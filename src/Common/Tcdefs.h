@@ -55,7 +55,7 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.24-Hotfix1"
+#define VERSION_STRING					"1.24-Update2"
 
 #ifdef VC_EFI_CUSTOM_MODE
 #define VERSION_STRING_SUFFIX			"-CustomEFI"
@@ -67,9 +67,9 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define VERSION_NUM						0x0124
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"October 27, 2019"
+#define TC_STR_RELEASE_DATE			L"December 16, 2019"
 #define TC_RELEASE_DATE_YEAR			2019
-#define TC_RELEASE_DATE_MONTH			 10
+#define TC_RELEASE_DATE_MONTH			 12
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -263,6 +263,10 @@ extern ULONG AllocTag;
 typedef int BOOL;
 #endif
 
+#ifndef BOOLEAN
+typedef unsigned char  BOOLEAN;
+#endif
+
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -289,6 +293,8 @@ typedef NTSTATUS (NTAPI *ExGetFirmwareEnvironmentVariableFn) (
   PULONG          Attributes
 );
 
+typedef BOOLEAN (NTAPI *KeAreAllApcsDisabledFn) ();
+
 extern NTSTATUS NTAPI KeSaveExtendedProcessorState (
     __in ULONG64 Mask,
     PXSTATE_SAVE XStateSave
@@ -298,6 +304,9 @@ extern NTSTATUS NTAPI KeSaveExtendedProcessorState (
 extern VOID NTAPI KeRestoreExtendedProcessorState (
 	PXSTATE_SAVE XStateSave
 	);
+
+extern BOOLEAN VC_KeAreAllApcsDisabled (VOID);
+
 
 #else				/* !TC_WINDOWS_DRIVER */
 #if !defined(_UEFI)

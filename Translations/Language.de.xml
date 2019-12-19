@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Hotfix1">
+  <localization prog-version= "1.24-Update2">
     <!-- Sprachen -->
     <language langid="de" name="Deutsch" en-name="German" version="1.1.8" translators="Harry Haller, Alexander Schorg, Simon Frankenberger, David Arndt, H. Sauer, Dulla, Ettore Atalan, Matthias Kolja Miehl, Felix Reichmann" />
     <!-- Schriftarten -->
@@ -1440,6 +1440,7 @@
     <entry lang="de" key="IDC_ENABLE_RAM_ENCRYPTION">Verschlüsselung der im Arbeitsspeicher gespeicherten Schlüssel und Passwörter aktivieren</entry>
     <entry lang="de" key="IDT_BENCHMARK">Benchmark:</entry>
     <entry lang="de" key="IDC_DISABLE_MOUNT_MANAGER">Nur virtuelles Gerät erstellen ohne Einbinden auf dem ausgewählten Laufwerksbuchstaben</entry>
+    <entry lang="de" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Das eingegebene Passwort ist zu lang: Kodiert mit UTF-8 überschreitet es 64 Byte.</entry>
   </localization>
   <!-- XML-Schema -->
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
