@@ -5,7 +5,7 @@ set -e
 case "$1" in
     remove|upgrade|deconfigure|failed-upgrade)
         (mount | grep -q veracrypt_aux_mnt) &&
-        echo "Error: all VeraCrypt volumes must be unmounted before upgrade." && exit 1
+        echo "Error: all VeraCrypt volumes must be unmounted before upgrade." >&2 && exit 1
         exit 0
     ;;
 
