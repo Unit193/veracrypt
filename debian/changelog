@@ -1,3 +1,12 @@
+veracrypt (1.24-Update4-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.24-Update4
+  * Update Standards-Version to 4.5.0.
+  * d/compat, d/control:
+    - Drop d/compat in favor of debhelper-compat, bump to 12.
+
+ -- Unit 193 <unit193@ubuntu.com>  Mon, 27 Jan 2020 18:31:30 -0500
+
 veracrypt (1.24-Update2-0vanir1) unstable; urgency=medium
 
   * d/prerm: Send error messages to STDERR.
