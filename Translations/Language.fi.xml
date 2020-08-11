@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <language langid="fi" name="Suomi" en-name="Finnish" version="0.3.0" translators="Matti Ruhanen" />
     <font lang="fi" class="normal" size="11" face="default" />
     <font lang="fi" class="bold" size="13" face="Arial" />
@@ -1378,7 +1378,7 @@
     <entry lang="fi" key="IDC_BOOT_LOADER_CACHE_PIM">Sisällytä &amp;PIM-asetusta, kun tallennat esi-käynnistys tunnistus salasanan</entry>
     <entry lang="fi" key="IDC_PREF_CACHE_PIM">Sisällytä PIM tallennettaessa salasana välimuistiin</entry>
     <entry lang="fi" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Tee irrotetut verkkoajurit mahdollisiksi kytkemiselle</entry>
-    <entry lang="fi" key="PASSWORD_UTF8_TOO_LONG">Syötetty salasana on liian pitkä: sen UTF-8-esitys ylittää 128 tavua.</entry>
+    <entry lang="fi" key="PASSWORD_UTF8_TOO_LONG">Syötetty salasana on liian pitkä: sen UTF-8-esitys ylittää %d tavua.</entry>
     <entry lang="fi" key="PASSWORD_UTF8_INVALID">Syötetty salasana sisältää Unicode-merkkejä, joita ei voitu muuntaa UTF-8-esitykseksi.</entry>
     <entry lang="fi" key="INIT_DLL">Virhe: järjestelmän kirjaston lataaminen epäonnistui.</entry>
     <entry lang="fi" key="ERR_EXFAT_INVALID_VOLUME_SIZE">Komentorivin määrittämä taltion koko ei ole yhteensopiva valitun exFAT-tiedostojärjestelmän kanssa.</entry>
@@ -1421,8 +1421,8 @@
     <entry lang="fi" key="IDC_BLOCK_SYSENC_TRIM">Estä TRIM-komento järjestelmän osio/asemalle</entry>
     <entry lang="fi" key="WINDOWS_EFI_BOOT_LOADER_MISSING">VIRHE: Windows EFI -järjestelmänlataajaa ei löydy levyltä. Toiminto keskeytyy.</entry>
     <entry lang="fi" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Tällä hetkellä ei ole mahdollista salata järjestelmää, jos SecureBoot on käytössä ja jos VeraCrypt-mukautettuja avaimia ei ladata laitteen laiteohjelmistoon. SecureBoot on poistettava käytöstä BIOS-kokoonpanossa, jotta järjestelmän salauksessa voidaan edetä.</entry>
-    <entry lang="fi" key="PASSWORD_PASTED_TRUNCATED">Liitetty teksti katkaistaan, koska salasanan enimmäispituus on 128 merkkiä</entry>
-    <entry lang="fi" key="PASSWORD_MAXLENGTH_REACHED">Salasanan enimmäispituus on 128 merkkiä.\nErikoismerkkejä ei sallittu.</entry>
+    <entry lang="fi" key="PASSWORD_PASTED_TRUNCATED">Liitetty teksti katkaistaan, koska salasanan enimmäispituus on %d merkkiä</entry>
+    <entry lang="fi" key="PASSWORD_MAXLENGTH_REACHED">Salasanan enimmäispituus on %d merkkiä.\nErikoismerkkejä ei sallittu.</entry>
     <entry lang="fi" key="IDC_SELECT_LANGUAGE_LABEL">Valitse asentamisen aikana käytettävä kieli:</entry>
     <entry lang="fi" key="VOLUME_TOO_LARGE_FOR_HOST">VIRHE: Tiedostosäilön koko on suurempi kuin käytettävissä oleva vapaa levytila.</entry>
     <entry lang="fi" key="IDC_ALLOW_WINDOWS_DEFRAG">Salli Windowsin Levyn Eheytyksen eheyttää ei-järjestelmäosio/asema</entry>    
@@ -1438,6 +1438,14 @@
     <entry lang="fi" key="IDT_BENCHMARK">Nopeustesti:</entry>
     <entry lang="fi" key="IDC_DISABLE_MOUNT_MANAGER">Luo vain virtuaalinen laite asentamatta sitä valittuun aseman kirjaimeen</entry>
     <entry lang="fi" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Syötetty salasana on liian pitkä: sen UTF-8-esitys ylittää 64 tavua.</entry>
+    <entry lang="fi" key="HIDDEN_CREDS_SAME_AS_OUTER">Piilotetun taltion salasana, PIM ja avaintiedostot eivät voi olla samat kuin ulkoisen taltion</entry>
+    <entry lang="fi" key="SYSENC_BITLOCKER_CONFLICT">VeraCrypt ei tue järjestelmäaseman salaamista kun se on salattu BitLockerilla.</entry>
+    <entry lang="en" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">Automatically fix boot configuration issues that may prevent Windows from starting</entry>
+    <entry lang="en" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">Force machine to boot on VeraCrypt in the next startup</entry>
+    <entry lang="en" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">Force the presence of VeraCrypt entry in the EFI firmware boot menu</entry>
+    <entry lang="en" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">Force VeraCrypt entry to be the first in the EFI firmware boot menu</entry>
+    <entry lang="en" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">WARNING: RAM encryption is not compatible with Windows Hibernate and Windows Fast Startup features. VeraCrypt needs to disable them before activating RAM encryption.\n\nContinue?</entry>
+    <entry lang="en" key="CONFIRM_DISABLE_FAST_STARTUP">WARNING: Windows Fast Startup is enabled and it is known to cause issues when working with VeraCrypt volumes. It is advised to disable it for better security and usability.\n\nDo you want to disable Windows Fast Startup?</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

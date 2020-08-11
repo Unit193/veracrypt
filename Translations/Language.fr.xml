@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <language langid="fr" name="Français" en-name="French" version="0.3.0" translators="Stéphane S., Olivier M., Thierry T" />
     <font lang="fr" class="normal" size="11" face="default" />
     <font lang="fr" class="bold" size="13" face="Arial" />
@@ -1378,7 +1378,7 @@
     <entry lang="fr" key="IDC_BOOT_LOADER_CACHE_PIM">Inclure le &amp;PIM quand le mot de passe d’authentification de préamorçage est mis en cache</entry>
     <entry lang="fr" key="IDC_PREF_CACHE_PIM">Inclure le PIM quand le mot de passe est mis en cache</entry>
     <entry lang="fr" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Permettre d’utiliser les lecteurs réseaux déconnectés comme point de montage</entry>
-    <entry lang="fr" key="PASSWORD_UTF8_TOO_LONG">Le mot de passe saisi est trop long: sa representation UTF-8 dépasse 128 octets.</entry>
+    <entry lang="fr" key="PASSWORD_UTF8_TOO_LONG">Le mot de passe saisi est trop long: sa representation UTF-8 dépasse %d octets.</entry>
     <entry lang="fr" key="PASSWORD_UTF8_INVALID">Le mot de passe saisi contient des caractères Unicode qui n’ont pas pu être converti en UTF-8.</entry>
     <entry lang="fr" key="INIT_DLL">Erreur : Echec de chargement d’une librairie système.</entry>
     <entry lang="fr" key="ERR_EXFAT_INVALID_VOLUME_SIZE">La taille du volume spécifiée en ligne de commande n’est pas compatible avec exFAT.</entry>
@@ -1421,8 +1421,8 @@
     <entry lang="fr" key="IDC_BLOCK_SYSENC_TRIM">Bloquer la commande TRIM sur la partition/disque système</entry>
     <entry lang="fr" key="WINDOWS_EFI_BOOT_LOADER_MISSING">ERREUR: Le chargeur de démarrage système EFI de Windows n’a pas pu être trouvé sur le disque. L’opération va être interrompue.</entry>
     <entry lang="fr" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Il n’est actuellement pas possible de chiffrer un système si SecureBoot est activé et si les clefs personnalisées de VeraCrypt ne sont pas chargées dans le firmware de la machine. SecureBoot doit être désactivé dans la configuration du BIOS afin de permettre d’effectuer le chiffrement du système.</entry>
-    <entry lang="fr" key="PASSWORD_PASTED_TRUNCATED">Le texte collé a été tronqué car la taille maximale du mot de passe est de 128 caractères</entry>
-    <entry lang="fr" key="PASSWORD_MAXLENGTH_REACHED">Le mot de passe a déjà atteint sa taille maximale de 128 caractères.\nAucun caractère supplémentaire n'est autorisé.</entry>
+    <entry lang="fr" key="PASSWORD_PASTED_TRUNCATED">Le texte collé a été tronqué car la taille maximale du mot de passe est de %d caractères</entry>
+    <entry lang="fr" key="PASSWORD_MAXLENGTH_REACHED">Le mot de passe a déjà atteint sa taille maximale de %d caractères.\nAucun caractère supplémentaire n'est autorisé.</entry>
     <entry lang="fr" key="IDC_SELECT_LANGUAGE_LABEL">Veuillez sélectionner la langue qui sera utilisée par l'assistant d'installation :</entry>
     <entry lang="fr" key="VOLUME_TOO_LARGE_FOR_HOST">ERREUR : La taille du fichier conteneur est plus grande que l'espace libre sur le disque.</entry>
     <entry lang="fr" key="IDC_ALLOW_WINDOWS_DEFRAG">Autoriser l'outil de défragmentation de disque de Windows à défragmenter les disques non système</entry>
@@ -1438,6 +1438,14 @@
     <entry lang="fr" key="IDT_BENCHMARK">Banc de test:</entry>
     <entry lang="fr" key="IDC_DISABLE_MOUNT_MANAGER">Créer seulement le périphérique virtuel sans montage à la lettre de lecteur</entry>
     <entry lang="fr" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Le mot de passe saisi est trop long: sa representation UTF-8 dépasse 64 octets.</entry>
+    <entry lang="fr" key="HIDDEN_CREDS_SAME_AS_OUTER">Le volume caché ne peut pas avoir le même mot de passe, PIM et fichier(s) clé(s) que le volume externe.</entry>
+    <entry lang="fr" key="SYSENC_BITLOCKER_CONFLICT">VeraCrypt ne supporte pas le chiffrement d’un disque système qui a été déjà chiffré par BitLocker.</entry>
+    <entry lang="fr" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">Corriger automatiquement les problèmes d'amorçage qui peuvent empêcher Windows de démarrer</entry>
+    <entry lang="fr" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">Forcer l'amorçage de la machine sur VeraCrypt au prochain démarrage</entry>
+    <entry lang="fr" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">Forcer la présence de l'entrée VeraCrypt de le menu des chargeurs d'amorçage EFI de la carte mère</entry>
+    <entry lang="fr" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">Forcer l'entrée VeraCrypt a être la première dans le menu des chargeurs d'amorçage EFI de la carte mère</entry>
+    <entry lang="fr" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">AVERTISSEMENT: Le chiffrement de la RAM n'est pas compatible avec les fonctionnalités hibernation et démarrage rapide de Windows. VeraCrypt a besoin de les désactiver avant d'activer le chiffrement de la RAM.\n\n Continuer?</entry>
+    <entry lang="fr" key="CONFIRM_DISABLE_FAST_STARTUP">AVERTISSEMENT: Le démarrage rapide de Windows est activé, ce qui peut causer des problèmes lors de l'utilisation de VeraCrypt. Il est conseillé de le désactiver pour améliorer la sécurité et l'utilisabilié de VeraCrypt.\n\nVoulez-vous désactiver le démarrage rapide de Windows?</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -55,7 +55,7 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.24-Update4"
+#define VERSION_STRING					"1.24-Update7"
 
 #ifdef VC_EFI_CUSTOM_MODE
 #define VERSION_STRING_SUFFIX			"-CustomEFI"
@@ -67,9 +67,9 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define VERSION_NUM						0x0124
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"January 23, 2020"
+#define TC_STR_RELEASE_DATE			L"August 7, 2020"
 #define TC_RELEASE_DATE_YEAR			2020
-#define TC_RELEASE_DATE_MONTH			 1
+#define TC_RELEASE_DATE_MONTH			 8
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -263,6 +263,10 @@ extern ULONG AllocTag;
 typedef int BOOL;
 #endif
 
+#ifndef WORD
+typedef USHORT WORD;
+#endif
+
 #ifndef BOOLEAN
 typedef unsigned char  BOOLEAN;
 #endif
@@ -294,6 +298,17 @@ typedef NTSTATUS (NTAPI *ExGetFirmwareEnvironmentVariableFn) (
 );
 
 typedef BOOLEAN (NTAPI *KeAreAllApcsDisabledFn) ();
+
+typedef void (NTAPI *KeSetSystemGroupAffinityThreadFn)(
+  PGROUP_AFFINITY Affinity,
+  PGROUP_AFFINITY PreviousAffinity
+);
+
+typedef USHORT (NTAPI *KeQueryActiveGroupCountFn)();
+
+typedef ULONG (NTAPI *KeQueryActiveProcessorCountExFn)(
+  USHORT GroupNumber
+);
 
 extern NTSTATUS NTAPI KeSaveExtendedProcessorState (
     __in ULONG64 Mask,

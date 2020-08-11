@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <!-- Sprachen -->
     <language langid="de" name="Deutsch" en-name="German" version="1.1.8" translators="Harry Haller, Alexander Schorg, Simon Frankenberger, David Arndt, H. Sauer, Dulla, Ettore Atalan, Matthias Kolja Miehl, Felix Reichmann" />
     <!-- Schriftarten -->
@@ -1381,7 +1381,7 @@
     <entry lang="de" key="IDC_BOOT_LOADER_CACHE_PIM">&amp;PIM beim Zwischenspeichern eines Prä-Boot-Authentifikationspasswortes einbeziehen</entry>
     <entry lang="de" key="IDC_PREF_CACHE_PIM">PIM beim Zwischenspeichern eines Passwortes einbeziehen</entry>
     <entry lang="de" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Getrennte Netzlaufwerke zum Einbinden verfügbar machen</entry>
-    <entry lang="de" key="PASSWORD_UTF8_TOO_LONG">Das eingegebene Passwort ist zu lang: Kodiert mit UTF-8 überschreitet es 128 Byte.</entry>
+    <entry lang="de" key="PASSWORD_UTF8_TOO_LONG">Das eingegebene Passwort ist zu lang: Kodiert mit UTF-8 überschreitet es %d Byte.</entry>
     <entry lang="de" key="PASSWORD_UTF8_INVALID">Das eingegebene Passwort enthält Unicode-Zeichen, die nicht mit UTF-8 kodiert werden können.</entry>
     <entry lang="de" key="INIT_DLL">Fehler: Kann eine Systembibliothek nicht laden.</entry>
     <entry lang="de" key="ERR_EXFAT_INVALID_VOLUME_SIZE">Die auf der Kommandozeile angegebene Volume-Größe ist nicht mit dem gewählten exFAT Dateisystem kompatibel.</entry>
@@ -1424,8 +1424,8 @@
     <entry lang="de" key="IDC_BLOCK_SYSENC_TRIM">TRIM-Befehl auf Systempartition/Laufwerk blockieren</entry>
     <entry lang="de" key="WINDOWS_EFI_BOOT_LOADER_MISSING">FEHLER: Windows-EFI-Systemlader konnte nicht auf der Festplatte gefunden werden. Operation wird abgebrochen.</entry>
     <entry lang="de" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Es ist derzeit nicht möglich, ein System zu verschlüsseln, wenn SecureBoot aktiviert ist und keine benutzerdefinierten Schlüssel von VeraCrypt in die Maschinen-Firmware geladen sind. SecureBoot muss in der BIOS-Konfiguration deaktiviert werden, damit die Systemverschlüsselung fortgesetzt werden kann.</entry>
-    <entry lang="de" key="PASSWORD_PASTED_TRUNCATED">Eingefügter Text wurde abgeschnitten, da die maximale Länge des Passworts 128 Zeichen beträgt</entry>
-    <entry lang="de" key="PASSWORD_MAXLENGTH_REACHED">Passwort hat bereits seine maximale Länge von 128 Zeichen erreicht.\nEs ist kein zusätzliches Zeichen erlaubt.</entry>
+    <entry lang="de" key="PASSWORD_PASTED_TRUNCATED">Eingefügter Text wurde abgeschnitten, da die maximale Länge des Passworts %d Zeichen beträgt</entry>
+    <entry lang="de" key="PASSWORD_MAXLENGTH_REACHED">Passwort hat bereits seine maximale Länge von %d Zeichen erreicht.\nEs ist kein zusätzliches Zeichen erlaubt.</entry>
     <entry lang="de" key="IDC_SELECT_LANGUAGE_LABEL">Wählen Sie die Sprache aus, die während der Installation benutzt werden soll:</entry>
     <entry lang="de" key="VOLUME_TOO_LARGE_FOR_HOST">FEHLER: Der Datei-Container ist größer als der verfügbare freie Speicherplatz auf der Festplatte.</entry>
     <entry lang="de" key="IDC_ALLOW_WINDOWS_DEFRAG">Windows-Festplattendefragmentierung die Defragmentierung von Nicht-Systempartitionen/-laufwerken erlauben</entry>    
@@ -1441,6 +1441,14 @@
     <entry lang="de" key="IDT_BENCHMARK">Benchmark:</entry>
     <entry lang="de" key="IDC_DISABLE_MOUNT_MANAGER">Nur virtuelles Gerät erstellen ohne Einbinden auf dem ausgewählten Laufwerksbuchstaben</entry>
     <entry lang="de" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Das eingegebene Passwort ist zu lang: Kodiert mit UTF-8 überschreitet es 64 Byte.</entry>
+    <entry lang="de" key="HIDDEN_CREDS_SAME_AS_OUTER">Das versteckte Volume kann nicht dasselbe Passwort, PIM und dieselben Schlüsseldateien haben wie das äußere Volume</entry>
+    <entry lang="de" key="SYSENC_BITLOCKER_CONFLICT">Die Verschlüsselung eines Systemlaufwerks, das bereits mit BitLocker verschlüsselt ist, wird von VeraCrypt nicht unterstützt.</entry>
+    <entry lang="de" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">Boot-Konfigurationsprobleme, die den Start von Windows verhindern können, automatisch beheben</entry>
+    <entry lang="de" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">Booten unter VeraCrypt beim nächsten Start vom Rechner erzwingen</entry>
+    <entry lang="de" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">Vorhandensein des VeraCrypt-Eintrags im EFI-Firmware-Bootmenü erzwingen</entry>
+    <entry lang="de" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">VeraCrypt als ersten Eintrag im EFI-Firmware-Bootmenü erzwingen</entry>
+    <entry lang="de" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">WARNUNG: Die RAM-Verschlüsselung ist nicht kompatibel mit den Windows-Funktionen Ruhezustand und Schnellstart. VeraCrypt muss sie deaktivieren, bevor die RAM-Verschlüsselung aktiviert wird.\n\nFortfahren?</entry>
+    <entry lang="de" key="CONFIRM_DISABLE_FAST_STARTUP">WARNUNG: Der Windows-Schnellstart ist aktiviert und es ist bekannt, dass er Probleme bei der Arbeit mit VeraCrypt-Volumes verursacht. Es wird empfohlen, ihn für eine bessere Sicherheit und Benutzerfreundlichkeit zu deaktivieren.\n\nMöchten Sie den Windows-Schnellstart deaktivieren?</entry>
   </localization>
   <!-- XML-Schema -->
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">

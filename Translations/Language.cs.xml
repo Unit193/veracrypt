@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <language langid="cs" name="Čeština" en-name="Czech" version="1.1.0" translators="Vítek Moser, Lagardere" />
     <font lang="cs" class="normal" size="11" face="default" />
     <font lang="cs" class="bold" size="13" face="Arial" />
@@ -1315,7 +1315,7 @@
     <entry lang="cs" key="VKEY_0D">Enter</entry>
     <entry lang="cs" key="VKEY_13">Pauza</entry>
     <entry lang="cs" key="VKEY_14">Caps Lock</entry>
-    <entry lang="cs" key="VKEY_20">Mezernk</entry>
+    <entry lang="cs" key="VKEY_20">Mezerník</entry>
     <entry lang="cs" key="VKEY_21">Page Up</entry>
     <entry lang="cs" key="VKEY_22">Page Down</entry>
     <entry lang="cs" key="VKEY_23">End</entry>
@@ -1378,7 +1378,7 @@
     <entry lang="cs" key="IDC_BOOT_LOADER_CACHE_PIM">Zahrnout &amp;PIM s ověřovacím heslem do mezipaměti</entry>
     <entry lang="cs" key="IDC_PREF_CACHE_PIM">Zahrnout PIM při uložení hesla do mezipaměti</entry>
     <entry lang="cs" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Odpojené síťové disky budou dostupné pro připojení</entry>
-    <entry lang="cs" key="PASSWORD_UTF8_TOO_LONG">Zadané heslo je moc dlouhé: jeho reprezentace v UTF-8 přesahuje 128 bajtů.</entry>
+    <entry lang="cs" key="PASSWORD_UTF8_TOO_LONG">Zadané heslo je moc dlouhé: jeho reprezentace v UTF-8 přesahuje %d bajtů.</entry>
     <entry lang="cs" key="PASSWORD_UTF8_INVALID">Zadané heslo obsahuje znaky v Unicode, které nemohou být převedeny do UTF-8.</entry>
     <entry lang="cs" key="INIT_DLL">Chyba: nebylo možné načíst systémovou knihovnu.</entry>
     <entry lang="cs" key="ERR_EXFAT_INVALID_VOLUME_SIZE">Velikost souboru ve svazku specifikovaná v příkazovém řádku je nekompatibilní s vybraným souborovým systémem exFAT.</entry>
@@ -1421,8 +1421,8 @@
     <entry lang="cs" key="IDC_BLOCK_SYSENC_TRIM">Zakázat příkazy TRIM na systémových diskových oddílech/discích</entry>
     <entry lang="cs" key="WINDOWS_EFI_BOOT_LOADER_MISSING">CHYBA: systémový zavaděč Windows EFI nebyl na disku nalezen. Úkon bude přerušen.</entry>
     <entry lang="cs" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Je-li SecureBoot povolen a uživatelské klíče Veracryptu nejsou načteny do firmware přístroje, není možné zašifrovat systém. Aby mohl být systém zašifrován, musí být v BIOSu zakázán SecureBoot.</entry>
-    <entry lang="cs" key="PASSWORD_PASTED_TRUNCATED">Vložený text byl zkrácen, neboť maximální délka hesla je 128 znaků.</entry>
-    <entry lang="cs" key="PASSWORD_MAXLENGTH_REACHED">Heslo je již dlouhé 128 znaků.\nDalší znaky nejsou již umožněny.</entry>
+    <entry lang="cs" key="PASSWORD_PASTED_TRUNCATED">Vložený text byl zkrácen, neboť maximální délka hesla je %d znaků.</entry>
+    <entry lang="cs" key="PASSWORD_MAXLENGTH_REACHED">Heslo je již dlouhé %d znaků.\nDalší znaky nejsou již umožněny.</entry>
     <entry lang="cs" key="IDC_SELECT_LANGUAGE_LABEL">Vyberte si jazyk instalace:</entry>
     <entry lang="cs" key="VOLUME_TOO_LARGE_FOR_HOST">CHYBA: velikost kontejneru souboru je větší, než je volné místo na disku.</entry>
     <entry lang="cs" key="IDC_ALLOW_WINDOWS_DEFRAG">Povolit systému Windows vlastním nástrojem defragmentovat nesystémový diskový oddíl/disk</entry>
@@ -1438,6 +1438,14 @@
     <entry lang="cs" key="IDT_BENCHMARK">Test výkonu:</entry>
     <entry lang="cs" key="IDC_DISABLE_MOUNT_MANAGER">Vytvořit virtuální zařízení bez připojení na vybrané písmeno jednotky</entry>
     <entry lang="cs" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Zadané heslo je moc dlouhé: jeho reprezentace v UTF-8 přesahuje 64 bajtů.</entry>
+    <entry lang="cs" key="HIDDEN_CREDS_SAME_AS_OUTER">Skrytý svazek nesmí mít stejné heslo, PIM a souborové klíče jako vnější svazek</entry>
+    <entry lang="cs" key="SYSENC_BITLOCKER_CONFLICT">VeraCrypt nepodporuje šifrování systémové jednotky, která je již zašifrována pomocí programu „Bitlocker”.</entry>
+    <entry lang="cs" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">Automaticky opravit problém v konfiguraci zavaděče, způsobující nespuštění OS Windows</entry>
+    <entry lang="cs" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">Při příštím spuštění systému si vynutit zavedení Veracryptu</entry>
+    <entry lang="cs" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">Vynutit si záznam položky VeraCryptu v nabídce zavaděče EFI</entry>
+    <entry lang="cs" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">Vynutit si záznam položky VeraCryptu na první místo v nabídce zavaděče EFI</entry>
+    <entry lang="cs" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">UPOZORNĚNÍ: Šifrování RAM není kompatibilní s funkcemi Windows „Hibernace” a „Rychlé spuštění systému”. Před aktivováním šifrování RAM je VeraCrypt systémově vypne.\n\nPokračovat?</entry>
+    <entry lang="cs" key="CONFIRM_DISABLE_FAST_STARTUP">UPOZORNĚNÍ: „Rychlé spuštění systému Windows” je aktivní, což způsobuje problémy při práci se svazky VeraCryptu. Pro lepší zabezpečení a použitelnost programu doporučujeme tuto funkci vypnout.\n\nChcete vypnout „Rychlé spuštění systému Windows”?</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -14,6 +14,11 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <fcntl.h>
+
+#ifndef ERESTART
+#define ERESTART EINTR
+#endif
+
 #endif
 
 #include "RandomNumberGenerator.h"
@@ -44,7 +49,29 @@ namespace VeraCrypt
 			throw_sys_sub_if (random == -1, L"/dev/random");
 			finally_do_arg (int, random, { close (finally_arg); });
 
-			throw_sys_sub_if (read (random, buffer, buffer.Size()) == -1 && errno != EAGAIN, L"/dev/random");
+			// ensure that we have read at least 32 bytes from /dev/random before allowing it to fail gracefully
+			while (true)
+			{
+				int rndCount = read (random, buffer, buffer.Size());
+				throw_sys_sub_if ((rndCount == -1) && errno != EAGAIN && errno != ERESTART && errno != EINTR, L"/dev/random");
+				if (rndCount == -1 && (!DevRandomSucceeded || (DevRandomBytesCount < 32)))
+				{
+					// wait 250ms before querying /dev/random again
+					::usleep (250 * 1000);
+				}
+				else
+				{
+					if (rndCount != -1)
+					{
+						// We count returned bytes untill 32-bytes treshold reached
+						if (DevRandomBytesCount < 32)
+							DevRandomBytesCount += rndCount;
+						DevRandomSucceeded = true;
+					}
+					break;
+				}
+			}
+			
 			AddToPool (buffer);
 			
 			/* use JitterEntropy library to get good quality random bytes based on CPU timing jitter */
@@ -218,6 +245,8 @@ namespace VeraCrypt
 
 		EnrichedByUser = false;
 		Running = false;
+		DevRandomSucceeded = false;
+		DevRandomBytesCount = 0;
 	}
 
 	void RandomNumberGenerator::Test ()
@@ -255,4 +284,6 @@ namespace VeraCrypt
 	bool RandomNumberGenerator::Running = false;
 	size_t RandomNumberGenerator::WriteOffset;
 	struct rand_data *RandomNumberGenerator::JitterRngCtx = NULL;
+	bool RandomNumberGenerator::DevRandomSucceeded = false;
+	int RandomNumberGenerator::DevRandomBytesCount = 0;
 }

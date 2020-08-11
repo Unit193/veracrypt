@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <language langid="pl" name="Polski" en-name="Polish" version="1.0.0" translators="Mirek Druchowicz, Janusz Zamecki, Sobiesław Antolak, Begina Felicysym" />
     <font lang="pl" class="normal" size="11" face="default" />
     <font lang="pl" class="bold" size="13" face="Arial" />
@@ -10,7 +10,7 @@
     <entry lang="pl" key="IDC_ALL_USERS">Instaluj dla &amp;wszystkich użytkowników</entry>
     <entry lang="pl" key="IDC_BROWSE">&amp;Przeglądaj...</entry>
     <entry lang="pl" key="IDC_DESKTOP_ICON">Umieść ikonę VeraCrypt na p&amp;ulpicie</entry>
-    <entry lang="pl" key="IDC_DONATE">Dotuj teraz...</entry>
+    <entry lang="pl" key="IDC_DONATE">Wspomóż darowizną teraz...</entry>
     <entry lang="pl" key="IDC_FILE_TYPE">Skojarz &amp;rozszerzenie pliku .hc z VeraCrypt</entry>
     <entry lang="pl" key="IDC_OPEN_CONTAINING_FOLDER">Po zakończeniu &amp;otwórz lokalizację docelową</entry>
     <entry lang="pl" key="IDC_PROG_GROUP">Dodaj VeraCrypt do Menu &amp;Start</entry>
@@ -1038,7 +1038,7 @@
     <entry lang="pl" key="DO_NOT_PROMPT_ME">Nie, nie pytaj mnie</entry>
     <entry lang="pl" key="NONSYS_INPLACE_ENC_NOTIFICATION_REMOVAL_NOTE">WAŻNE: Pamiętaj, że możesz wznowić proces szyfrowania każdego nie systemowej partycji/wolumenu wybierając 'Wolumeny' &gt; 'Wznów Przerwany Proces' z menu okna VeraCrypt.</entry>
     <entry lang="pl" key="SYSTEM_ENCRYPTION_SCHEDULED_BUT_PBA_FAILED">Zaplanowano proces szyfrowania lub deszyfrowania partycji lub dysku systemowego. Wstępne uwierzytelnianie zakończyło się jednak niepowodzeniem (lub zostało pominięte).\n\nJeśli partycja lub dysk systemowy jest deszyfrowany w środowisku z wstępnym uwierzytelnianiem, należy zakończyć ten proces, wybierając w menu głównym programu VeraCrypt opcję 'System' &gt; 'Trwale odszyfruj partycję lub dysk systemowy'.</entry>
-    <entry lang="pl" key="CONFIRM_EXIT">UWAGA: Jeśli VeraCrypt zakończy się teraz, następujące funkcje zostaną zablokowane:\n\n1) Klawisze skrótu\n2) Auto-dismount (np., podczas wylogowania, niezapowiedzialnego odłączenia nośnika, tajmautu itp.)\n3) Auto-mount ulubionych wolumenów\n4) Powiadomienia (np., podczas zapobiegania uszkodzenia ukrytego wolumenu)\n\nZauważ: Jeśli nie chcesz, by VeraCrypt pracował w tle, zablokuj Zadanie VeraCrypt w Tle w Preferencjach (i, o ile konieczne, zablokować automatyczny start VeraCrypt w Preferencjach).\n\nCzy na pewno wyjść z VeraCrypt?</entry>
+    <entry lang="pl" key="CONFIRM_EXIT">UWAGA: Jeśli VeraCrypt zakończy się teraz, następujące funkcje zostaną zablokowane:\n\n1) Klawisze skrótu\n2) Auto-dismount (np., podczas wylogowania, niezapowiedzialnego odłączenia nośnika, timeoutu itp.)\n3) Auto-mount ulubionych wolumenów\n4) Powiadomienia (np., podczas zapobiegania uszkodzenia ukrytego wolumenu)\n\nZauważ: Jeśli nie chcesz, by VeraCrypt pracował w tle, zablokuj Zadanie VeraCrypt w Tle w Preferencjach (i, o ile konieczne, zablokować automatyczny start VeraCrypt w Preferencjach).\n\nCzy na pewno wyjść z VeraCrypt?</entry>
     <entry lang="pl" key="CONFIRM_EXIT_UNIVERSAL">Wyjść?</entry>
     <entry lang="pl" key="CHOOSE_ENCRYPT_OR_DECRYPT">Program VeraCrypt nie ma wystarczających informacji, aby zdecydować, czy należy szyfrować czy deszyfrować.</entry>
     <entry lang="pl" key="CHOOSE_ENCRYPT_OR_DECRYPT_FINALIZE_DECRYPT_NOTE">Program VeraCrypt nie ma wystarczających informacji, aby zdecydować, czy szyfrować, czy deszyfrować.\n\nUwaga: Jeśli partycja/dysk systemowy została odszyfrowana w środowisku z wstępnym uwierzytelnieniem, może być konieczne dokończenie procesu przez kliknięcie przycisku Odszyfruj.</entry>
@@ -1152,7 +1152,7 @@
     <entry lang="pl" key="SYSENC_MULTI_BOOT_OUTCOME_TITLE">Wiele systemów</entry>
     <entry lang="pl" key="CUSTOM_BOOT_MANAGERS_IN_MBR_UNSUPPORTED">Program VeraCrypt obecnie nie obsługuje konfiguracji wielosystemowej, w której w głównym rekordzie startowym (MBR) jest zainstalowany program startowy z systemu innego niż Windows.\n\nMożliwe rozwiązania:\n\n- Jeśli używasz menedżera uruchamiania do uruchamiania systemów Windows i Linux, przenieś menedżera uruchamiania (np. GRUB lub LILO) z MBR do partycji. Następnie uruchom ponownie kreator i zaszyfruj partycję lub dysk systemowy. Program startowy VeraCrypt stanie się podstawowym menedżerem uruchamiania i będzie pozwalał na uruchamianie oryginalnego menedżera uruchamiania (np. GRUB lub LILO) jako drugiego menedżera uruchamiania (przez naciśnięcie klawisza Esc na ekranie programu startowego VeraCrypt), co umożliwi uruchamianie systemu Linux.</entry>
     <entry lang="pl" key="WINDOWS_BOOT_LOADER_HINTS">Jeżeli obecnie uruchomiony system operacyjny jest zainstalowany na boot partycji, wówczas po zaszyfrowaniu jej, będziesz musiał wprowadzić poprawne hasło za każdym razem kiedy będziesz uruchamiał system (nawet ten niezaszyfrowany).\n\nNatomiast, jeżeli obecnie uruchomiony system operacyjny nie jest zainstalowany na boot partycji (lub jeżeli program startowy Windows nie jest używany przez inny system), wówczas, po zaszyfrowaniu systemu nie będziesz musiał wprowadzać hasła do uruchomienia innych systemów (również tych niezaszyfrowanych) -- będziesz musiał wcisnąć tylko klawisz Esc, aby uruchomić niezaszyfrowany system (jeżeli jest wiele niezaszyfrowanych systemów będziesz musiał wybrać, który system chcesz uruchomić).\n\nUwaga: Typowo, Windows jest zainstalowany na boot partycji.</entry>
-    <entry lang="pl" key="SYSENC_PRE_DRIVE_ANALYSIS_TITLE">Szyfrowanie obszaru chronionego gospodarza</entry>
+    <entry lang="pl" key="SYSENC_PRE_DRIVE_ANALYSIS_TITLE">Szyfrowanie obszaru HPA (Host protected area)</entry>
     <entry lang="pl" key="SYSENC_PRE_DRIVE_ANALYSIS_HELP">Na końcu wielu dysków są ukryte miejsca, gdzie nie ma dostępu system operacyjny (są to zwykle Host Protected Areas). Jednakże niektóre programy potrafią czytać i pisać dane z/do tych sektorów.\n\nUWAGA: Niektórzy producenci sprzętu używają tych miejsc do przechowywania narzędzi np. do RAID, odtwarzania systemu, konfiguracji systemu, diagnostyki lub innych narzędzi. Jeżeli te narzędzia lub dane muszą być dostępne przed bootowaniem, obszar ten NIE powinien być zaszyfrowany (wybierz 'Nie' powyżej).\n\nCzy chcesz, aby VeraCrypt wykrył i zaszyfrował te ukryte obszary na końcu dysku?</entry>
     <entry lang="pl" key="SYSENC_TYPE_PAGE_TITLE">Typ Systemu Szyfrowania</entry>
     <entry lang="pl" key="SYSENC_NORMAL_TYPE_HELP">Wybierz tą opcję jeżeli chcesz zaszyfrować jedynie partycję systemową lub cały dysk systemowy.</entry>
@@ -1378,7 +1378,7 @@
     <entry lang="pl" key="IDC_BOOT_LOADER_CACHE_PIM">Dołączaj &amp;PIM w trakcie przechowywania hasła uwierzytelniania rozruchu wstępnego</entry>
     <entry lang="pl" key="IDC_PREF_CACHE_PIM">Dołączaj PIM w trakcie przechowywania hasła w pamięci</entry>
     <entry lang="pl" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Uczyń odłączone napędy sieciowe dostępnymi do montowania</entry>
-    <entry lang="pl" key="PASSWORD_UTF8_TOO_LONG">Wpisane hasło jest zbyt długie: jego reprezentacja UTF-8 przekracza 128 bajty.</entry>
+    <entry lang="pl" key="PASSWORD_UTF8_TOO_LONG">Wpisane hasło jest zbyt długie: jego reprezentacja UTF-8 przekracza %d bajty.</entry>
     <entry lang="pl" key="PASSWORD_UTF8_INVALID">Wpisane hasło zawiera znaki Unicode, które nie mogą zostać przekonwertowane do reprezentacji UTF-8.</entry>
     <entry lang="pl" key="INIT_DLL">Błąd: Nie można załadować biblioteki systemowej.</entry>
     <entry lang="pl" key="ERR_EXFAT_INVALID_VOLUME_SIZE">Rozmiar pliku wolumenu, który określono w wierszu poleceń, jest niekompatybilny z wybranym systemem plików exFAT.</entry>
@@ -1421,8 +1421,8 @@
     <entry lang="pl" key="IDC_BLOCK_SYSENC_TRIM">Blokuj komendę TRIM na systemowej partycji/napędzie</entry>
     <entry lang="pl" key="WINDOWS_EFI_BOOT_LOADER_MISSING">BŁĄD: Nie można zlokalizować programu rozruchowego EFI systemu Windows na dysku. Operacja zostanie przerwana.</entry>
     <entry lang="pl" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">Obecnie nie jest możliwe szyfrowanie systemu, gdy włączona jest funkcja SecureBoot, a niestandardowe klucze VeraCrypt nie zostały załadowane do oprogramowania sprzętowego urządzenia. Funkcja SecureBoot musi być wyłączona w konfiguracji BIOS-u, aby umożliwić kontynuowanie szyfrowania systemu.</entry>
-    <entry lang="pl" key="PASSWORD_PASTED_TRUNCATED">Wklejony tekst został obcięty, ponieważ maksymalna długość hasła wynosi 128 znaki</entry>
-    <entry lang="pl" key="PASSWORD_MAXLENGTH_REACHED">Hasło osiągnęło już maksymalną długość 128 znaków.\nDodatkowy znak nie jest dozwolony.</entry>
+    <entry lang="pl" key="PASSWORD_PASTED_TRUNCATED">Wklejony tekst został obcięty, ponieważ maksymalna długość hasła wynosi %d znaki</entry>
+    <entry lang="pl" key="PASSWORD_MAXLENGTH_REACHED">Hasło osiągnęło już maksymalną długość %d znaków.\nDodatkowy znak nie jest dozwolony.</entry>
     <entry lang="pl" key="IDC_SELECT_LANGUAGE_LABEL">Wybierz używany język podczas instalacji:</entry>
     <entry lang="pl" key="VOLUME_TOO_LARGE_FOR_HOST">BŁĄD: Rozmiar kontenera pliku jest większy niż dostępne wolne miejsce na dysku.</entry>
     <entry lang="pl" key="IDC_ALLOW_WINDOWS_DEFRAG">Zezwalaj Defragmentatorowi dysków Windows na defragmentację bezsystemowej partycji/napędu</entry>
@@ -1438,6 +1438,14 @@
     <entry lang="pl" key="IDT_BENCHMARK">Testowanie:</entry>
     <entry lang="pl" key="IDC_DISABLE_MOUNT_MANAGER">Utwórz tylko urządzenie wirtualne bez montowania na wybranej literze dysku</entry>
     <entry lang="pl" key="LEGACY_PASSWORD_UTF8_TOO_LONG">Wpisane hasło jest zbyt długie: jego reprezentacja UTF-8 przekracza 64 bajty.</entry>
+    <entry lang="pl" key="HIDDEN_CREDS_SAME_AS_OUTER">Wolumen ukryty nie może mieć tego samego hasła, PIM i plików-kluczy, co wolumen zewnętrzny</entry>
+    <entry lang="pl" key="SYSENC_BITLOCKER_CONFLICT">VeraCrypt nie obsługuje szyfrowania dysku systemowego, który jest już zaszyfrowany przez BitLocker.</entry>
+    <entry lang="pl" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">Automatycznie napraw problemy z konfiguracją rozruchu, które mogą uniemożliwić uruchomienie systemu Windows</entry>
+    <entry lang="pl" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">Wymuś rozruch komputera na VeraCrypt przy następnym uruchomieniu</entry>
+    <entry lang="pl" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">Wymuś obecność wpisu VeraCrypt w menu uruchamiania oprogramowania układowego EFI</entry>
+    <entry lang="pl" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">Wymuś pierwszeństwo wpisu VeraCrypt w menu uruchamiania oprogramowania układowego EFI</entry>
+    <entry lang="pl" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">OSTRZEŻENIE: Szyfrowanie pamięci RAM nie jest zgodne z funkcjami hibernacji Windows i szybkiego uruchamiania Windows. VeraCrypt musi wyłączyć te funkcje przed aktywacją szyfrowania RAM.\n\nKontynuować?</entry>
+    <entry lang="pl" key="CONFIRM_DISABLE_FAST_STARTUP">OSTRZEŻENIE: Szybkie uruchamianie Windows jest włączone i wiadomo, że powoduje problemy podczas pracy z wolumenami VeraCrypt. Zaleca się wyłączenie tej funkcji w celu zwiększenia bezpieczeństwa i użyteczności.\n\nCzy chcesz wyłączyć szybkie uruchamianie Windows?</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

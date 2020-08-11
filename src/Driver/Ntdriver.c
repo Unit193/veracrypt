@@ -143,6 +143,9 @@ static KeSaveExtendedProcessorStateFn KeSaveExtendedProcessorStatePtr = NULL;
 static KeRestoreExtendedProcessorStateFn KeRestoreExtendedProcessorStatePtr = NULL;
 static ExGetFirmwareEnvironmentVariableFn ExGetFirmwareEnvironmentVariablePtr = NULL;
 static KeAreAllApcsDisabledFn KeAreAllApcsDisabledPtr = NULL;
+static KeSetSystemGroupAffinityThreadFn KeSetSystemGroupAffinityThreadPtr = NULL;
+static KeQueryActiveGroupCountFn KeQueryActiveGroupCountPtr = NULL;
+static KeQueryActiveProcessorCountExFn KeQueryActiveProcessorCountExPtr = NULL;
 
 POOL_TYPE ExDefaultNonPagedPoolType = NonPagedPool;
 ULONG ExDefaultMdlProtection = 0;
@@ -283,13 +286,20 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	}
 
 	// KeSaveExtendedProcessorState/KeRestoreExtendedProcessorState are available starting from Windows 7
+	// KeQueryActiveGroupCount/KeQueryActiveProcessorCountEx/KeSetSystemGroupAffinityThread are available starting from Windows 7
 	if ((OsMajorVersion > 6) || (OsMajorVersion == 6 && OsMinorVersion >= 1))
 	{
-		UNICODE_STRING saveFuncName, restoreFuncName;
+		UNICODE_STRING saveFuncName, restoreFuncName, groupCountFuncName, procCountFuncName, setAffinityFuncName;
 		RtlInitUnicodeString(&saveFuncName, L"KeSaveExtendedProcessorState");
 		RtlInitUnicodeString(&restoreFuncName, L"KeRestoreExtendedProcessorState");
+		RtlInitUnicodeString(&groupCountFuncName, L"KeQueryActiveGroupCount");
+		RtlInitUnicodeString(&procCountFuncName, L"KeQueryActiveProcessorCountEx");
+		RtlInitUnicodeString(&setAffinityFuncName, L"KeSetSystemGroupAffinityThread");
 		KeSaveExtendedProcessorStatePtr = (KeSaveExtendedProcessorStateFn) MmGetSystemRoutineAddress(&saveFuncName);
 		KeRestoreExtendedProcessorStatePtr = (KeRestoreExtendedProcessorStateFn) MmGetSystemRoutineAddress(&restoreFuncName);
+		KeSetSystemGroupAffinityThreadPtr = (KeSetSystemGroupAffinityThreadFn) MmGetSystemRoutineAddress(&setAffinityFuncName);
+		KeQueryActiveGroupCountPtr = (KeQueryActiveGroupCountFn) MmGetSystemRoutineAddress(&groupCountFuncName);
+		KeQueryActiveProcessorCountExPtr = (KeQueryActiveProcessorCountExFn) MmGetSystemRoutineAddress(&procCountFuncName);
 	}
 	
 	// ExGetFirmwareEnvironmentVariable is available starting from Windows 8
@@ -3419,31 +3429,21 @@ void TCDeleteDeviceObject (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension)
 
 		if (Extension->SecurityClientContextValid)
 		{
-			if (OsMajorVersion == 5 && OsMinorVersion == 0)
-			{
-				ObDereferenceObject (Extension->SecurityClientContext.ClientToken);
-			}
-			else
-			{
-				// Windows 2000 does not support PsDereferenceImpersonationToken() used by SeDeleteClientSecurity().
-				// TODO: Use only SeDeleteClientSecurity() once support for Windows 2000 is dropped.
+			VOID (*PsDereferenceImpersonationTokenD) (PACCESS_TOKEN ImpersonationToken);
+			UNICODE_STRING name;
+			RtlInitUnicodeString (&name, L"PsDereferenceImpersonationToken");
 
-				VOID (*PsDereferenceImpersonationTokenD) (PACCESS_TOKEN ImpersonationToken);
-				UNICODE_STRING name;
-				RtlInitUnicodeString (&name, L"PsDereferenceImpersonationToken");
+			PsDereferenceImpersonationTokenD = MmGetSystemRoutineAddress (&name);
+			if (!PsDereferenceImpersonationTokenD)
+				TC_BUG_CHECK (STATUS_NOT_IMPLEMENTED);
 
-				PsDereferenceImpersonationTokenD = MmGetSystemRoutineAddress (&name);
-				if (!PsDereferenceImpersonationTokenD)
-					TC_BUG_CHECK (STATUS_NOT_IMPLEMENTED);
+#			define PsDereferencePrimaryToken
+#			define PsDereferenceImpersonationToken PsDereferenceImpersonationTokenD
 
-#				define PsDereferencePrimaryToken
-#				define PsDereferenceImpersonationToken PsDereferenceImpersonationTokenD
+			SeDeleteClientSecurity (&Extension->SecurityClientContext);
 
-				SeDeleteClientSecurity (&Extension->SecurityClientContext);
-
-#				undef PsDereferencePrimaryToken
-#				undef PsDereferenceImpersonationToken
-			}
+#			undef PsDereferencePrimaryToken
+#			undef PsDereferenceImpersonationToken
 		}
 
 		VirtualVolumeDeviceObjects[Extension->nDosDriveNo] = NULL;
@@ -3643,11 +3643,16 @@ NTSTATUS ProbeRealDriveSize (PDEVICE_OBJECT driveDeviceObject, LARGE_INTEGER *dr
 	LARGE_INTEGER offset;
 	byte *sectorBuffer;
 	ULONGLONG startTime;
+	ULONG sectorSize;
 
 	if (!UserCanAccessDriveDevice())
 		return STATUS_ACCESS_DENIED;
 
-	sectorBuffer = TCalloc (TC_SECTOR_SIZE_BIOS);
+	status = GetDeviceSectorSize (driveDeviceObject, &sectorSize);
+	if (!NT_SUCCESS (status))
+		return status;
+
+	sectorBuffer = TCalloc (sectorSize);
 	if (!sectorBuffer)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -3662,12 +3667,12 @@ NTSTATUS ProbeRealDriveSize (PDEVICE_OBJECT driveDeviceObject, LARGE_INTEGER *dr
 	}
 
 	startTime = KeQueryInterruptTime ();
-	for (offset.QuadPart = sysLength.QuadPart; ; offset.QuadPart += TC_SECTOR_SIZE_BIOS)
+	for (offset.QuadPart = sysLength.QuadPart; ; offset.QuadPart += sectorSize)
 	{
-		status = TCReadDevice (driveDeviceObject, sectorBuffer, offset, TC_SECTOR_SIZE_BIOS);
+		status = TCReadDevice (driveDeviceObject, sectorBuffer, offset, sectorSize);
 
 		if (NT_SUCCESS (status))
-			status = TCWriteDevice (driveDeviceObject, sectorBuffer, offset, TC_SECTOR_SIZE_BIOS);
+			status = TCWriteDevice (driveDeviceObject, sectorBuffer, offset, sectorSize);
 
 		if (!NT_SUCCESS (status))
 		{
@@ -4486,18 +4491,35 @@ NTSTATUS TCCompleteDiskIrp (PIRP irp, NTSTATUS status, ULONG_PTR information)
 }
 
 
-size_t GetCpuCount ()
+size_t GetCpuCount (WORD* pGroupCount)
 {
-	KAFFINITY activeCpuMap = KeQueryActiveProcessors();
-	size_t mapSize = sizeof (activeCpuMap) * 8;
 	size_t cpuCount = 0;
-
-	while (mapSize--)
+	if (KeQueryActiveGroupCountPtr && KeQueryActiveProcessorCountExPtr)
 	{
-		if (activeCpuMap & 1)
-			++cpuCount;
+		USHORT i, groupCount = KeQueryActiveGroupCountPtr ();
+		for (i = 0; i < groupCount; i++)
+		{
+			cpuCount += (size_t) KeQueryActiveProcessorCountExPtr (i);
+		}
 
-		activeCpuMap >>= 1;
+		if (pGroupCount)
+			*pGroupCount = groupCount;
+	}
+	else
+	{
+		KAFFINITY activeCpuMap = KeQueryActiveProcessors();
+		size_t mapSize = sizeof (activeCpuMap) * 8;		
+
+		while (mapSize--)
+		{
+			if (activeCpuMap & 1)
+				++cpuCount;
+
+			activeCpuMap >>= 1;
+		}
+
+		if (pGroupCount)
+			*pGroupCount = 1;
 	}
 
 	if (cpuCount == 0)
@@ -4506,6 +4528,35 @@ size_t GetCpuCount ()
 	return cpuCount;
 }
 
+USHORT GetCpuGroup (size_t index)
+{
+	if (KeQueryActiveGroupCountPtr && KeQueryActiveProcessorCountExPtr)
+	{
+		USHORT i, groupCount = KeQueryActiveGroupCountPtr ();
+		size_t cpuCount = 0;
+		for (i = 0; i < groupCount; i++)
+		{
+			cpuCount += (size_t) KeQueryActiveProcessorCountExPtr (i);
+			if (cpuCount >= index)
+			{
+				return i;
+			}
+		}
+	}
+	
+	return 0;
+}
+
+void SetThreadCpuGroupAffinity (USHORT index)
+{
+	if (KeSetSystemGroupAffinityThreadPtr)
+	{
+		GROUP_AFFINITY groupAffinity = {0};
+		groupAffinity.Mask = ~0ULL;
+		groupAffinity.Group = index;
+		KeSetSystemGroupAffinityThreadPtr (&groupAffinity, NULL);
+	}
+}
 
 void EnsureNullTerminatedString (wchar_t *str, size_t maxSizeInBytes)
 {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <language langid="es" name="Español" en-name="Spanish" version="1.0.0" translators="Juan Antonio Auñón Ochando" />
     <font lang="es" class="normal" size="11" face="default" />
     <font lang="es" class="bold" size="13" face="Arial" />
@@ -1378,7 +1378,7 @@
     <entry lang="es" key="IDC_BOOT_LOADER_CACHE_PIM">Incluir &amp;PIM cuando se cachee la contraseña de autenticación</entry>
     <entry lang="es" key="IDC_PREF_CACHE_PIM">Incluir PIM cuando se cachee una contraseña</entry>
     <entry lang="es" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">Hacer que las unidades de red desconectadas estén disponibles para montaje</entry>
-    <entry lang="es" key="PASSWORD_UTF8_TOO_LONG">La contraseña introducida es demasiado larga: su representación en UTF-8 excede de 128 bytes.</entry>
+    <entry lang="es" key="PASSWORD_UTF8_TOO_LONG">La contraseña introducida es demasiado larga: su representación en UTF-8 excede de %d bytes.</entry>
     <entry lang="es" key="PASSWORD_UTF8_INVALID">La contraseña introducida contiene caracteres Unicode que no se pueden convertir a representación UTF-8.</entry>
     <entry lang="es" key="INIT_DLL">Error: Fallo al cargar una librería de sistema.</entry>
     <entry lang="es" key="ERR_EXFAT_INVALID_VOLUME_SIZE">El tamaño de archivo del volumen especificado por línea de comando es incompatible con el sistema de archivos exFAT seleccionado.</entry>
@@ -1421,8 +1421,8 @@
     <entry lang="es" key="IDC_BLOCK_SYSENC_TRIM">Bloquear orden TRIM en partición/unidad de sistema</entry>
     <entry lang="es" key="WINDOWS_EFI_BOOT_LOADER_MISSING">ERROR: El cargador de sistema EFI de Windows no pudo ser localizado en el disco. La operación será abortada.</entry>
     <entry lang="es" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">No es posible al momento cifrar un sistema si SecureBoot está habilitado y si las llaves personales VeraCrypt no están cargadas en el firmware del computador. SecureBoot necesita estar deshabilitado en la configuración del BIOS de manera de permitir que el cifrado del sistema pueda proceder.</entry>
-    <entry lang="es" key="PASSWORD_PASTED_TRUNCATED">El texto insertado fue truncado porque la máxima longitud de la contraseña es 128 caracteres.</entry>
-    <entry lang="es" key="PASSWORD_MAXLENGTH_REACHED">La contraseña ya alcanzó su máxima longitud de 128 caracteres.\nNo se permiten caracteres adicionales.</entry>
+    <entry lang="es" key="PASSWORD_PASTED_TRUNCATED">El texto insertado fue truncado porque la máxima longitud de la contraseña es %d caracteres.</entry>
+    <entry lang="es" key="PASSWORD_MAXLENGTH_REACHED">La contraseña ya alcanzó su máxima longitud de %d caracteres.\nNo se permiten caracteres adicionales.</entry>
     <entry lang="es" key="IDC_SELECT_LANGUAGE_LABEL">Seleccionar el lenguaje a usar durante la instalación:</entry>
     <entry lang="es" key="VOLUME_TOO_LARGE_FOR_HOST">ERROR: El tamaño del contenedor de archivo es más grande que el espacio en disco disponible.</entry>
     <entry lang="es" key="IDC_ALLOW_WINDOWS_DEFRAG">Permitir al Defragmentador de Discos de Windows defragmentar una partición/disco no de sistema</entry>
@@ -1438,6 +1438,14 @@
     <entry lang="es" key="IDT_BENCHMARK">Comparación:</entry>
     <entry lang="en" key="IDC_DISABLE_MOUNT_MANAGER">Only create virtual device without mounting on selected drive letter</entry>
     <entry lang="es" key="LEGACY_PASSWORD_UTF8_TOO_LONG">La contraseña introducida es demasiado larga: su representación en UTF-8 excede de 64 bytes.</entry>
+    <entry lang="en" key="HIDDEN_CREDS_SAME_AS_OUTER">The Hidden volume can't have the same password, PIM and keyfiles as the Outer volume</entry>
+    <entry lang="en" key="SYSENC_BITLOCKER_CONFLICT">VeraCrypt does not support encrypting a system drive that is already encrypted by BitLocker.</entry>
+    <entry lang="en" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">Automatically fix boot configuration issues that may prevent Windows from starting</entry>
+    <entry lang="en" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">Force machine to boot on VeraCrypt in the next startup</entry>
+    <entry lang="en" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">Force the presence of VeraCrypt entry in the EFI firmware boot menu</entry>
+    <entry lang="en" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">Force VeraCrypt entry to be the first in the EFI firmware boot menu</entry>
+    <entry lang="en" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">WARNING: RAM encryption is not compatible with Windows Hibernate and Windows Fast Startup features. VeraCrypt needs to disable them before activating RAM encryption.\n\nContinue?</entry>
+    <entry lang="en" key="CONFIRM_DISABLE_FAST_STARTUP">WARNING: Windows Fast Startup is enabled and it is known to cause issues when working with VeraCrypt volumes. It is advised to disable it for better security and usability.\n\nDo you want to disable Windows Fast Startup?</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">
