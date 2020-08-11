@@ -1,7 +1,7 @@
 Source: veracrypt
 Section: non-free/utils
 Priority: optional
-Maintainer: Unit 193 <unit193@ubuntu.com>
+Maintainer: Unit 193 <unit193@unit193.net>
 Build-Depends: debhelper-compat (= 12),
  libayatana-appindicator3-dev | libappindicator3-dev,
  libfuse-dev,
