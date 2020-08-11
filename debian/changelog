@@ -1,3 +1,11 @@
+veracrypt (1.24-Update7-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.24-Update7.
+  * d/control, d/copyright: Update my email address and bump years.
+  * d/gbp.conf: Pass '--controlmaint' to dch.
+
+ -- Unit 193 <unit193@unit193.net>  Tue, 11 Aug 2020 01:43:24 -0400
+
 veracrypt (1.24-Update4-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.24-Update4
