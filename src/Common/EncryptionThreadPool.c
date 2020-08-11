@@ -16,8 +16,15 @@
 #include "Driver/Ntdriver.h"
 #endif
 
-#define TC_ENC_THREAD_POOL_MAX_THREAD_COUNT 64
+//Increasing the maximum number of threads 
+#define TC_ENC_THREAD_POOL_MAX_THREAD_COUNT 256 //64
 #define TC_ENC_THREAD_POOL_QUEUE_SIZE (TC_ENC_THREAD_POOL_MAX_THREAD_COUNT * 2)
+
+#define TC_ENC_THREAD_POOL_LEGACY_MAX_THREAD_COUNT 64
+#define TC_ENC_THREAD_POOL_LEGACY_QUEUE_SIZE (TC_ENC_THREAD_POOL_LEGACY_MAX_THREAD_COUNT * 2)
+
+static volatile size_t ThreadPoolCount = TC_ENC_THREAD_POOL_LEGACY_MAX_THREAD_COUNT;
+static volatile int ThreadQueueSize = TC_ENC_THREAD_POOL_LEGACY_QUEUE_SIZE;
 
 #ifdef DEVICE_DRIVER
 
@@ -42,6 +49,18 @@
 #define TC_MUTEX HANDLE
 #define TC_ACQUIRE_MUTEX(MUTEX) WaitForSingleObject (*(MUTEX), INFINITE)
 #define TC_RELEASE_MUTEX(MUTEX) ReleaseMutex (*(MUTEX))
+
+typedef BOOL (WINAPI *SetThreadGroupAffinityFn)(
+  HANDLE               hThread,
+  const GROUP_AFFINITY *GroupAffinity,
+  PGROUP_AFFINITY      PreviousGroupAffinity
+);
+
+typedef WORD (WINAPI* GetActiveProcessorGroupCountFn)();
+
+typedef DWORD (WINAPI *GetActiveProcessorCountFn)(
+  WORD GroupNumber
+);
 
 #endif // !DEVICE_DRIVER
 
@@ -99,6 +118,7 @@ static volatile BOOL StopPending = FALSE;
 
 static uint32 ThreadCount;
 static TC_THREAD_HANDLE ThreadHandles[TC_ENC_THREAD_POOL_MAX_THREAD_COUNT];
+static WORD ThreadProcessorGroups[TC_ENC_THREAD_POOL_MAX_THREAD_COUNT];
 
 static EncryptionThreadPoolWorkItem WorkItemQueue[TC_ENC_THREAD_POOL_QUEUE_SIZE];
 
@@ -164,6 +184,23 @@ static void SetWorkItemState (EncryptionThreadPoolWorkItem *workItem, WorkItemSt
 static TC_THREAD_PROC EncryptionThreadProc (void *threadArg)
 {
 	EncryptionThreadPoolWorkItem *workItem;
+	if (threadArg)
+	{
+#ifdef DEVICE_DRIVER
+		SetThreadCpuGroupAffinity ((USHORT) *(WORD*)(threadArg));
+#else
+		SetThreadGroupAffinityFn SetThreadGroupAffinityPtr = (SetThreadGroupAffinityFn) GetProcAddress (GetModuleHandle (L"kernel32.dll"), "SetThreadGroupAffinity");
+		if (SetThreadGroupAffinityPtr && threadArg)
+		{
+			GROUP_AFFINITY groupAffinity = {0};
+			groupAffinity.Mask = ~0ULL;
+			groupAffinity.Group = *(WORD*)(threadArg);
+			SetThreadGroupAffinityPtr(GetCurrentThread(), &groupAffinity, NULL);
+		}
+	
+#endif
+	}
+
 
 	while (!StopPending)
 	{
@@ -171,7 +208,7 @@ static TC_THREAD_PROC EncryptionThreadProc (void *threadArg)
 
 		workItem = &WorkItemQueue[DequeuePosition++];
 
-		if (DequeuePosition >= TC_ENC_THREAD_POOL_QUEUE_SIZE)
+		if (DequeuePosition >= ThreadQueueSize)
 			DequeuePosition = 0;
 
 		while (!StopPending && GetWorkItemState (workItem) != WorkItemReady)
@@ -260,23 +297,55 @@ static TC_THREAD_PROC EncryptionThreadProc (void *threadArg)
 #endif
 }
 
+#ifndef DEVICE_DRIVER
+
+size_t GetCpuCount (WORD* pGroupCount)
+{
+	size_t cpuCount = 0;
+	SYSTEM_INFO sysInfo;
+	GetActiveProcessorGroupCountFn GetActiveProcessorGroupCountPtr = (GetActiveProcessorGroupCountFn) GetProcAddress (GetModuleHandle (L"Kernel32.dll"), "GetActiveProcessorGroupCount");
+	GetActiveProcessorCountFn GetActiveProcessorCountPtr = (GetActiveProcessorCountFn) GetProcAddress (GetModuleHandle (L"Kernel32.dll"), "GetActiveProcessorCount");
+	if (GetActiveProcessorGroupCountPtr && GetActiveProcessorCountPtr)
+	{
+		WORD j, groupCount = GetActiveProcessorGroupCountPtr();
+		size_t totalProcessors = 0;
+		for (j = 0; j < groupCount; ++j)
+		{
+			totalProcessors += (size_t) GetActiveProcessorCountPtr(j);
+		}
+		cpuCount = totalProcessors;
+		if (pGroupCount)
+			*pGroupCount = groupCount;
+	}
+	else
+	{
+		GetSystemInfo(&sysInfo);
+		cpuCount = (size_t) sysInfo.dwNumberOfProcessors;
+		if (pGroupCount)
+			*pGroupCount = 1;
+	}
+
+	return cpuCount;
+}
+
+#endif
+
 
 BOOL EncryptionThreadPoolStart (size_t encryptionFreeCpuCount)
 {
-	size_t cpuCount, i;
+	size_t cpuCount = 0, i = 0;
+	WORD groupCount = 1;
+
+	cpuCount = GetCpuCount(&groupCount);
 
 	if (ThreadPoolRunning)
 		return TRUE;
 
-#ifdef DEVICE_DRIVER
-	cpuCount = GetCpuCount();
-#else
+	if (groupCount > 1)
 	{
-		SYSTEM_INFO sysInfo;
-		GetSystemInfo (&sysInfo);
-		cpuCount = sysInfo.dwNumberOfProcessors;
+		ThreadPoolCount = TC_ENC_THREAD_POOL_MAX_THREAD_COUNT;
+		ThreadQueueSize = TC_ENC_THREAD_POOL_QUEUE_SIZE;
 	}
-#endif
 
 	if (cpuCount > encryptionFreeCpuCount)
 		cpuCount -= encryptionFreeCpuCount;
@@ -284,8 +353,8 @@ BOOL EncryptionThreadPoolStart (size_t encryptionFreeCpuCount)
 	if (cpuCount < 2)
 		return TRUE;
 
-	if (cpuCount > TC_ENC_THREAD_POOL_MAX_THREAD_COUNT)
-		cpuCount = TC_ENC_THREAD_POOL_MAX_THREAD_COUNT;
+	if (cpuCount > ThreadPoolCount)
+		cpuCount = ThreadPoolCount;
 
 	StopPending = FALSE;
 	DequeuePosition = 0;
@@ -337,11 +406,40 @@ BOOL EncryptionThreadPoolStart (size_t encryptionFreeCpuCount)
 
 	for (ThreadCount = 0; ThreadCount < cpuCount; ++ThreadCount)
 	{
+		WORD* pThreadArg = NULL;
+		if (groupCount > 1)
+		{
 #ifdef DEVICE_DRIVER
-		if (!NT_SUCCESS (TCStartThread (EncryptionThreadProc, NULL, &ThreadHandles[ThreadCount])))
+			ThreadProcessorGroups[ThreadCount] = GetCpuGroup ((size_t) ThreadCount);
 #else
-		if (!(ThreadHandles[ThreadCount] = (HANDLE) _beginthreadex (NULL, 0, EncryptionThreadProc, NULL, 0, NULL)))
+			GetActiveProcessorCountFn GetActiveProcessorCountPtr = (GetActiveProcessorCountFn) GetProcAddress (GetModuleHandle (L"Kernel32.dll"), "GetActiveProcessorCount");
+			// Determine which processor group to bind the thread to.
+			if (GetActiveProcessorCountPtr)
+			{
+				WORD j;
+				uint32 totalProcessors = 0U;
+				for (j = 0U; j < groupCount; j++)
+				{
+					totalProcessors += (uint32) GetActiveProcessorCountPtr(j);
+					if (totalProcessors >= ThreadCount)
+					{
+						ThreadProcessorGroups[ThreadCount] = j;
+						break;
+					}
+				}
+			}
+			else
+				ThreadProcessorGroups[ThreadCount] = 0;
 #endif
+			pThreadArg = &ThreadProcessorGroups[ThreadCount];
+		}
+
+#ifdef DEVICE_DRIVER
+		if (!NT_SUCCESS(TCStartThread(EncryptionThreadProc, (void*) pThreadArg, &ThreadHandles[ThreadCount])))
+#else
+		if (!(ThreadHandles[ThreadCount] = (HANDLE)_beginthreadex(NULL, 0, EncryptionThreadProc, (void*) pThreadArg, 0, NULL)))
+#endif
+
 		{
 			EncryptionThreadPoolStop();
 			return FALSE;
@@ -402,7 +500,7 @@ void EncryptionThreadPoolBeginKeyDerivation (TC_EVENT *completionEvent, TC_EVENT
 	TC_ACQUIRE_MUTEX (&EnqueueMutex);
 
 	workItem = &WorkItemQueue[EnqueuePosition++];
-	if (EnqueuePosition >= TC_ENC_THREAD_POOL_QUEUE_SIZE)
+	if (EnqueuePosition >= ThreadQueueSize)
 		EnqueuePosition = 0;
 
 	while (GetWorkItemState (workItem) != WorkItemFree)
@@ -501,7 +599,7 @@ void EncryptionThreadPoolDoWork (EncryptionThreadPoolWorkType type, byte *data, 
 	while (fragmentCount-- > 0)
 	{
 		workItem = &WorkItemQueue[EnqueuePosition++];
-		if (EnqueuePosition >= TC_ENC_THREAD_POOL_QUEUE_SIZE)
+		if (EnqueuePosition >= ThreadQueueSize)
 			EnqueuePosition = 0;
 
 		while (GetWorkItemState (workItem) != WorkItemFree)
@@ -543,7 +641,7 @@ size_t GetEncryptionThreadCount ()
 
 size_t GetMaxEncryptionThreadCount ()
 {
-	return TC_ENC_THREAD_POOL_MAX_THREAD_COUNT;
+	return ThreadPoolCount;
 }
 
 

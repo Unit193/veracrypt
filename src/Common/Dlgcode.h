@@ -242,6 +242,13 @@ typedef struct
 
 } OpenVolumeContext;
 
+typedef enum BitLockerEncryptionStatus
+{
+    BL_Status_Unknown = 0,
+    BL_Status_Unprotected,
+    BL_Status_Protected
+} BitLockerEncryptionStatus;
+
 
 #define DEFAULT_VOL_CREATION_WIZARD_MODE	WIZARD_MODE_FILE_CONTAINER
 
@@ -312,6 +319,7 @@ BOOL InstanceHasAppSetupMutex (void);
 void CloseAppSetupMutex (void);
 BOOL IsTrueCryptInstallerRunning (void);
 uint32 ReadDriverConfigurationFlags ();
+uint32 ReadServiceConfigurationFlags ();
 uint32 ReadEncryptionThreadPoolFreeCpuCountLimit ();
 BOOL LoadSysEncSettings ();
 int LoadNonSysInPlaceEncSettings (WipeAlgorithmId *wipeAlgorithm);
@@ -548,6 +556,7 @@ BOOL GetSetupconfigLocation (wchar_t* path, DWORD cchSize);
 BOOL BufferHasPattern (const unsigned char* buffer, size_t bufferLen, const void* pattern, size_t patternLen);
 BOOL EnableProcessProtection();
 void SafeOpenURL (LPCWSTR szUrl);
+BitLockerEncryptionStatus GetBitLockerEncryptionStatus(WCHAR driveLetter);
 #ifdef _WIN64
 void GetAppRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed);
 #endif
@@ -600,6 +609,30 @@ struct HostDevice
 	}
 
 	~HostDevice () {}
+
+	HostDevice& operator= (const HostDevice& device)
+	{
+		if (this != &device)
+		{
+			Bootable = device.Bootable;
+			ContainsSystem = device.ContainsSystem;
+			DynamicVolume = device.DynamicVolume;
+			Floppy = device.Floppy;
+			IsPartition = device.IsPartition;
+			IsVirtualPartition = device.IsVirtualPartition;
+			HasUnencryptedFilesystem = device.HasUnencryptedFilesystem;
+			MountPoint = device.MountPoint;
+			Name = device.Name;
+			Path = device.Path;
+			Removable = device.Removable;
+			Size = device.Size;
+			SystemNumber = device.SystemNumber;
+			HasVolumeIDs = device.HasVolumeIDs;
+			Partitions = device.Partitions;
+			memcpy (VolumeIDs, device.VolumeIDs, sizeof (VolumeIDs));
+		}
+		return *this;
+	}
 
 	bool Bootable;
 	bool ContainsSystem;
@@ -658,6 +691,62 @@ INT_PTR TextEditDialogBox (BOOL readOnly, HWND parent, const WCHAR* Title, std::
 typedef void (CALLBACK* WaitThreadProc)(void* pArg, HWND hWaitDlg);
 void BringToForeground(HWND hWnd);
 void ShowWaitDialog(HWND hwnd, BOOL bUseHwndAsParent, WaitThreadProc callback, void* pArg);
+
+// classes used to implement support for password drag-n-drop from KeePass Password Safe
+// Implementation based the following source code with many modifications to fix isses and add features
+// URL: https://www.codeguru.com/cpp/misc/misc/draganddrop/article.php/c349/Drag-And-Drop-between-Window-Controls.htm
+
+interface GenericDropTarget : public IDropTarget
+{
+public:
+	GenericDropTarget(CLIPFORMAT* pFormats, size_t count);
+	~GenericDropTarget();
+
+	//	basic IUnknown stuff
+	HRESULT	STDMETHODCALLTYPE	QueryInterface(REFIID iid, void ** ppvObject); 
+	ULONG	STDMETHODCALLTYPE	AddRef(void); 
+	ULONG	STDMETHODCALLTYPE	Release(void); 
+
+	HRESULT	STDMETHODCALLTYPE	DragEnter(struct IDataObject *,unsigned long,struct _POINTL,unsigned long *); 
+	HRESULT	STDMETHODCALLTYPE	DragOver(unsigned long,struct _POINTL,unsigned long *); 
+	HRESULT	STDMETHODCALLTYPE	DragLeave(void);
+	HRESULT	STDMETHODCALLTYPE	Drop(struct IDataObject *,unsigned long,struct _POINTL,unsigned long *);
+
+	//	called by parents
+	BOOL						Register(HWND hWnd);
+	void						Revoke();
+
+	//	call parent we have goodies
+	virtual	void				GotDrop(CLIPFORMAT format);
+	virtual	DWORD				GotDrag(void);
+	virtual	void				GotLeave(void);
+	virtual	DWORD				GotEnter(void);
+public:
+	BYTE			*m_Data;
+
+	POINT			m_DropPoint;
+
+	DWORD			m_KeyState;
+
+protected:
+	HWND			m_DropTargetWnd;
+	std::vector<CLIPFORMAT> m_SupportedFormat;
+	volatile LONG	m_dwRefCount;
+};
+
+class PasswordEditDropTarget : public GenericDropTarget
+{
+public:
+	PasswordEditDropTarget();
+
+	//	called by child we have drop
+	void	GotDrop(CLIPFORMAT format);
+	DWORD	GotDrag(void);
+	void	GotLeave(void);
+	DWORD	GotEnter(void);
+};
+
+BOOL GetHibernateStatus (BOOL& bHibernateEnabled, BOOL& bHiberbootEnabled);
 
 #endif // __cplusplus
 

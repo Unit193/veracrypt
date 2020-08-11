@@ -233,10 +233,12 @@ BOOL bKeybLayoutAltKeyWarningShown = FALSE;	/* TRUE if the user has been informe
 BOOL bWarnOuterVolSuitableFileSys = TRUE;
 
 Password volumePassword;			/* User password */
+Password outerVolumePassword;			/* Outer volume user password */
 char szVerify[MAX_PASSWORD + 1];	/* Tmp password buffer */
 char szRawPassword[MAX_PASSWORD + 1];	/* Password before keyfile was applied to it */
 
 int volumePim = 0;
+int outerVolumePim = 0;
 
 BOOL bHistoryCmdLine = FALSE; /* History control is always disabled */
 BOOL ComServerMode = FALSE;
@@ -259,6 +261,8 @@ BOOL bOperationSuccess = FALSE;
 BOOL bGuiMode = TRUE;
 
 BOOL bSystemIsGPT = FALSE;
+
+KeyFile *FirstCmdKeyFile = NULL;
 
 int nPbar = 0;			/* Control ID of progress bar:- for format code */
 
@@ -409,15 +413,17 @@ static BOOL ElevateWholeWizardProcess (wstring arguments)
 	}
 }
 
-static void WipePasswordsAndKeyfiles (void)
+static void WipePasswordsAndKeyfiles (bool bFull)
 {
 	wchar_t tmp[MAX_PASSWORD+1];
 
 	// Attempt to wipe passwords stored in the input field buffers
 	wmemset (tmp, L'X', MAX_PASSWORD);
 	tmp [MAX_PASSWORD] = 0;
-	SetWindowText (hPasswordInputField, tmp);
-	SetWindowText (hVerifyPasswordInputField, tmp);
+	if (hPasswordInputField)
+		SetWindowText (hPasswordInputField, tmp);
+	if (hVerifyPasswordInputField)
+		SetWindowText (hVerifyPasswordInputField, tmp);
 
 	burn (&szVerify[0], sizeof (szVerify));
 	burn (&volumePassword, sizeof (volumePassword));
@@ -426,8 +432,16 @@ static void WipePasswordsAndKeyfiles (void)
 	burn (&CmdVolumePassword, sizeof (CmdVolumePassword));
 	burn (&CmdVolumePim, sizeof (CmdVolumePim));
 
-	SetWindowText (hPasswordInputField, L"");
-	SetWindowText (hVerifyPasswordInputField, L"");
+	if (bFull)
+	{
+		burn (&outerVolumePassword, sizeof (outerVolumePassword));
+		burn (&outerVolumePim, sizeof (outerVolumePim));
+	}
+
+	if (hPasswordInputField)
+		SetWindowText (hPasswordInputField, L"");
+	if (hVerifyPasswordInputField)
+		SetWindowText (hVerifyPasswordInputField, L"");
 
 	KeyFileRemoveAll (&FirstKeyFile);
 	KeyFileRemoveAll (&defaultKeyFilesParam.FirstKeyFile);
@@ -473,7 +487,7 @@ static void localcleanup (void)
 		WipeAbort();
 
 
-	WipePasswordsAndKeyfiles ();
+	WipePasswordsAndKeyfiles (true);
 
 	RandStop (TRUE);
 
@@ -487,6 +501,8 @@ static void localcleanup (void)
 	burn (maskRandPool, sizeof(maskRandPool));
 	burn (szFileName, sizeof(szFileName));
 	burn (szDiskFile, sizeof(szDiskFile));
+
+	KeyFileRemoveAll (&FirstCmdKeyFile);
 
 	// Attempt to wipe the GUI fields showing portions of randpool, of the master and header keys
 	wmemset (tmp, L'X', ARRAYSIZE(tmp));
@@ -705,7 +721,7 @@ static BOOL ChangeWizardMode (int newWizardMode)
 			// If the previous mode was different, the password may have been typed using a different
 			// keyboard layout (which might confuse the user and cause other problems if system encryption
 			// was or will be involved).
-			WipePasswordsAndKeyfiles();
+			WipePasswordsAndKeyfiles(true);
 		}
 
 		if (newWizardMode != WIZARD_MODE_NONSYS_DEVICE)
@@ -4315,6 +4331,8 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				/* make autodetection the default */
 				SendMessage (hComboBox, CB_SETCURSEL, 0, 0);
 
+				hPasswordInputField = GetDlgItem (hwndDlg, IDC_PASSWORD_DIRECT);
+				hVerifyPasswordInputField = NULL;
 				ToNormalPwdField (hwndDlg, IDC_PASSWORD_DIRECT);
 
 				SetPassword (hwndDlg, IDC_PASSWORD_DIRECT, szRawPassword);
@@ -5615,8 +5633,24 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 		if (hw == CBN_EDITCHANGE && nCurPageNo == VOLUME_LOCATION_PAGE)
 		{
+			BOOL bValidEntry = (GetWindowTextLength (GetDlgItem (hCurPage, IDC_COMBO_BOX)) > 0)? TRUE : FALSE;
+
+			if (bValidEntry && !bDevice)
+			{
+				/* check that the entered path is not for an existing directory */
+				WCHAR szEnteredFilePath[TC_MAX_PATH + 1] = {0};
+				GetWindowTextW (GetDlgItem (hCurPage, IDC_COMBO_BOX), szEnteredFilePath, ARRAYSIZE (szEnteredFilePath));
+				RelativePath2Absolute (szEnteredFilePath);
+
+				DWORD dwAttr = GetFileAttributes (szEnteredFilePath);
+				if ((dwAttr != INVALID_FILE_ATTRIBUTES) && (dwAttr & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					/* this is a directory. Consider it as invalid */
+					bValidEntry = FALSE;
+				}
+			}
 			EnableWindow (GetDlgItem (GetParent (hwndDlg), IDC_NEXT),
-				GetWindowTextLength (GetDlgItem (hCurPage, IDC_COMBO_BOX)) > 0);
+				bValidEntry);
 
 			bDeviceTransformModeChoiceMade = FALSE;
 			bInPlaceEncNonSys = FALSE;
@@ -6176,7 +6210,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				showKeys = FALSE;
 				bGuiMode = FALSE;
 
-				if (CmdVolumePassword.Length == 0)
+				if (CmdVolumePassword.Length == 0 && !FirstCmdKeyFile)
 					AbortProcess ("ERR_PASSWORD_MISSING");
 
 				if (CmdVolumeFileSize == 0)
@@ -6331,6 +6365,11 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					}
 				}
 
+				if (!KeyFilesApply (hwndDlg, &volumePassword, FirstCmdKeyFile, NULL))
+				{
+					exit (1);
+				}
+
 				volTransformThreadFunction (hwndDlg);
 
 				exit (bOperationSuccess? 0 : 1);
@@ -6354,6 +6393,14 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			strcpy (szVerify, "q");
 			strcpy (szRawPassword, "q");
 #endif
+
+			PasswordEditDropTarget* pTarget = new PasswordEditDropTarget ();
+			if (pTarget->Register (hwndDlg))
+			{
+				SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) pTarget);
+			}
+			else
+				delete pTarget;
 
 			PostMessage (hwndDlg, TC_APPMSG_PERFORM_POST_WMINIT_TASKS, 0, 0);
 		}
@@ -6610,7 +6657,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				{
 					// Keyboard layout is not standard US
 
-					WipePasswordsAndKeyfiles ();
+					WipePasswordsAndKeyfiles (true);
 
 					SetPassword (hCurPage, IDC_PASSWORD, szRawPassword);
 					SetPassword (hCurPage, IDC_VERIFY, szVerify);
@@ -7650,6 +7697,18 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					nNewPageNo = PIM_PAGE;
 					volumePim = 0;
 
+					if (!CreatingHiddenSysVol() && bHiddenVol && !bHiddenVolHost)
+					{
+						if (	(volumePim == outerVolumePim)
+							&&	(volumePassword.Length == outerVolumePassword.Length)
+							&&	(0 == memcmp (volumePassword.Text, outerVolumePassword.Text, volumePassword.Length))
+							)
+						{
+							Warning ("HIDDEN_CREDS_SAME_AS_OUTER", hwndDlg);
+							return 1;
+						}
+					}
+
 					if (SysEncInEffect ())
 					{
 						nNewPageNo = SYSENC_COLLECTING_RANDOM_DATA_PAGE - 1;	// Skip irrelevant pages
@@ -7678,6 +7737,18 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					SetFocus (GetDlgItem(hCurPage, IDC_PIM));
 					Error ("PIM_TOO_BIG", hwndDlg);
 					return 1;
+				}
+
+				if (!CreatingHiddenSysVol() && bHiddenVol && !bHiddenVolHost)
+				{
+					if (	(volumePim == outerVolumePim)
+						&&	(volumePassword.Length == outerVolumePassword.Length)
+						&&	(0 == memcmp (volumePassword.Text, outerVolumePassword.Text, volumePassword.Length))
+						)
+					{
+						Warning ("HIDDEN_CREDS_SAME_AS_OUTER", hwndDlg);
+						return 1;
+					}
 				}
 
 				if (volumePassword.Length > 0)
@@ -7847,8 +7918,12 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 										bHiddenVolHost = FALSE;
 										bHiddenVolFinished = FALSE;
 
+										// save the outer volume password to use it for comparison with hidden volume one
+										memcpy (&outerVolumePassword, &volumePassword, sizeof (volumePassword));
+										outerVolumePim = volumePim;
+
 										// Clear the outer volume password
-										WipePasswordsAndKeyfiles ();
+										WipePasswordsAndKeyfiles (false);
 
 										RestoreDefaultKeyFilesParam ();
 
@@ -8394,6 +8469,7 @@ retryCDDriveCheck:
 			else if (nCurPageNo == FORMAT_PAGE)
 			{
 				/* Format start  (the 'Next' button has been clicked on the Format page) */
+				static BOOL g_bFastStartupCheckDone = FALSE;
 
 				if (bVolTransformThreadRunning || bVolTransformThreadToRun)
 					return 1;
@@ -8401,6 +8477,23 @@ retryCDDriveCheck:
 				bVolTransformThreadCancel = FALSE;
 
 				bVolTransformThreadToRun = TRUE;
+
+				// check if Fast Startup is enabled and if yes then offer to disable it
+				if (!g_bFastStartupCheckDone)
+				{
+					BOOL bHibernateEnabled = FALSE, bHiberbootEnabled = FALSE;
+					if (GetHibernateStatus (bHibernateEnabled, bHiberbootEnabled) && bHiberbootEnabled)
+					{
+						if (AskWarnYesNo ("CONFIRM_DISABLE_FAST_STARTUP", hwndDlg) == IDYES)
+						{
+							if (!IsAdmin () && IsUacSupported ())
+								UacWriteLocalMachineRegistryDword (hwndDlg, L"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", L"HiberbootEnabled", 0);
+							else
+								WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", L"HiberbootEnabled", 0);
+						}
+					}
+					g_bFastStartupCheckDone = true;
+				}
 
 				fileSystem = (int) SendMessage (GetDlgItem (hCurPage, IDC_FILESYS), CB_GETITEMDATA,
 					SendMessage (GetDlgItem (hCurPage, IDC_FILESYS), CB_GETCURSEL, 0, 0) , 0);
@@ -8478,13 +8571,7 @@ retryCDDriveCheck:
 
 						if (fileSystem == FILESYS_NTFS || fileSystem == FILESYS_EXFAT)	// The file system may have been changed in the previous block
 						{
-							if (nCurrentOS == WIN_2000)
-							{
-								Error("HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS_WIN2000", hwndDlg);
-								bVolTransformThreadToRun = FALSE;
-								return 1;
-							}
-							else if ((fileSystem == FILESYS_NTFS) && (GetVolumeDataAreaSize (FALSE, nVolumeSize) <= TC_MAX_FAT_SECTOR_COUNT * GetFormatSectorSize())
+							if ((fileSystem == FILESYS_NTFS) && (GetVolumeDataAreaSize (FALSE, nVolumeSize) <= TC_MAX_FAT_SECTOR_COUNT * GetFormatSectorSize())
 								&& AskYesNo("HIDDEN_VOL_HOST_NTFS_ASK", hwndDlg) == IDNO)
 							{
 								bVolTransformThreadToRun = FALSE;
@@ -8578,7 +8665,7 @@ retryCDDriveCheck:
 
 					SetWindowTextW (GetDlgItem (MainDlg, IDCANCEL), GetString ("CANCEL"));
 					bHiddenVolFinished = FALSE;
-					WipePasswordsAndKeyfiles ();
+					WipePasswordsAndKeyfiles (true);
 
 					return 1;
 				}
@@ -8680,8 +8767,12 @@ retryCDDriveCheck:
 
 									nNewPageNo = HIDDEN_VOL_HOST_PRE_CIPHER_PAGE;
 
+									// save the outer volume password to use it for comparison with hidden volume one
+									memcpy (&outerVolumePassword, &volumePassword, sizeof (volumePassword));
+									outerVolumePim = volumePim;
+
 									// Clear the outer volume password
-									WipePasswordsAndKeyfiles ();
+									WipePasswordsAndKeyfiles (false);
 
 									EnableWindow (GetDlgItem (MainDlg, IDC_NEXT), TRUE);
 									NormalCursor ();
@@ -8952,6 +9043,22 @@ ovf_end:
 	case WM_CLOSE:
 		PostMessage (hwndDlg, TC_APPMSG_FORMAT_USER_QUIT, 0, 0);
 		return 1;
+
+	case WM_NCDESTROY:
+		{
+			hPasswordInputField = NULL;
+			hVerifyPasswordInputField = NULL;
+
+			/* unregister drap-n-drop support */
+			PasswordEditDropTarget* pTarget = (PasswordEditDropTarget*) GetWindowLongPtr (hwndDlg, DWLP_USER);
+			if (pTarget)
+			{
+				SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) 0);
+				pTarget->Revoke ();
+				pTarget->Release();
+			}
+		}
+		return 0;
 	}
 
 	return 0;
@@ -9008,6 +9115,8 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 				OptionQuickFormat,
 				OptionFastCreateFile,
 				OptionEnableMemoryProtection,
+				OptionKeyfile,
+				OptionSecureDesktop,
 			};
 
 			argument args[]=
@@ -9032,6 +9141,8 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 				{ OptionQuickFormat,			L"/quick",	NULL, FALSE },
 				{ OptionFastCreateFile,			L"/fastcreatefile",	NULL, FALSE },
 				{ OptionEnableMemoryProtection,	L"/protectMemory",	NULL, FALSE },
+				{ OptionKeyfile,				L"/keyfile",		L"/k", FALSE },
+				{ OptionSecureDesktop,			L"/secureDesktop",	NULL, FALSE },
 
 				// Internal
 				{ CommandResumeSysEncLogOn,		L"/acsysenc",		L"/a", TRUE },
@@ -9450,6 +9561,46 @@ void ExtractCommandLine (HWND hwndDlg, wchar_t *lpszCommandLine)
 				}
 				break;
 
+			case OptionKeyfile:
+				{
+					wchar_t tmpPath [2 * TC_MAX_PATH] = {0};
+					if (HAS_ARGUMENT == GetArgumentValue (lpszCommandLineArgs, &i,
+						nNoCommandLineArgs, tmpPath, ARRAYSIZE (tmpPath)))
+					{
+						KeyFile *kf;
+						RelativePath2Absolute (tmpPath);
+						kf = (KeyFile *) malloc (sizeof (KeyFile));
+						if (kf)
+						{
+							StringCchCopyW (kf->FileName, ARRAYSIZE(kf->FileName), tmpPath);
+							FirstCmdKeyFile = KeyFileAdd (FirstCmdKeyFile, kf);
+						}
+					}
+					else
+						AbortProcess ("COMMAND_LINE_ERROR");
+				}
+
+				break;
+
+			case OptionSecureDesktop:
+				{
+					wchar_t szTmp[16] = {0};
+					bCmdUseSecureDesktop = TRUE;
+					bCmdUseSecureDesktopValid = TRUE;
+
+					if (HAS_ARGUMENT == GetArgumentValue (lpszCommandLineArgs, &i, nNoCommandLineArgs,
+						     szTmp, ARRAYSIZE (szTmp)))
+					{
+						if (!_wcsicmp(szTmp,L"n") || !_wcsicmp(szTmp,L"no"))
+							bCmdUseSecureDesktop = FALSE;
+						else if (!_wcsicmp(szTmp,L"y") || !_wcsicmp(szTmp,L"yes"))
+							bCmdUseSecureDesktop = TRUE;
+						else
+							AbortProcess ("COMMAND_LINE_ERROR");
+					}
+				}
+				break;
+
 			default:
 				DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_COMMANDHELP_DLG), hwndDlg, (DLGPROC)
 						CommandHelpDlgProc, (LPARAM) &as);
@@ -9621,12 +9772,6 @@ int AnalyzeHiddenVolumeHost (HWND hwndDlg, int *driveNo, __int64 hiddenVolHostSi
 		// NTFS
 		bool bIsNtfs = (0 == wcsncmp (szFileSystemNameBuffer, L"NTFS", 4));
 
-		if (nCurrentOS == WIN_2000)
-		{
-			Error("HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS_WIN2000", hwndDlg);
-			return 0;
-		}
-
 		if (bIsNtfs && bHiddenVolDirect && GetVolumeDataAreaSize (FALSE, hiddenVolHostSize) <= TC_MAX_FAT_SECTOR_COUNT * GetFormatSectorSize())
 			Info ("HIDDEN_VOL_HOST_NTFS", hwndDlg);
 
@@ -9657,7 +9802,7 @@ int AnalyzeHiddenVolumeHost (HWND hwndDlg, int *driveNo, __int64 hiddenVolHostSi
 	{
 		// Unsupported file system
 
-		Error ((nCurrentOS == WIN_2000) ? "HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS_WIN2000" : "HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS", hwndDlg);
+		Error ("HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS", hwndDlg);
 		return 0;
 	}
 
@@ -10384,9 +10529,11 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpsz
 	atexit (localcleanup);
 
 	VirtualLock (&volumePassword, sizeof(volumePassword));
+	VirtualLock (&outerVolumePassword, sizeof(outerVolumePassword));
 	VirtualLock (szVerify, sizeof(szVerify));
 	VirtualLock (szRawPassword, sizeof(szRawPassword));
 	VirtualLock (&volumePim, sizeof(volumePim));
+	VirtualLock (&outerVolumePim, sizeof(outerVolumePim));
 	VirtualLock (&CmdVolumePassword, sizeof (CmdVolumePassword));
 
 	VirtualLock (MasterKeyGUIView, sizeof(MasterKeyGUIView));

@@ -49,6 +49,7 @@
 #include "../Platform/Finally.h"
 #include "../Platform/ForEach.h"
 #include "../Setup/SelfExtract.h"
+#include "../Common/EncryptionThreadPool.h"
 
 #include <Strsafe.h>
 #include <InitGuid.h>
@@ -63,6 +64,17 @@
 
 typedef BOOL (WINAPI *WTSREGISTERSESSIONNOTIFICATION)(HWND, DWORD);
 typedef BOOL (WINAPI *WTSUNREGISTERSESSIONNOTIFICATION)(HWND);
+
+#ifndef _HPOWERNOTIFY_DEF_
+#define _HPOWERNOTIFY_DEF_
+
+typedef  PVOID           HPOWERNOTIFY;
+typedef  HPOWERNOTIFY   *PHPOWERNOTIFY;
+
+#endif
+
+typedef HPOWERNOTIFY (WINAPI *REGISTERSUSPENDRESUMENOTIFICATION)(HANDLE hRecipient, DWORD Flags);
+typedef BOOL (WINAPI *UNREGISTERSUSPENDRESUMENOTIFICATION) (HPOWERNOTIFY Handle);
 
 using namespace VeraCrypt;
 
@@ -158,14 +170,14 @@ MountOptions CmdMountOptions;
 BOOL CmdMountOptionsValid = FALSE;
 MountOptions mountOptions;
 MountOptions defaultMountOptions;
-KeyFile *FirstCmdKeyFile;
+KeyFile *FirstCmdKeyFile = NULL;
 
 HBITMAP hbmLogoBitmapRescaled = NULL;
 wchar_t OrigKeyboardLayout [8+1] = L"00000409";
 BOOL bKeyboardLayoutChanged = FALSE;		/* TRUE if the keyboard layout was changed to the standard US keyboard layout (from any other layout). */
 BOOL bKeybLayoutAltKeyWarningShown = FALSE;	/* TRUE if the user has been informed that it is not possible to type characters by pressing keys while the right Alt key is held down. */
 
-static KeyFilesDlgParam				hidVolProtKeyFilesParam;
+static KeyFilesDlgParam				hidVolProtKeyFilesParam = {0};
 
 static MOUNT_LIST_STRUCT	LastKnownMountList = {0};
 VOLUME_NOTIFICATIONS_LIST	VolumeNotificationsList;
@@ -188,7 +200,13 @@ static HMODULE hWtsLib = NULL;
 static WTSREGISTERSESSIONNOTIFICATION   fnWtsRegisterSessionNotification = NULL;
 static WTSUNREGISTERSESSIONNOTIFICATION fnWtsUnRegisterSessionNotification = NULL;
 
-static void RegisterWtsNotification(HWND hWnd)
+// Used to opt-in to receive notification about power events. 
+// This is mandatory to support Windows 10 Modern Standby and Windows 8.1 Connected Standby power model.
+// https://docs.microsoft.com/en-us/windows-hardware/design/device-experiences/prepare-software-for-modern-standby
+// https://docs.microsoft.com/en-us/windows/win32/w8cookbook/desktop-activity-moderator?redirectedfrom=MSDN
+static HPOWERNOTIFY  g_hPowerNotify = NULL;
+
+static void RegisterWtsAndPowerNotification(HWND hWnd)
 {
 	if (!hWtsLib)
 	{
@@ -215,9 +233,19 @@ static void RegisterWtsNotification(HWND hWnd)
 			}
 		}
 	}
+
+	if (IsOSAtLeast (WIN_8))
+	{
+		REGISTERSUSPENDRESUMENOTIFICATION fnRegisterSuspendResumeNotification = (REGISTERSUSPENDRESUMENOTIFICATION) GetProcAddress (GetModuleHandle (L"user32.dll"), "RegisterSuspendResumeNotification");
+		if (fnRegisterSuspendResumeNotification)
+		{
+			g_hPowerNotify = fnRegisterSuspendResumeNotification ((HANDLE) hWnd, DEVICE_NOTIFY_WINDOW_HANDLE);
+		}
+		
+	}
 }
 
-static void UnregisterWtsNotification(HWND hWnd)
+static void UnregisterWtsAndPowerNotification(HWND hWnd)
 {
 	if (hWtsLib && fnWtsUnRegisterSessionNotification)
 	{
@@ -226,6 +254,14 @@ static void UnregisterWtsNotification(HWND hWnd)
 		hWtsLib = NULL;
 		fnWtsRegisterSessionNotification = NULL;
 		fnWtsUnRegisterSessionNotification = NULL;
+	}
+
+	if (IsOSAtLeast (WIN_8) && g_hPowerNotify)
+	{
+		UNREGISTERSUSPENDRESUMENOTIFICATION fnUnregisterSuspendResumeNotification = (UNREGISTERSUSPENDRESUMENOTIFICATION) GetProcAddress (GetModuleHandle (L"user32.dll"), "UnregisterSuspendResumeNotification");
+		if (fnUnregisterSuspendResumeNotification)
+			fnUnregisterSuspendResumeNotification (g_hPowerNotify);
+		g_hPowerNotify = NULL;
 	}
 }
 
@@ -377,6 +413,9 @@ static void localcleanup (void)
 	burn (&defaultMountOptions, sizeof (defaultMountOptions));
 	burn (szFileName, sizeof(szFileName));
 
+	KeyFileRemoveAll (&FirstCmdKeyFile);
+	KeyFileRemoveAll (&hidVolProtKeyFilesParam.FirstKeyFile);
+
 	/* Cleanup common code resources */
 	cleanup ();
 
@@ -432,7 +471,7 @@ void EndMainDlg (HWND hwndDlg)
 		KillTimer (hwndDlg, TIMER_ID_MAIN);
 		KillTimer (hwndDlg, TIMER_ID_UPDATE_DEVICE_LIST);
 		TaskBarIconRemove (hwndDlg);
-		UnregisterWtsNotification(hwndDlg);
+		UnregisterWtsAndPowerNotification(hwndDlg);
 		EndDialog (hwndDlg, 0);
 	}
 }
@@ -2376,6 +2415,17 @@ BOOL CALLBACK PasswordChangeDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPAR
 			}
 
 			CheckCapsLock (hwndDlg, FALSE);
+			
+			if (!bSecureDesktopOngoing)
+			{
+				PasswordEditDropTarget* pTarget = new PasswordEditDropTarget ();
+				if (pTarget->Register (hwndDlg))
+				{
+					SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) pTarget);
+				}
+				else
+					delete pTarget;
+			}
 
 			return 0;
 		}
@@ -2841,6 +2891,19 @@ err:
 			return 1;
 		}
 		return 0;
+
+	case WM_NCDESTROY:
+		{
+			/* unregister drap-n-drop support */
+			PasswordEditDropTarget* pTarget = (PasswordEditDropTarget*) GetWindowLongPtr (hwndDlg, DWLP_USER);
+			if (pTarget)
+			{
+				SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) 0);
+				pTarget->Revoke ();
+				pTarget->Release();
+			}
+		}
+		return 0;
 	}
 
 	return 0;
@@ -2975,9 +3038,18 @@ BOOL CALLBACK PasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			SetFocus (GetDlgItem (hwndDlg, IDC_PASSWORD));
 
 			/* Start the timer to check if we are foreground only if Secure Desktop is not used */
+			/* Implement Text drag-n-drop in order to support droping password from KeePass directly only if Secure Desktop is not used */
 			if (!bSecureDesktopOngoing)
 			{
 				SetTimer (hwndDlg, TIMER_ID_CHECK_FOREGROUND, TIMER_INTERVAL_CHECK_FOREGROUND, NULL);
+
+				PasswordEditDropTarget* pTarget = new PasswordEditDropTarget ();
+				if (pTarget->Register (hwndDlg))
+				{
+					SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) pTarget);
+				}
+				else
+					delete pTarget;
 			}
 		}
 		return 0;
@@ -3239,6 +3311,19 @@ BOOL CALLBACK PasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 			EndDialog (hwndDlg, lw);
 			return 1;
+		}
+		return 0;
+
+	case WM_NCDESTROY:
+		{
+			/* unregister drap-n-drop support */
+			PasswordEditDropTarget* pTarget = (PasswordEditDropTarget*) GetWindowLongPtr (hwndDlg, DWLP_USER);
+			if (pTarget)
+			{
+				SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) 0);
+				pTarget->Revoke ();
+				pTarget->Release();
+			}
 		}
 		return 0;
 
@@ -3655,6 +3740,17 @@ BOOL CALLBACK MountOptionsDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 
 			ToHyperlink (hwndDlg, IDC_LINK_HIDVOL_PROTECTION_INFO);
 
+			if (!bSecureDesktopOngoing)
+			{
+				PasswordEditDropTarget* pTarget = new PasswordEditDropTarget ();
+				if (pTarget->Register (hwndDlg))
+				{
+					SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) pTarget);
+				}
+				else
+					delete pTarget;
+			}
+
 		}
 		return 0;
 
@@ -3811,6 +3907,19 @@ BOOL CALLBACK MountOptionsDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM
 			return 1;
 		}
 
+		return 0;
+
+	case WM_NCDESTROY:
+		{
+			/* unregister drap-n-drop support */
+			PasswordEditDropTarget* pTarget = (PasswordEditDropTarget*) GetWindowLongPtr (hwndDlg, DWLP_USER);
+			if (pTarget)
+			{
+				SetWindowLongPtr (hwndDlg, DWLP_USER, (LONG_PTR) 0);
+				pTarget->Revoke ();
+				pTarget->Release();
+			}
+		}
 		return 0;
 	}
 
@@ -5157,7 +5266,14 @@ static BOOL Dismount (HWND hwndDlg, int nDosDriveNo)
 	WaitCursor ();
 
 	if (nDosDriveNo == -2)
+	{
 		nDosDriveNo = (char) (HIWORD (GetSelectedLong (GetDlgItem (hwndDlg, IDC_DRIVELIST))) - L'A');
+		if (nDosDriveNo < 0 || nDosDriveNo >= 26)
+		{
+			NormalCursor ();
+			return FALSE;
+		}
+	}
 
 	if (bCloseDismountedWindows)
 	{
@@ -5171,9 +5287,6 @@ static BOOL Dismount (HWND hwndDlg, int nDosDriveNo)
 		if (bBeep)
 			MessageBeep (0xFFFFFFFF);
 		RefreshMainDlg (hwndDlg);
-
-		if (nCurrentOS == WIN_2000 && RemoteSession && !IsAdmin ())
-			LoadDriveLetters (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST), 0);
 	}
 
 	NormalCursor ();
@@ -5347,9 +5460,6 @@ retry:
 	BroadcastDeviceChange (DBT_DEVICEREMOVECOMPLETE, 0, prevMountList.ulMountedDrives & ~mountList.ulMountedDrives);
 
 	RefreshMainDlg (hwndDlg);
-
-	if (nCurrentOS == WIN_2000 && RemoteSession && !IsAdmin ())
-		LoadDriveLetters (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST), 0);
 
 	NormalCursor();
 
@@ -7027,7 +7137,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 						if (FirstCmdKeyFile)
 						{
 							KeyFileRemoveAll (&FirstKeyFile);
-							FirstKeyFile = FirstCmdKeyFile;
+							KeyFileCloneAll (FirstCmdKeyFile, &FirstKeyFile);
 							KeyFilesEnable = TRUE;
 						}
 
@@ -7280,7 +7390,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			}
 
 			if (TaskBarIconMutex != NULL)
-				RegisterWtsNotification(hwndDlg);
+				RegisterWtsAndPowerNotification(hwndDlg);
 			DoPostInstallTasks (hwndDlg);
 			ResetCurrentDirectory ();
 		}
@@ -7365,7 +7475,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			}
 
 			TaskBarIconRemove (hwndDlg);
-			UnregisterWtsNotification(hwndDlg);
+			UnregisterWtsAndPowerNotification(hwndDlg);
 		}
 		EndMainDlg (hwndDlg);
 		localcleanup ();
@@ -7583,7 +7693,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					&& GetDriverRefCount () < 2)
 				{
 					TaskBarIconRemove (hwndDlg);
-					UnregisterWtsNotification(hwndDlg);
+					UnregisterWtsAndPowerNotification(hwndDlg);
 					EndMainDlg (hwndDlg);
 				}
 			}
@@ -7710,7 +7820,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 							EnumWindows (CloseTCWindowsEnum, 0);
 
 							TaskBarIconRemove (hwndDlg);
-							UnregisterWtsNotification(hwndDlg);
+							UnregisterWtsAndPowerNotification(hwndDlg);
 							SendMessage (hwndDlg, WM_COMMAND, sel, 0);
 						}
 					}
@@ -7731,7 +7841,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 	case TC_APPMSG_CLOSE_BKG_TASK:
 		if (TaskBarIconMutex != NULL)
 			TaskBarIconRemove (hwndDlg);
-		UnregisterWtsNotification(hwndDlg);
+		UnregisterWtsAndPowerNotification(hwndDlg);
 
 		return 1;
 
@@ -8407,12 +8517,12 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				if (bEnableBkgTask)
 				{
 					TaskBarIconAdd (hwndDlg);
-					RegisterWtsNotification(hwndDlg);
+					RegisterWtsAndPowerNotification(hwndDlg);
 				}
 				else
 				{
 					TaskBarIconRemove (hwndDlg);
-					UnregisterWtsNotification(hwndDlg);
+					UnregisterWtsAndPowerNotification(hwndDlg);
 					if (MainWindowHidden)
 						EndMainDlg (hwndDlg);
 				}
@@ -8682,12 +8792,10 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 			WaitCursor ();
 
-			if (!(nCurrentOS == WIN_2000 && RemoteSession))
-			{
-				BroadcastDeviceChange (DBT_DEVICEREMOVECOMPLETE, 0, ~driveMap);
-				Sleep (100);
-				BroadcastDeviceChange (DBT_DEVICEARRIVAL, 0, driveMap);
-			}
+
+			BroadcastDeviceChange (DBT_DEVICEREMOVECOMPLETE, 0, ~driveMap);
+			Sleep (100);
+			BroadcastDeviceChange (DBT_DEVICEARRIVAL, 0, driveMap);
 
 			LoadDriveLetters (hwndDlg, GetDlgItem (hwndDlg, IDC_DRIVELIST), 0);
 
@@ -9495,7 +9603,7 @@ static DWORD WINAPI SystemFavoritesServiceCtrlHandler (	DWORD dwControl,
 	case SERVICE_CONTROL_STOP:
 		SystemFavoritesServiceSetStatus (SERVICE_STOP_PENDING);
 
-		if (!(BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
+ 		if (!(BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
 		{
 			try
 			{
@@ -9816,7 +9924,7 @@ BOOL TaskBarIconAdd (HWND hwnd)
 		ScreenDPI >= 120 ? 0 : 16,
 		(ScreenDPI >= 120 ? LR_DEFAULTSIZE : 0)
 		| LR_SHARED
-		| (nCurrentOS != WIN_2000 ? LR_DEFAULTCOLOR : LR_VGACOLOR)); // Windows 2000 cannot display more than 16 fixed colors in notification tray
+		| LR_DEFAULTCOLOR);
 
 	StringCbCopyW (tnid.szTip, sizeof(tnid.szTip), L"VeraCrypt");
 
@@ -9868,7 +9976,7 @@ BOOL TaskBarIconChange (HWND hwnd, int iconId)
 		ScreenDPI >= 120 ? 0 : 16,
 		(ScreenDPI >= 120 ? LR_DEFAULTSIZE : 0)
 		| LR_SHARED
-		| (nCurrentOS != WIN_2000 ? LR_DEFAULTCOLOR : LR_VGACOLOR)); // Windows 2000 cannot display more than 16 fixed colors in notification tray
+		| LR_DEFAULTCOLOR);
 
 	return Shell_NotifyIcon (NIM_MODIFY, &tnid);
 }
@@ -10413,7 +10521,7 @@ static void HandleHotKey (HWND hwndDlg, WPARAM wParam)
 				MessageBeep (0xFFFFFFFF);
 		}
 		TaskBarIconRemove (hwndDlg);
-		UnregisterWtsNotification(hwndDlg);
+		UnregisterWtsAndPowerNotification(hwndDlg);
 		EndMainDlg (hwndDlg);
 		break;
 
@@ -11202,6 +11310,11 @@ void SetDriverConfigurationFlag (uint32 flag, BOOL state)
 		BootEncObj->SetDriverConfigurationFlag (flag, state ? true : false);
 }
 
+void SetServiceConfigurationFlag (uint32 flag, BOOL state)
+{
+	if (BootEncObj)
+		BootEncObj->SetServiceConfigurationFlag (flag, state ? true : false);
+}
 
 static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -11248,26 +11361,25 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 				EnableWindow (GetDlgItem (hwndDlg, IDC_ENABLE_RAM_ENCRYPTION), FALSE);
 			}
 
-			SYSTEM_INFO sysInfo;
-			GetSystemInfo (&sysInfo);
+			size_t cpuCount = GetCpuCount(NULL);
 
 			HWND freeCpuCombo = GetDlgItem (hwndDlg, IDC_ENCRYPTION_FREE_CPU_COUNT);
 			uint32 encryptionFreeCpuCount = ReadEncryptionThreadPoolFreeCpuCountLimit();
 
-			if (encryptionFreeCpuCount > sysInfo.dwNumberOfProcessors - 1)
-				encryptionFreeCpuCount = sysInfo.dwNumberOfProcessors - 1;
+			if (encryptionFreeCpuCount > (uint32) (cpuCount - 1))
+				encryptionFreeCpuCount = (uint32) (cpuCount - 1);
 
-			for (uint32 i = 1; i < sysInfo.dwNumberOfProcessors; ++i)
+			for (uint32 i = 1; i < cpuCount; ++i)
 			{
 				wstringstream s;
 				s << i;
 				AddComboPair (freeCpuCombo, s.str().c_str(), i);
 			}
 
-			if (sysInfo.dwNumberOfProcessors < 2 || encryptionFreeCpuCount == 0)
+			if (cpuCount < 2 || encryptionFreeCpuCount == 0)
 				EnableWindow (freeCpuCombo, FALSE);
 
-			if (sysInfo.dwNumberOfProcessors < 2)
+			if (cpuCount < 2)
 				EnableWindow (GetDlgItem (hwndDlg, IDC_LIMIT_ENC_THREAD_POOL), FALSE);
 
 			if (encryptionFreeCpuCount != 0)
@@ -11278,7 +11390,7 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 
 			SetWindowTextW (GetDlgItem (hwndDlg, IDT_LIMIT_ENC_THREAD_POOL_NOTE), GetString("LIMIT_ENC_THREAD_POOL_NOTE"));
 
-			SetDlgItemTextW (hwndDlg, IDC_HW_AES_SUPPORTED_BY_CPU, (wstring (L" ") + (GetString (is_aes_hw_cpu_supported() ? "UISTR_YES" : "UISTR_NO"))).c_str());
+			SetDlgItemTextW (hwndDlg, IDC_HW_AES_SUPPORTED_BY_CPU, (wstring (L" ") + (GetString (HasAESNI() ? "UISTR_YES" : "UISTR_NO"))).c_str());
 
 			ToHyperlink (hwndDlg, IDC_MORE_INFO_ON_HW_ACCELERATION);
 			ToHyperlink (hwndDlg, IDC_MORE_INFO_ON_THREAD_BASED_PARALLELIZATION);
@@ -11355,7 +11467,26 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 					{
 						BOOL originalRamEncryptionEnabled = (driverConfig & VC_DRIVER_CONFIG_ENABLE_RAM_ENCRYPTION)? TRUE : FALSE;
 						if (originalRamEncryptionEnabled != enableRamEncryption)
+						{
+							if (enableRamEncryption)
+							{
+								// Disable Hibernate and Fast Startup if they are enabled
+								BOOL bHibernateEnabled, bHiberbootEnabled;
+								if (GetHibernateStatus (bHibernateEnabled, bHiberbootEnabled))
+								{
+									if (bHibernateEnabled)
+									{										
+										BootEncObj->WriteLocalMachineRegistryDwordValue (L"SYSTEM\\CurrentControlSet\\Control\\Power", L"HibernateEnabled", 0);
+									}
+
+									if (bHiberbootEnabled)
+									{										
+										BootEncObj->WriteLocalMachineRegistryDwordValue (L"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", L"HiberbootEnabled", 0);
+									}
+								}
+							}
 							rebootRequired = true;
+						}
 						SetDriverConfigurationFlag (VC_DRIVER_CONFIG_ENABLE_RAM_ENCRYPTION, enableRamEncryption);
 					}
 
@@ -11431,7 +11562,25 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 				BOOL enableRamEncryption = IsDlgButtonChecked (hwndDlg, IDC_ENABLE_RAM_ENCRYPTION);
 
 				if (originalRamEncryptionEnabled != enableRamEncryption)
+				{
+					if (enableRamEncryption)
+					{
+						// check if Hibernate or Fast Startup are enabled
+						BOOL bHibernateEnabled, bHiberbootEnabled;
+						if (GetHibernateStatus (bHibernateEnabled, bHiberbootEnabled))
+						{
+							if (bHibernateEnabled || bHiberbootEnabled)
+							{
+								if (AskWarnYesNo ("RAM_ENCRYPTION_DISABLE_HIBERNATE", hwndDlg) == IDNO)
+								{
+									CheckDlgButton (hwndDlg, IDC_ENABLE_RAM_ENCRYPTION, BST_UNCHECKED);
+									return 1;
+								}
+							}
+						}
+					}
 					Warning ("SETTING_REQUIRES_REBOOT", hwndDlg);
+				}
 			}
 			return 1;
 
@@ -11704,6 +11853,7 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 			{
 				LocalizeDialog (hwndDlg, "IDD_SYSENC_SETTINGS");
 				uint32 driverConfig = ReadDriverConfigurationFlags();
+				uint32 serviceConfig = ReadServiceConfigurationFlags();
 				byte userConfig;
 				string customUserMessage;
 				uint16 bootLoaderVersion = 0;
@@ -11711,6 +11861,17 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				BOOL bPimCacheEnabled = (driverConfig & TC_DRIVER_CONFIG_CACHE_BOOT_PIM)? TRUE : FALSE;
 				BOOL bBlockSysEncTrimEnabled = (driverConfig & VC_DRIVER_CONFIG_BLOCK_SYS_TRIM)? TRUE : FALSE;
 				BOOL bClearKeysEnabled = (driverConfig & VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION)? TRUE : FALSE;
+				BOOL bAutoFixBootloader = (serviceConfig & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER)? FALSE : TRUE;
+				BOOL bForceVeraCryptNextBoot = FALSE;
+				BOOL bForceSetVeraCryptBootEntry = TRUE;
+				BOOL bForceVeraCryptFirstEntry = TRUE;
+				if (bSystemIsGPT)
+				{
+					bForceVeraCryptNextBoot = (serviceConfig & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT)? TRUE : FALSE;
+					bForceSetVeraCryptBootEntry = (serviceConfig & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_SET_BOOTENTRY)? FALSE : TRUE;
+					bForceVeraCryptFirstEntry = (serviceConfig & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_FORCE_FIRST_BOOTENTRY)? FALSE : TRUE;
+				}
+
 				BOOL bIsHiddenOS = IsHiddenOSRunning ();
 
 				if (bClearKeysEnabled)
@@ -11775,6 +11936,25 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				}
 				else
 					CheckDlgButton (hwndDlg, IDC_BLOCK_SYSENC_TRIM, bBlockSysEncTrimEnabled ? BST_CHECKED : BST_UNCHECKED);
+
+				CheckDlgButton (hwndDlg, IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN, bAutoFixBootloader? BST_CHECKED : BST_UNCHECKED);
+				if (bSystemIsGPT)
+				{
+					if (!bAutoFixBootloader || bIsHiddenOS)
+					{
+						// we disable other options if updating bootloader is not allowed or if hidden OS us running
+						EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_NEXT_BOOT_VERACRYPT), FALSE);
+						EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_VERACRYPT_BOOT_ENTRY), FALSE);
+						EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY), FALSE);
+					}
+					
+					if (!bIsHiddenOS)
+					{
+						CheckDlgButton (hwndDlg, IDC_FORCE_NEXT_BOOT_VERACRYPT, bForceVeraCryptNextBoot? BST_CHECKED : BST_UNCHECKED);
+						CheckDlgButton (hwndDlg, IDC_FORCE_VERACRYPT_BOOT_ENTRY, bForceSetVeraCryptBootEntry? BST_CHECKED : BST_UNCHECKED);
+						CheckDlgButton (hwndDlg, IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY, bForceVeraCryptFirstEntry? BST_CHECKED : BST_UNCHECKED);
+					}
+				}
 			}
 			catch (Exception &e)
 			{
@@ -11885,6 +12065,17 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 					BOOL bBlockSysEncTrimEnabled = IsDlgButtonChecked (hwndDlg, IDC_BLOCK_SYSENC_TRIM);
 					BOOL bClearKeysEnabled = IsDlgButtonChecked (hwndDlg, IDC_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION);
 
+					BOOL bAutoFixBootloader = IsDlgButtonChecked (hwndDlg, IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN);
+					BOOL bForceVeraCryptNextBoot = FALSE;
+					BOOL bForceSetVeraCryptBootEntry = TRUE;
+					BOOL bForceVeraCryptFirstEntry = TRUE;
+					if (bSystemIsGPT)
+					{
+						bForceVeraCryptNextBoot = IsDlgButtonChecked (hwndDlg, IDC_FORCE_NEXT_BOOT_VERACRYPT);
+						bForceSetVeraCryptBootEntry = IsDlgButtonChecked (hwndDlg, IDC_FORCE_VERACRYPT_BOOT_ENTRY);
+						bForceVeraCryptFirstEntry = IsDlgButtonChecked (hwndDlg, IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY);
+					}
+
 					if (bClearKeysEnabled && !BootEncObj->IsSystemFavoritesServiceRunning())
 					{
 						// the system favorite service service should be running
@@ -11903,8 +12094,23 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_CACHE_BOOT_PIM, (bPasswordCacheEnabled && bPimCacheEnabled)? TRUE : FALSE);
 					SetDriverConfigurationFlag (TC_DRIVER_CONFIG_DISABLE_EVIL_MAID_ATTACK_DETECTION, IsDlgButtonChecked (hwndDlg, IDC_DISABLE_EVIL_MAID_ATTACK_DETECTION));
 					SetDriverConfigurationFlag (VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION, bClearKeysEnabled);
-					if (!IsHiddenOSRunning ()) /* we don't need to update TRIM config for hidden OS since it's always blocked */
+					SetServiceConfigurationFlag (VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER, bAutoFixBootloader? FALSE : TRUE);
+					if (!IsHiddenOSRunning ())
+					{
+						/* we don't need to update TRIM config for hidden OS since it's always blocked */
 						SetDriverConfigurationFlag (VC_DRIVER_CONFIG_BLOCK_SYS_TRIM, bBlockSysEncTrimEnabled);
+
+						if (bSystemIsGPT)
+						{
+							if (bAutoFixBootloader)
+							{
+								/* we update bootloader settings only if the autofix option is enabled */
+								SetServiceConfigurationFlag (VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT, bForceVeraCryptNextBoot);
+								SetServiceConfigurationFlag (VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_SET_BOOTENTRY, bForceSetVeraCryptBootEntry? FALSE : TRUE);
+								SetServiceConfigurationFlag (VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_FORCE_FIRST_BOOTENTRY, bForceVeraCryptFirstEntry? FALSE : TRUE);
+							}
+						}
+					}
 				}
 				catch (Exception &e)
 				{
@@ -11964,6 +12170,24 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 					Warning ("CLEAR_KEYS_ON_DEVICE_INSERTION_WARNING", hwndDlg);
 			}
 
+			break;
+
+		case IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN:
+			if (bSystemIsGPT && !IsHiddenOSRunning ())
+			{
+				if (IsDlgButtonChecked (hwndDlg, IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN))
+				{
+					EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_NEXT_BOOT_VERACRYPT), TRUE);
+					EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_VERACRYPT_BOOT_ENTRY), TRUE);
+					EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY), TRUE);
+				}
+				else
+				{
+					EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_NEXT_BOOT_VERACRYPT), FALSE);
+					EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_VERACRYPT_BOOT_ENTRY), FALSE);
+					EnableWindow (GetDlgItem (hwndDlg, IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY), FALSE);
+				}
+			}
 			break;
 		}
 		return 0;

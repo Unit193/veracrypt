@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.24-Update4">
+  <localization prog-version= "1.24-Update7">
     <language langid="zh-cn" name="简体中文" en-name="Chinese (Simplified)" version="1.0.0" translators="Barney Li and Zhangjintao" />
     <font lang="zh-cn" class="normal" size="11" face="Tahoma" />
     <font lang="zh-cn" class="bold" size="14" face="Tahoma" />
@@ -608,7 +608,7 @@
     <entry lang="zh-cn" key="IDD_PCDM_ADD_REMOVE_VOL_KEYFILES">添加/移除 密钥文件...</entry>
     <entry lang="zh-cn" key="IDD_PCDM_REMOVE_ALL_KEYFILES_FROM_VOL">从加密卷中移除所有密钥文件</entry>
     <entry lang="zh-cn" key="PASSWORD_CHANGED">密码 和/或 密钥文件已成功修改。\n\n重要：请确认您已经阅读了用户指南的'Security Requirements and Precautions'章节中的'Changing Passwords and Keyfiles'部分。</entry>
-    <entry lang="zh-cn" key="FAVORITE_PIM_CHANGED">此加密卷已经修改PIM并标记成"系统收藏加密卷"。\n您希望VeryCrypt自动更新系统收藏加密卷设置么(需要管理员权限)。\n\n如果您不希望的话，请稍后手动更新设置。</entry>
+    <entry lang="zh-cn" key="FAVORITE_PIM_CHANGED">此加密卷已经修改PIM并标记成"系统收藏加密卷"。\n您希望VeraCrypt自动更新系统收藏加密卷设置么(需要管理员权限)。\n\n如果您不希望的话，请稍后手动更新设置。</entry>
     <entry lang="zh-cn" key="SYS_PASSWORD_CHANGED_ASK_RESCUE_DISK">重要：如果您不销毁 VeraCrypt 应急盘，您的系统分区/驱动器仍然可以通过使用旧密码解密（通过启动 VeraCrypt 应急盘和输入旧密码）。您应当创建一个新的 VeraCrypt 应急盘，之后并销毁原来的应急盘。\n\n您希望创建一个新的 VeraCrypt 应急盘吗？</entry>
     <entry lang="zh-cn" key="SYS_HKD_ALGO_CHANGED_ASK_RESCUE_DISK">请注意，VeraCrypt 应急盘仍然使用着早期的加密算法。如果您觉的先前的加密算法不安全，您应当创建一个新的 VeraCrypt 应急盘，之后并销毁原来的应急盘。\n\n您希望创建一个新的 VeraCrypt 应急盘吗？</entry>
     <entry lang="zh-cn" key="KEYFILES_NOTE">任何类型的文件（例如：.mp3、.jpg、.zip、.avi）都可以作为 VeraCrypt 的密钥文件。VeraCrypt 并不会修改密钥文件的内容。 您可以选择一个以上的密钥文件（与次序无关）。如果您添加了一个文件夹，里面的所有非隐藏文件都将作为密钥文件。点击〖添加口令牌〗来选择存储于安全口令牌或智能卡中的密钥文件（或者导入密钥文件到安全口令牌或智能卡）。</entry>
@@ -1378,7 +1378,7 @@
     <entry lang="zh-cn" key="IDC_BOOT_LOADER_CACHE_PIM">当缓存预引导身份验证密码时，包含 &amp;PIM</entry>
     <entry lang="zh-cn" key="IDC_PREF_CACHE_PIM">在缓存密码时，包含 PIM</entry>
     <entry lang="zh-cn" key="IDC_SHOW_DISCONNECTED_NETWORK_DRIVES">使断开的网络驱动器可用于加载</entry>
-    <entry lang="zh-cn" key="PASSWORD_UTF8_TOO_LONG">键入的密码过长：在UTF-8下已超过128字节。</entry>
+    <entry lang="zh-cn" key="PASSWORD_UTF8_TOO_LONG">键入的密码过长：在UTF-8下已超过%d字节。</entry>
     <entry lang="zh-cn" key="PASSWORD_UTF8_INVALID">键入的密码中包含无法转换为UTF-8编码的Unicode字符。</entry>
     <entry lang="zh-cn" key="INIT_DLL">错误: 加载系统库失败。</entry>
     <entry lang="zh-cn" key="ERR_EXFAT_INVALID_VOLUME_SIZE">输入的加密卷的大小不兼容所选择的exFAT文件系统。</entry>
@@ -1421,8 +1421,8 @@
     <entry lang="zh-cn" key="IDC_BLOCK_SYSENC_TRIM">阻止系统分区/磁盘上使用 TRIM 命令</entry>
     <entry lang="zh-cn" key="WINDOWS_EFI_BOOT_LOADER_MISSING">错误: 无法在磁盘上找到 Windows EFI 系统加载程序。操作将中止。</entry>
     <entry lang="zh-cn" key="SYSENC_EFI_UNSUPPORTED_SECUREBOOT">如果启用了 SecureBoot, 并且 VeraCrypt 自定义密钥未加载到计算机固件中, 则无法对当前系统进行加密。SecureBoot 需要在 BIOS 配置中禁用, 以允许系统加密继续进行。</entry>
-    <entry lang="zh-cn" key="PASSWORD_PASTED_TRUNCATED">粘贴的文本被截断, 因为密码最大长度为128个字符</entry>
-    <entry lang="zh-cn" key="PASSWORD_MAXLENGTH_REACHED">密码已达到其最大长度128个字符。\n不允许附加字符。</entry>
+    <entry lang="zh-cn" key="PASSWORD_PASTED_TRUNCATED">粘贴的文本被截断, 因为密码最大长度为%d个字符</entry>
+    <entry lang="zh-cn" key="PASSWORD_MAXLENGTH_REACHED">密码已达到其最大长度%d个字符。\n不允许附加字符。</entry>
     <entry lang="zh-cn" key="IDC_SELECT_LANGUAGE_LABEL">选择安装期间要使用的语言：</entry>
     <entry lang="zh-cn" key="VOLUME_TOO_LARGE_FOR_HOST">错误：文件容器的大小大于磁盘上的可用空间。</entry>
     <entry lang="zh-cn" key="IDC_ALLOW_WINDOWS_DEFRAG">允许Windows磁盘碎片整理程序对非系统分区/驱动器进行碎片整理</entry>    
@@ -1437,7 +1437,15 @@
     <entry lang="zh-cn" key="IDC_ENABLE_RAM_ENCRYPTION">激活存储在RAM中的密钥和密码加密</entry>
     <entry lang="zh-cn" key="IDT_BENCHMARK">基准测试:</entry>
     <entry lang="zh-cn" key="IDC_DISABLE_MOUNT_MANAGER">仅创建虚拟设备而不加载在选定的盘符上</entry>
-    <entry lang="zh-cn" key="LEGACY_PASSWORD_UTF8_TOO_LONG">键入的密码过长：在UTF-8下已超过64字节。</entry>
+    <entry lang="zh-cn" key="LEGACY_PASSWORD_UTF8_TOO_LONG">键入的密码过长：在UTF-8下已超过64字节</entry>
+    <entry lang="zh-cn" key="HIDDEN_CREDS_SAME_AS_OUTER">隐藏卷不能具有与外部卷相同的密码、PIM和密钥文件</entry>
+    <entry lang="zh-cn" key="SYSENC_BITLOCKER_CONFLICT">VeraCrypt不支持加密已由BitLocker加密的系统驱动器。</entry>
+    <entry lang="zh-cn" key="IDC_UPDATE_BOOTLOADER_ON_SHUTDOWN">自动修复引导配置问题可能会导致Windows无法启动</entry>
+    <entry lang="zh-cn" key="IDC_FORCE_NEXT_BOOT_VERACRYPT">强制下次启动时进行VeraCrypt引导</entry>
+    <entry lang="zh-cn" key="IDC_FORCE_VERACRYPT_BOOT_ENTRY">强制在EFI固件启动菜单显示VeraCrypt引导项</entry>
+    <entry lang="zh-cn" key="IDC_FORCE_VERACRYPT_FIRST_BOOT_ENTRY">强制VeraCrypt引导项作为EFI固件启动菜单的第一项</entry>
+    <entry lang="zh-cn" key="RAM_ENCRYPTION_DISABLE_HIBERNATE">警告：RAM加密与Windows休眠和Windows快速启动功能不兼容。VeraCrypt需要在激活RAM加密之前禁用它们。\n\n继续吗？</entry>
+    <entry lang="zh-cn" key="CONFIRM_DISABLE_FAST_STARTUP">警告：Windows快速启动已启用，已知在使用VeraCrypt加密卷时会导致问题。建议禁用它以提高安全性和可用性。\n\n是否要禁用Windows快速启动？</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

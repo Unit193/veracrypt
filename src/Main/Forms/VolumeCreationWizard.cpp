@@ -14,6 +14,7 @@
 #include "Platform/SystemInfo.h"
 #ifdef TC_UNIX
 #include <unistd.h>
+#include <sys/statvfs.h> // header for statvfs
 #include "Platform/Unix/Process.h"
 #endif
 #include "Core/RandomNumberGenerator.h"
@@ -58,6 +59,7 @@ namespace VeraCrypt
 		SelectedVolumeHostType (VolumeHostType::File),
 		SelectedVolumeType (VolumeType::Normal),
 		Pim (0),
+		OuterPim (0),
 		SectorSize (0),
 		VolumeSize (0)
 	{
@@ -92,6 +94,8 @@ namespace VeraCrypt
 
 	VolumeCreationWizard::~VolumeCreationWizard ()
 	{
+		burn (&Pim, sizeof (Pim));
+		burn (&OuterPim, sizeof (OuterPim));
 	}
 
 	WizardPage *VolumeCreationWizard::GetPage (WizardStep step)
@@ -462,25 +466,7 @@ namespace VeraCrypt
 
 #ifdef TC_UNIX
 				// Format non-FAT filesystem
-				const char *fsFormatter = nullptr;
-
-				switch (SelectedFilesystemType)
-				{
-#if defined (TC_LINUX)
-				case VolumeCreationOptions::FilesystemType::Ext2:		fsFormatter = "mkfs.ext2"; break;
-				case VolumeCreationOptions::FilesystemType::Ext3:		fsFormatter = "mkfs.ext3"; break;
-				case VolumeCreationOptions::FilesystemType::Ext4:		fsFormatter = "mkfs.ext4"; break;
-				case VolumeCreationOptions::FilesystemType::NTFS:		fsFormatter = "mkfs.ntfs"; break;
-				case VolumeCreationOptions::FilesystemType::exFAT:		fsFormatter = "mkfs.exfat"; break;
-#elif defined (TC_MACOSX)
-				case VolumeCreationOptions::FilesystemType::MacOsExt:	fsFormatter = "newfs_hfs"; break;
-				case VolumeCreationOptions::FilesystemType::exFAT:		fsFormatter = "newfs_exfat"; break;
-				case VolumeCreationOptions::FilesystemType::APFS:		fsFormatter = "newfs_apfs"; break;
-#elif defined (TC_FREEBSD) || defined (TC_SOLARIS)
-				case VolumeCreationOptions::FilesystemType::UFS:		fsFormatter = "newfs" ; break;
-#endif
-				default: break;
-				}
+				const char *fsFormatter = VolumeCreationOptions::FilesystemType::GetFsFormatter (SelectedFilesystemType);
 
 				if (fsFormatter)
 				{
@@ -538,6 +524,9 @@ namespace VeraCrypt
 
 					// Perform a quick NTFS formatting
 					if (SelectedFilesystemType == VolumeCreationOptions::FilesystemType::NTFS)
+						args.push_back ("-f");
+
+					if (SelectedFilesystemType == VolumeCreationOptions::FilesystemType::Btrfs)
 						args.push_back ("-f");
 
 					args.push_back (string (virtualDevice));
@@ -792,13 +781,31 @@ namespace VeraCrypt
 					// Clear PIM
 					Pim = 0;
 
-					// Skip PIM
-					if (forward && OuterVolume)
+					if (forward && !OuterVolume && SelectedVolumeType == VolumeType::Hidden)
 					{
-						// Use FAT to prevent problems with free space
-						QuickFormatEnabled = false;
-						SelectedFilesystemType = VolumeCreationOptions::FilesystemType::FAT;
-						return Step::CreationProgress;
+						shared_ptr <VolumePassword> hiddenPassword;
+						try
+						{
+							hiddenPassword = Keyfile::ApplyListToPassword (Keyfiles, Password);
+						}
+						catch (...)
+						{
+							hiddenPassword = Password;
+						}
+
+						// check if Outer and Hidden passwords are the same
+						if ( 	(hiddenPassword && !hiddenPassword->IsEmpty() && OuterPassword && !OuterPassword->IsEmpty() && (*(OuterPassword.get()) == *(hiddenPassword.get())))
+							||
+								((!hiddenPassword || hiddenPassword->IsEmpty()) && (!OuterPassword || OuterPassword->IsEmpty()))
+							)
+						{
+							//check if they have also the same PIM
+							if (OuterPim == Pim)
+							{
+								Gui->ShowError (_("The Hidden volume can't have the same password, PIM and keyfiles as the Outer volume"));
+								return GetCurrentStep();
+							}
+						}
 					}
 
 					if (VolumeSize > 4 * BYTES_PER_GB)
@@ -818,15 +825,42 @@ namespace VeraCrypt
 				VolumePimWizardPage *page = dynamic_cast <VolumePimWizardPage *> (GetCurrentPage());
 				Pim = page->GetVolumePim();
 
-				if (forward && Password && !Password->IsEmpty())
+				if (-1 == Pim)
 				{
-					if (-1 == Pim)
+					// PIM invalid: don't go anywhere
+					Gui->ShowError ("PIM_TOO_BIG");
+					return GetCurrentStep();
+				}
+
+				if (forward && !OuterVolume && SelectedVolumeType == VolumeType::Hidden)
+				{
+					shared_ptr <VolumePassword> hiddenPassword;
+					try
 					{
-						// PIM invalid: don't go anywhere
-						Gui->ShowError ("PIM_TOO_BIG");
-						return GetCurrentStep();
+						hiddenPassword = Keyfile::ApplyListToPassword (Keyfiles, Password);
+					}
+					catch (...)
+					{
+						hiddenPassword = Password;
 					}
 
+					// check if Outer and Hidden passwords are the same
+					if ( 	(hiddenPassword && !hiddenPassword->IsEmpty() && OuterPassword && !OuterPassword->IsEmpty() && (*(OuterPassword.get()) == *(hiddenPassword.get())))
+						||
+							((!hiddenPassword || hiddenPassword->IsEmpty()) && (!OuterPassword || OuterPassword->IsEmpty()))
+						)
+					{
+						//check if they have also the same PIM
+						if (OuterPim == Pim)
+						{
+							Gui->ShowError (_("The Hidden volume can't have the same password, PIM and keyfiles as the Outer volume"));
+							return GetCurrentStep();
+						}
+					}
+				}
+
+				if (forward && Password && !Password->IsEmpty())
+				{
 					if (Password->Size() < VolumePassword::WarningSizeThreshold)
 					{
 						if (Pim > 0 && Pim < 485)
@@ -842,15 +876,6 @@ namespace VeraCrypt
 							return GetCurrentStep();
 						}
 					}
-				}
-
-
-				if (forward && OuterVolume)
-				{
-					// Use FAT to prevent problems with free space
-					QuickFormatEnabled = false;
-					SelectedFilesystemType = VolumeCreationOptions::FilesystemType::FAT;
-					return Step::CreationProgress;
 				}
 
 				if (VolumeSize > 4 * BYTES_PER_GB)
@@ -888,6 +913,22 @@ namespace VeraCrypt
 		case Step::FormatOptions:
 			{
 				VolumeFormatOptionsWizardPage *page = dynamic_cast <VolumeFormatOptionsWizardPage *> (GetCurrentPage());
+
+				if (forward && OuterVolume)
+				{
+					if (page->GetFilesystemType() != VolumeCreationOptions::FilesystemType::FAT)
+					{
+						if (!Gui->AskYesNo (_("WARNING: You have selected a filesystem other than FAT for the outer volume.\n"
+											  "Please Note that in this case VeraCrypt can't calculate the exact maximum allowed size for the hidden volume and it will use only an estimation that can be wrong.\n"
+											  "Thus, it is your responsibility to use an adequate value for the size of the hidden volume so that it doesn\'t overlap the outer volume.\n\n"
+											  "Do you want to continue using the selected filesystem for the outer volume?")
+											, false, true))
+						{
+							return GetCurrentStep();
+						}
+					}
+				}
+
 				SelectedFilesystemType = page->GetFilesystemType();
 				QuickFormatEnabled = page->IsQuickFormatEnabled();
 
@@ -1026,6 +1067,12 @@ namespace VeraCrypt
 			Creator.reset();
 			SetCancelButtonText (L"");
 
+			// clear saved credentials
+			Password.reset();
+			OuterPassword.reset();
+			burn (&Pim, sizeof (Pim));
+			burn (&OuterPim, sizeof (OuterPim));
+
 			return Step::VolumeHostType;
 
 		case Step::OuterVolumeContents:
@@ -1035,12 +1082,23 @@ namespace VeraCrypt
 				// require using FUSE and loop device which cannot be used for devices with sectors larger than 512.
 
 				wxBusyCursor busy;
+				bool outerVolumeAvailableSpaceValid = false;
+				uint64 outerVolumeAvailableSpace = 0;
 				MaxHiddenVolumeSize = 0;
 
 				Gui->SetActiveFrame (this);
 
 				if (MountedOuterVolume)
 				{
+#ifdef TC_UNIX
+					const DirectoryPath &outerVolumeMountPoint = MountedOuterVolume->MountPoint;
+					struct statvfs stat;
+					if (statvfs(((string)outerVolumeMountPoint).c_str(), &stat) == 0)
+					{
+						 outerVolumeAvailableSpace = (uint64) stat.f_bsize * (uint64) stat.f_bavail;
+						 outerVolumeAvailableSpaceValid = true;
+					}
+#endif
 					Core->DismountVolume (MountedOuterVolume);
 					MountedOuterVolume.reset();
 				}
@@ -1063,7 +1121,21 @@ namespace VeraCrypt
 #endif
 
 				shared_ptr <Volume> outerVolume = Core->OpenVolume (make_shared <VolumePath> (SelectedVolumePath), true, Password, Pim, Kdf, false, Keyfiles, VolumeProtection::ReadOnly);
-				MaxHiddenVolumeSize = Core->GetMaxHiddenVolumeSize (outerVolume);
+				try
+				{
+					MaxHiddenVolumeSize = Core->GetMaxHiddenVolumeSize (outerVolume);
+				}
+				catch (ParameterIncorrect& )
+				{
+					// Outer volume not using FAT
+					// estimate maximum hidden volume size as 80% of available size of outer volume
+					if (outerVolumeAvailableSpaceValid)
+					{
+						MaxHiddenVolumeSize =(4ULL * outerVolumeAvailableSpace) / 5ULL;
+					}
+					else
+						throw;
+				}
 
 				// Add a reserve (in case the user mounts the outer volume and creates new files
 				// on it by accident or OS writes some new data behind his or her back, such as
@@ -1079,6 +1151,18 @@ namespace VeraCrypt
 					MaxHiddenVolumeSize -= reservedSize;
 
 				MaxHiddenVolumeSize -= MaxHiddenVolumeSize % outerVolume->GetSectorSize();		// Must be a multiple of the sector size
+
+				// remember Outer password and keyfiles in order to be able to compare it with those of Hidden volume
+				try
+				{
+					OuterPassword = Keyfile::ApplyListToPassword (Keyfiles, Password);
+				}
+				catch (...)
+				{
+					OuterPassword = Password;
+				}
+
+				OuterPim = Pim;
 			}
 			catch (exception &e)
 			{

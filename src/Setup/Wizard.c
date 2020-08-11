@@ -60,6 +60,7 @@ BOOL bStartExtraction = FALSE;
 BOOL bInProgress = FALSE;
 BOOL bPromptTutorial = FALSE;
 BOOL bPromptReleaseNotes = FALSE;
+BOOL bPromptFastStartup = FALSE;
 
 extern BOOL bUserSetLanguage;
 
@@ -915,22 +916,6 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				}
 				bLicenseAccepted = TRUE;
 				EnableWindow (GetDlgItem (hwndDlg, IDHELP), TRUE);
-
-				if (nCurrentOS == WIN_2000)
-				{
-					WarningDirect (L"Warning: Please note that this may be the last version of VeraCrypt that supports Windows 2000. If you want to be able to upgrade to future versions of VeraCrypt (which is highly recommended), you will need to upgrade to Windows XP or a later version of Windows.\n\nNote: Microsoft stopped issuing security updates for Windows 2000 to the general public on 7/13/2010 (the last non-security update for Windows 2000 was issued to the general public in 2005).", hwndDlg);
-
-
-					HKEY hkey;
-
-					if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Updates\\Windows 2000\\SP5\\Update Rollup 1", 0, KEY_READ, &hkey) != ERROR_SUCCESS)
-					{
-						ErrorDirect (L"VeraCrypt requires Update Rollup 1 for Windows 2000 SP4 to be installed.\n\nFor more information, see http://support.microsoft.com/kb/891861", hwndDlg);
-						AbortProcessSilent ();
-					}
-
-					RegCloseKey (hkey);
-				}
 			}
 #ifndef PORTABLE
 			else if (nCurPageNo == WIZARD_MODE_PAGE)
@@ -1218,6 +1203,15 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 				bPromptTutorial = FALSE;
 			}
+
+			if (bPromptFastStartup
+				&& AskWarnYesNo ("CONFIRM_DISABLE_FAST_STARTUP", hwndDlg) == IDYES)
+			{
+				WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", L"HiberbootEnabled", 0);
+				bRestartRequired = TRUE;
+			}
+
+			bPromptFastStartup = FALSE;
 
 			if (bRestartRequired
 				&& AskYesNo (bUpgrade ? "UPGRADE_OK_REBOOT_REQUIRED" : "CONFIRM_RESTART", hwndDlg) == IDYES)

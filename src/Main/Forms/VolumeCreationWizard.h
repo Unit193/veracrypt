@@ -67,8 +67,8 @@ namespace VeraCrypt
 		bool CrossPlatformSupport;
 		static bool DeviceWarningConfirmed;
 		bool DisplayKeyInfo;
-		auto_ptr <wxTimer> ProgressTimer;
-		auto_ptr <wxTimer> RandomPoolUpdateTimer;
+		unique_ptr <wxTimer> ProgressTimer;
+		unique_ptr <wxTimer> RandomPoolUpdateTimer;
 		shared_ptr <KeyfileList> Keyfiles;
 		bool LargeFilesSupport;
 		uint64 MaxHiddenVolumeSize;
@@ -82,7 +82,9 @@ namespace VeraCrypt
 		VolumeHostType::Enum SelectedVolumeHostType;
 		VolumeType::Enum SelectedVolumeType;
 		shared_ptr <VolumePassword> Password;
+		shared_ptr <VolumePassword> OuterPassword;
 		int Pim;
+		int OuterPim;
 		shared_ptr <Pkcs5Kdf> Kdf;
 		uint32 SectorSize;
 		shared_ptr <Hash> SelectedHash;
