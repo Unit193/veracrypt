@@ -1,3 +1,24 @@
+veracrypt (1.25.4-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.25.4.
+    - Drop patch, upstreamed.
+  * d/p/1001-port-to-libfuse3.patch: Port from libfuse2 to libfuse3.
+  * d/scripts/mount.veracrypt, d/veracrypt.desktop, d/veracrypt.xml:
+    - Drop, upstreamed.
+  * d/control:
+    - Replace libfuse-dev with libfuse3-dev.
+    - Drop libappindicator3-dev as an alternate build-depend.
+    - Add exfatprogs as primary alternative to exfat-utils, which is fuse based
+    - Bump DH compat to 13.
+  * d/copyright: Update years.
+  * d/gbp.conf: Drop '--controlmaint'.
+  * d/rules:
+    - Enable indicator support.
+    - Drop '--as-needed' as it is now default in stable.
+  * Update Standards-Version to 4.6.0.
+
+ -- Unit 193 <unit193@unit193.net>  Sat, 04 Dec 2021 18:09:01 -0500
+
 veracrypt (1.24-Update7-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.24-Update7.
