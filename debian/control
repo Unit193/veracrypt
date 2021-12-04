@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Unit 193 <unit193@unit193.net>
 Build-Depends: debhelper-compat (= 12),
  libayatana-appindicator3-dev | libappindicator3-dev,
- libfuse-dev,
+ libfuse3-dev,
  libwxgtk3.0-gtk3-dev,
  pkg-config,
  yasm [any-i386 any-amd64]
