@@ -5,7 +5,7 @@ Comment: TC-3.0 license is distribution encumbered.
 
 Files: *
 Copyright: 2003-2011, TrueCrypt Developers Association
-	   2013-2020, IDRIX
+	   2013-2021, IDRIX
 License: TC-3.0 or Apache-2.0
 Comment:
  Modifications and additions to the original source code are copyright IDRIX
@@ -100,7 +100,7 @@ Copyright: 2002-2004, Mark Adler
 License: zlib
 
 Files: debian/*
-Copyright: 2013-2020, Unit 193 <unit193@unit193.net>
+Copyright: 2013-2021, Unit 193 <unit193@unit193.net>
 License: BSD-3-Clause
 
 
