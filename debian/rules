@@ -16,7 +16,7 @@ export TC_EXTRA_LFLAGS = $(LDFLAGS)
 	dh  $@ --sourcedirectory=src
 
 override_dh_auto_build:
-	dh_auto_build -- VERBOSE=1 NOSTRIP=1 ARCH=$(DEB_HOST_ARCH)
+	dh_auto_build -- ARCH=$(DEB_HOST_ARCH) INDICATOR=1 NOSTRIP=1 VERBOSE=1
 	unset DISPLAY && src/Main/veracrypt --text --help 2>/dev/null | debian/veracrypt_help_to_troff.pl > veracrypt.1
 
 override_dh_clean:
