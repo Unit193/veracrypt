@@ -22,7 +22,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Recommends:
- exfat-utils,
+ exfatprogs | exfat-utils,
  ntfs-3g,
  xdg-utils
 Description: Cross-platform on-the-fly encryption
