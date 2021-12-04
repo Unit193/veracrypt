@@ -1,0 +1,109 @@
+Description: Port from libfuse2 to libfuse3.
+From: Unit 193 <unit193@unit193.net>
+Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
+
+---
+ src/Driver/Fuse/Driver.make     |    2 +-
+ src/Driver/Fuse/FuseService.cpp |   26 +++++++++-----------------
+ src/Main/Main.make              |    2 +-
+ 3 files changed, 11 insertions(+), 19 deletions(-)
+
+--- a/src/Main/Main.make	2021-10-07 03:51:22.964715592 -0400
++++ b/src/Main/Main.make	2021-10-07 03:51:22.948715727 -0400
+@@ -102,7 +102,7 @@
+ 
+ #------ FUSE configuration ------
+ 
+-FUSE_LIBS = $(shell pkg-config fuse --libs)
++FUSE_LIBS = $(shell pkg-config fuse3 --libs)
+ 
+ #------ Executable ------
+ 
+--- a/src/Driver/Fuse/Driver.make	2021-10-07 03:51:22.964715592 -0400
++++ b/src/Driver/Fuse/Driver.make	2021-10-07 03:51:22.948715727 -0400
+@@ -15,6 +15,6 @@
+ OBJS :=
+ OBJS += FuseService.o
+ 
+-CXXFLAGS += $(shell pkg-config fuse --cflags)
++CXXFLAGS += $(shell pkg-config fuse3 --cflags)
+ 
+ include $(BUILD_INC)/Makefile.inc
+--- a/src/Driver/Fuse/FuseService.cpp	2021-10-07 03:51:22.964715592 -0400
++++ b/src/Driver/Fuse/FuseService.cpp	2021-10-07 03:51:22.948715727 -0400
+@@ -13,7 +13,7 @@
+ #ifdef TC_OPENBSD
+ #define FUSE_USE_VERSION  26
+ #else
+-#define FUSE_USE_VERSION  25
++#define FUSE_USE_VERSION  30
+ #endif
+ 
+ #include <errno.h>
+@@ -56,11 +56,7 @@
+ 		return 0;
+ 	}
+ 
+-#ifdef TC_OPENBSD
+-	static void *fuse_service_init (struct fuse_conn_info *)
+-#else
+-	static void *fuse_service_init ()
+-#endif
++	static void *fuse_service_init (struct fuse_conn_info *, struct fuse_config *config)
+ 	{
+ 		try
+ 		{
+@@ -104,7 +100,7 @@
+ 		}
+ 	}
+ 
+-	static int fuse_service_getattr (const char *path, struct stat *statData)
++	static int fuse_service_getattr (const char *path, struct stat *statData, struct fuse_file_info *fi)
+ 	{
+ 		try
+ 		{
+@@ -261,7 +257,7 @@
+ 		return -ENOENT;
+ 	}
+ 
+-	static int fuse_service_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
++	static int fuse_service_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi, enum fuse_readdir_flags fl)
+ 	{
+ 		try
+ 		{
+@@ -271,10 +267,10 @@
+ 			if (strcmp (path, "/") != 0)
+ 				return -ENOENT;
+ 
+-			filler (buf, ".", NULL, 0);
+-			filler (buf, "..", NULL, 0);
+-			filler (buf, FuseService::GetVolumeImagePath() + 1, NULL, 0);
+-			filler (buf, FuseService::GetControlPath() + 1, NULL, 0);
++			filler (buf, ".", NULL, 0, (enum fuse_fill_dir_flags)0);
++			filler (buf, "..", NULL, 0, (enum fuse_fill_dir_flags)0);
++			filler (buf, FuseService::GetVolumeImagePath() + 1, NULL, 0, (enum fuse_fill_dir_flags)0);
++			filler (buf, FuseService::GetControlPath() + 1, NULL, 0, (enum fuse_fill_dir_flags)0);
+ 		}
+ 		catch (...)
+ 		{
+@@ -450,7 +446,7 @@
+ 		}
+ 
+ 		ExecFunctor execFunctor (openVolume, slotNumber);
+-		Process::Execute ("fuse", args, -1, &execFunctor);
++		Process::Execute ("fusermount3", args, -1, &execFunctor);
+ 
+ 		for (int t = 0; true; t++)
+ 		{
+@@ -592,11 +588,7 @@
+ 
+ 		SignalHandlerPipe->GetWriteFD();
+ 
+-#ifdef TC_OPENBSD
+ 		_exit (fuse_main (argc, argv, &fuse_service_oper, NULL));
+-#else
+-		_exit (fuse_main (argc, argv, &fuse_service_oper));
+-#endif
+ 	}
+ 
+ 	VolumeInfo FuseService::OpenVolumeInfo;
