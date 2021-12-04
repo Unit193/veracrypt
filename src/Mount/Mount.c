@@ -1806,7 +1806,7 @@ void LoadDriveLetters (HWND hwndDlg, HWND hTree, int drive)
 
 			if (propSysEnc.ea >= EAGetFirst() && propSysEnc.ea <= EAGetCount())
 			{
-				EAGetName (szTmp, propSysEnc.ea, 1);
+				EAGetName (szTmp, ARRAYSIZE(szTmp),propSysEnc.ea, 1);
 			}
 			else
 			{
@@ -1932,7 +1932,7 @@ void LoadDriveLetters (HWND hwndDlg, HWND hTree, int drive)
 			GetSizeString (bSysEncPartition ? GetSysEncDeviceSize(TRUE) : driver.diskLength[i], szTmpW, sizeof(szTmpW));
 			ListSubItemSet (hTree, listItem.iItem, 2, szTmpW);
 
-			EAGetName (szTmp, bSysEncPartition ? propSysEnc.ea : driver.ea[i], 1);
+			EAGetName (szTmp, ARRAYSIZE(szTmp),bSysEncPartition ? propSysEnc.ea : driver.ea[i], 1);
 			listItem.iSubItem = 3;
 			ListView_SetItem (hTree, &listItem);
 
@@ -4233,14 +4233,14 @@ BOOL CALLBACK VolumePropertiesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				return 1;
 			}
 
-			EAGetName (szTmp, prop.ea, 1);
+			EAGetName (szTmp, ARRAYSIZE(szTmp), prop.ea, 1);
 			ListSubItemSet (list, i++, 1, szTmp);
 
 			// Key size(s)
 			{
 				wchar_t name[128];
 				int size = EAGetKeySize (prop.ea);
-				EAGetName (name, prop.ea, 1);
+				EAGetName (name, ARRAYSIZE(name), prop.ea, 1);
 
 				// Primary key
 				ListItemAdd (list, i, GetString ("KEY_SIZE"));
@@ -4301,7 +4301,7 @@ BOOL CALLBACK VolumePropertiesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				GetDateFormatW (LOCALE_USER_DEFAULT, 0, &st, 0, sw, sizeof (sw)/2);
 				swprintf (date, L"%s ", sw);
 				GetTimeFormatW (LOCALE_USER_DEFAULT, 0, &st, 0, sw, sizeof (sw)/2);
-				wcscat (date, sw);
+				StringCchCatW (date, ARRAYSIZE(date), sw);
 				ListSubItemSet (list, i++, 1, date);
 
 				// Header date
@@ -4311,7 +4311,7 @@ BOOL CALLBACK VolumePropertiesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				GetDateFormatW (LOCALE_USER_DEFAULT, 0, &st, 0, sw, sizeof (sw)/2);
 				swprintf (date, L"%s ", sw);
 				GetTimeFormatW (LOCALE_USER_DEFAULT, 0, &st, 0, sw, sizeof (sw)/2);
-				wcscat (date, sw);
+				StringCchCatW (date, ARRAYSIZE(date), sw);
 
 				GetLocalTime (&st);
 				SystemTimeToFileTime (&st, &curFt);
@@ -4639,6 +4639,20 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					goto stop;
 				}
 
+				// Main app ARM 64-bit
+				StringCbPrintfW(srcPath, sizeof(srcPath), L"%s\\VeraCrypt-arm64.exe", appDir);
+				StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt-arm64.exe", dstDir);
+				if (!VerifyModuleSignature(srcPath))
+				{
+					Error("DIST_PACKAGE_CORRUPTED", hwndDlg);
+					goto stop;
+				}
+				else if (!TCCopyFile(srcPath, dstPath))
+				{
+					handleWin32Error(hwndDlg, SRC_POS);
+					goto stop;
+				}
+
 				// Wizard
 				if (copyWizard)
 				{
@@ -4667,6 +4681,20 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					else if (!TCCopyFile (srcPath, dstPath))
 					{
 						handleWin32Error (hwndDlg, SRC_POS);
+						goto stop;
+					}
+
+					// Wizard ARM 64-bit
+					StringCbPrintfW(srcPath, sizeof(srcPath), L"%s\\VeraCrypt Format-arm64.exe", appDir);
+					StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format-arm64.exe", dstDir);
+					if (!VerifyModuleSignature(srcPath))
+					{
+						Error("DIST_PACKAGE_CORRUPTED", hwndDlg);
+						goto stop;
+					}
+					else if (!TCCopyFile(srcPath, dstPath))
+					{
+						handleWin32Error(hwndDlg, SRC_POS);
 						goto stop;
 					}
 				}
@@ -4701,6 +4729,20 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 						handleWin32Error (hwndDlg, SRC_POS);
 						goto stop;
 					}
+
+					// Expander ARM 64-bit
+					StringCbPrintfW(srcPath, sizeof(srcPath), L"%s\\VeraCryptExpander-arm64.exe", appDir);
+					StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander-arm64.exe", dstDir);
+					if (!VerifyModuleSignature(srcPath))
+					{
+						Error("DIST_PACKAGE_CORRUPTED", hwndDlg);
+						goto stop;
+					}
+					else if (!TCCopyFile(srcPath, dstPath))
+					{
+						handleWin32Error(hwndDlg, SRC_POS);
+						goto stop;
+					}
 				}
 
 				// Driver
@@ -4728,6 +4770,20 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 				else if (!TCCopyFile (srcPath, dstPath))
 				{
 					handleWin32Error (hwndDlg, SRC_POS);
+					goto stop;
+				}
+
+				// Driver ARM64
+				StringCbPrintfW(srcPath, sizeof(srcPath), L"%s\\veracrypt-arm64.sys", appDir);
+				StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt-arm64.sys", dstDir);
+				if (!VerifyModuleSignature(srcPath))
+				{
+					Error("DIST_PACKAGE_CORRUPTED", hwndDlg);
+					goto stop;
+				}
+				else if (!TCCopyFile(srcPath, dstPath))
+				{
+					handleWin32Error(hwndDlg, SRC_POS);
 					goto stop;
 				}
 			}
@@ -4760,6 +4816,10 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					{
 						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt-x64.exe", dstDir);
 					}
+					else if (wcscmp(fileName, L"VeraCrypt-arm64.exe") == 0)
+					{
+						StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt-arm64.exe", dstDir);
+					}
 					else if (wcscmp (fileName, L"veracrypt.sys") == 0)
 					{
 						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt.sys", dstDir);
@@ -4767,6 +4827,10 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					else if (wcscmp (fileName, L"veracrypt-x64.sys") == 0)
 					{
 						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt-x64.sys", dstDir);
+					}
+					else if (wcscmp(fileName, L"veracrypt-arm64.sys") == 0)
+					{
+						StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\veracrypt-arm64.sys", dstDir);
 					}
 					else if (copyWizard && (wcscmp (fileName, L"VeraCrypt Format.exe") == 0))
 					{
@@ -4776,6 +4840,10 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					{
 						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format-x64.exe", dstDir);
 					}
+					else if (copyWizard && (wcscmp(fileName, L"VeraCrypt Format-arm64.exe") == 0))
+					{
+						StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCrypt Format-arm64.exe", dstDir);
+					}
 					else if (copyExpander && (wcscmp (fileName, L"VeraCryptExpander.exe") == 0))
 					{
 						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander.exe", dstDir);
@@ -4783,6 +4851,10 @@ BOOL CALLBACK TravelerDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 					else if (copyExpander && (wcscmp (fileName, L"VeraCryptExpander-x64.exe") == 0))
 					{
 						StringCbPrintfW (dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander-x64.exe", dstDir);
+					}
+					else if (copyExpander && (wcscmp(fileName, L"VeraCryptExpander-arm64.exe") == 0))
+					{
+						StringCbPrintfW(dstPath, sizeof(dstPath), L"%s\\VeraCrypt\\VeraCryptExpander-arm64.exe", dstDir);
 					}
 					else
 						continue;
@@ -9591,6 +9663,35 @@ static void SystemFavoritesServiceSetStatus (DWORD status, DWORD waitHint = 0)
 	SetServiceStatus (SystemFavoritesServiceStatusHandle, &SystemFavoritesServiceStatus);
 }
 
+static void SystemFavoritesServiceUpdateLoaderProcessing ()
+{
+	if (!(BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
+	{
+		try
+		{
+			BootEncryption::UpdateSetupConfigFile (true);
+			if (!BootEncStatus.HiddenSystem)
+			{
+				// re-install our bootloader again in case the update process has removed it.
+				bool bForceSetNextBoot = false;
+				bool bSetBootentry = true;
+				bool bForceFirstBootEntry = true;
+				uint32 flags = BootEncObj->ReadServiceConfigurationFlags ();
+				if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT)
+					bForceSetNextBoot = true;
+				if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_SET_BOOTENTRY)
+					bSetBootentry = false;
+				if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_FORCE_FIRST_BOOTENTRY)
+					bForceFirstBootEntry = false;
+				BootEncryption bootEnc (NULL, true, bSetBootentry, bForceFirstBootEntry, bForceSetNextBoot);
+				bootEnc.InstallBootLoader (true);
+			}
+		}
+		catch (...)
+		{
+		}
+	}
+}
 
 static DWORD WINAPI SystemFavoritesServiceCtrlHandler (	DWORD dwControl,
 														DWORD dwEventType,
@@ -9603,38 +9704,31 @@ static DWORD WINAPI SystemFavoritesServiceCtrlHandler (	DWORD dwControl,
 	case SERVICE_CONTROL_STOP:
 		SystemFavoritesServiceSetStatus (SERVICE_STOP_PENDING);
 
- 		if (!(BootEncObj->ReadServiceConfigurationFlags () & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_UPDATE_LOADER))
-		{
-			try
-			{
-				BootEncryption::UpdateSetupConfigFile (true);
-				if (!BootEncStatus.HiddenSystem)
-				{
-					// re-install our bootloader again in case the update process has removed it.
-					bool bForceSetNextBoot = false;
-					bool bSetBootentry = true;
-					bool bForceFirstBootEntry = true;
-					uint32 flags = BootEncObj->ReadServiceConfigurationFlags ();
-					if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_FORCE_SET_BOOTNEXT)
-						bForceSetNextBoot = true;
-					if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_SET_BOOTENTRY)
-						bSetBootentry = false;
-					if (flags & VC_SYSTEM_FAVORITES_SERVICE_CONFIG_DONT_FORCE_FIRST_BOOTENTRY)
-						bForceFirstBootEntry = false;
-					BootEncryption bootEnc (NULL, true, bSetBootentry, bForceFirstBootEntry, bForceSetNextBoot);
-					bootEnc.InstallBootLoader (true);
-				}
-			}
-			catch (...)
-			{
-			}
-		}
+		SystemFavoritesServiceUpdateLoaderProcessing ();
 
 		/* clear VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION flag */
 		SetDriverConfigurationFlag (VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION, FALSE);
 		SetEvent (SystemFavoriteServiceStopEvent);
 		SystemFavoritesServiceSetStatus (SERVICE_STOP_PENDING);
 
+		break;
+	case SERVICE_CONTROL_POWEREVENT:
+		{
+			/* perform fixing of bootloader and SetupConfig.ini when the system resumes from sleep */
+			if (dwEventType == PBT_APMRESUMEAUTOMATIC)
+			{
+				SystemFavoritesServiceUpdateLoaderProcessing ();
+			}
+		}
+		break;
+	case SERVICE_CONTROL_SESSIONCHANGE:
+		{
+			/* perform fixing of bootloader and SetupConfig.ini when the user logs in or when he unlocks his locked session */
+			if ((dwEventType == WTS_SESSION_UNLOCK) || (dwEventType == WTS_SESSION_LOGON))
+			{
+				SystemFavoritesServiceUpdateLoaderProcessing ();
+			}
+		}
 		break;
 	case SERVICE_CONTROL_DEVICEEVENT:
 		if (DBT_DEVICEARRIVAL == dwEventType)
@@ -9701,7 +9795,7 @@ static VOID WINAPI SystemFavoritesServiceMain (DWORD argc, LPTSTR *argv)
 	SystemFavoritesServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
 	SystemFavoritesServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
 	if (IsOSAtLeast (WIN_VISTA))
-		SystemFavoritesServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_PRESHUTDOWN;
+		SystemFavoritesServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_PRESHUTDOWN | SERVICE_ACCEPT_SESSIONCHANGE | SERVICE_ACCEPT_POWEREVENT;
 
 	if ((argc >= 2) && (0 == _wcsicmp (argv[1], VC_SYSTEM_FAVORITES_SERVICE_ARG_SKIP_MOUNT)))
 		bSkipMount = TRUE;
@@ -9751,6 +9845,8 @@ static VOID WINAPI SystemFavoritesServiceMain (DWORD argc, LPTSTR *argv)
 
 		if (!(ReadDriverConfigurationFlags() & TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD))
 			WipeCache (NULL, TRUE);
+
+		SystemFavoritesServiceUpdateLoaderProcessing ();
 	}
 
 	SystemFavoritesServiceSetStatus (SERVICE_RUNNING);
