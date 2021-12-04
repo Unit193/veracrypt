@@ -6,7 +6,6 @@
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 export TC_EXTRA_CFLAGS = $(CFLAGS) $(CPPFLAGS)
 export TC_EXTRA_CXXFLAGS = $(CXXFLAGS) $(CPPFLAGS)
