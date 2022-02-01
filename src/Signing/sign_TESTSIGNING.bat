@@ -1,15 +1,13 @@
 PATH=%PATH%;%WSDK81%\bin\x86;C:\Program Files\7-Zip;C:\Program Files (x86)\7-Zip
 
-set VC_VERSION=1.25.7
+set VC_VERSION=1.25.7-TESTSIGNING
 set VC_VERSION_NBRE=1.25.7
 set SIGNINGPATH=%~dp0
 cd %SIGNINGPATH%
 
-call "..\..\doc\chm\create_chm.bat"
-
-cd %SIGNINGPATH%
-
 rem sign using SHA-256
+signtool sign /v /sha1 88c1ff4b7469ea3915bd8e7635a7567d34f43202 /ac GlobalSign_SHA256_EV_CodeSigning_CA.cer /fd sha256 /tr http://timestamp.digicert.com /td SHA256 "..\Release\Setup Files\veracrypt.sys" "..\Release\Setup Files\veracrypt-x64.sys"
+
 signtool sign /v /sha1 88c1ff4b7469ea3915bd8e7635a7567d34f43202 /ac GlobalSign_SHA256_EV_CodeSigning_CA.cer /fd sha256 /tr http://timestamp.digicert.com /td SHA256 "..\Release\Setup Files\VeraCrypt.exe" "..\Release\Setup Files\VeraCrypt Format.exe" "..\Release\Setup Files\VeraCryptExpander.exe" "..\Release\Setup Files\VeraCrypt-x64.exe" "..\Release\Setup Files\VeraCrypt Format-x64.exe" "..\Release\Setup Files\VeraCryptExpander-x64.exe" "..\Release\Setup Files\VeraCrypt-arm64.exe" "..\Release\Setup Files\VeraCrypt Format-arm64.exe" "..\Release\Setup Files\VeraCryptExpander-arm64.exe" "..\Release\Setup Files\VeraCrypt COMReg.exe" "..\Release\Setup Files\VeraCryptSetup.dll"
 
 rem create setup and MSI
@@ -38,7 +36,7 @@ del docs.zip
 7z a -y docs.zip docs
 "VeraCrypt Setup.exe" /p
 "VeraCrypt Portable.exe" /p
-call build_msi_x64.bat %VC_VERSION_NBRE%
+
 del LICENSE
 del License.txt
 del NOTICE
@@ -56,6 +54,6 @@ rmdir /S /Q docs
 cd %SIGNINGPATH%
 
 rem sign Setup using SHA-256
-signtool sign /v /sha1 88c1ff4b7469ea3915bd8e7635a7567d34f43202 /ac GlobalSign_SHA256_EV_CodeSigning_CA.cer /fd sha256 /tr http://timestamp.digicert.com /td SHA256 "..\Release\Setup Files\VeraCrypt Setup %VC_VERSION%.exe" "..\Release\Setup Files\VeraCrypt Portable %VC_VERSION%.exe" "..\Release\Setup Files\bin\VeraCrypt_Setup_x64_%VC_VERSION_NBRE%.msi" "..\Release\Setup Files\bin\VeraCrypt_Setup_x64_%VC_VERSION_NBRE%_en-us.msi"
+signtool sign /v /sha1 88c1ff4b7469ea3915bd8e7635a7567d34f43202 /ac GlobalSign_SHA256_EV_CodeSigning_CA.cer /fd sha256 /tr http://timestamp.digicert.com /td SHA256 "..\Release\Setup Files\VeraCrypt Setup %VC_VERSION%.exe" "..\Release\Setup Files\VeraCrypt Portable %VC_VERSION%.exe" 
 
 pause
