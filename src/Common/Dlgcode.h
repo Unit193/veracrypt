@@ -18,6 +18,7 @@
 #include "Apidrvr.h"
 #include "Keyfiles.h"
 #include "Wipe.h"
+#include <Winternl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -250,6 +251,28 @@ typedef enum BitLockerEncryptionStatus
     BL_Status_Protected
 } BitLockerEncryptionStatus;
 
+#ifndef CODEINTEGRITY_OPTION_ENABLED
+
+#define CODEINTEGRITY_OPTION_ENABLED                        0x01
+#define CODEINTEGRITY_OPTION_TESTSIGN                       0x02
+
+typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION {
+    ULONG   Length;
+    ULONG   CodeIntegrityOptions;
+} SYSTEM_CODEINTEGRITY_INFORMATION, *PSYSTEM_CODEINTEGRITY_INFORMATION;
+
+#endif
+
+#define SYSPARTITIONINFORMATION 0x62
+#define SYSTEMCODEINTEGRITYINFORMATION	0x67
+
+typedef NTSTATUS (WINAPI *NtQuerySystemInformationFn)(
+		SYSTEM_INFORMATION_CLASS SystemInformationClass,
+		PVOID                    SystemInformation,
+		ULONG                    SystemInformationLength,
+		PULONG                   ReturnLength
+);
+
 
 #define DEFAULT_VOL_CREATION_WIZARD_MODE	WIZARD_MODE_FILE_CONTAINER
 
@@ -472,6 +495,7 @@ void Debug (char *format, ...);
 void DebugMsgBox (char *format, ...);
 BOOL IsOSAtLeast (OSVersionEnum reqMinOS);
 BOOL IsOSVersionAtLeast (OSVersionEnum reqMinOS, int reqMinServicePack);
+BOOL IsSupportedOS ();
 BOOL Is64BitOs ();
 BOOL IsARM();
 BOOL IsServerOS ();
@@ -560,6 +584,7 @@ BOOL BufferHasPattern (const unsigned char* buffer, size_t bufferLen, const void
 BOOL EnableProcessProtection();
 void SafeOpenURL (LPCWSTR szUrl);
 BitLockerEncryptionStatus GetBitLockerEncryptionStatus(WCHAR driveLetter);
+BOOL IsTestSigningModeEnabled ();
 #ifdef _WIN64
 void GetAppRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed);
 #endif
@@ -750,6 +775,8 @@ public:
 };
 
 BOOL GetHibernateStatus (BOOL& bHibernateEnabled, BOOL& bHiberbootEnabled);
+bool GetKbList (std::vector<std::wstring>& kbList);
+bool OneOfKBsInstalled (const wchar_t* szKBs[], int count);
 
 #endif // __cplusplus
 
