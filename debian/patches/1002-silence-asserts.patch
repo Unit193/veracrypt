@@ -1,0 +1,22 @@
+From 8e443c25cce0edf51335019cbbab8ae11fa7df21 Mon Sep 17 00:00:00 2001
+From: Mounir IDRASSI <mounir.idrassi@idrix.fr>
+Date: Thu, 18 May 2023 21:25:07 +0200
+Subject: [PATCH] Linux/macOS: Suppress asserts displayed by wxWidgets 3.1.6+
+ for sizer flags until we fix all sizer flags in our UI.
+
+---
+ src/Main/Application.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/Main/Application.cpp b/src/Main/Application.cpp
+index cb118babf8..c72e2cc6b8 100644
+--- a/src/Main/Application.cpp
++++ b/src/Main/Application.cpp
+@@ -82,6 +82,7 @@ namespace VeraCrypt
+ 	{
+ 		mUserInterface = new GraphicUserInterface;
+ 		mUserInterfaceType = UserInterfaceType::Graphic;
++		wxSetEnv("WXSUPPRESS_SIZER_FLAGS_CHECK", "1");
+ 		return mUserInterface;
+ 	}
+ #endif
