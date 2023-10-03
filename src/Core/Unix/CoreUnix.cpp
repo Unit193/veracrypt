@@ -22,6 +22,9 @@
 #include "Driver/Fuse/FuseService.h"
 #include "Volume/VolumePasswordCache.h"
 
+template<typename T>
+inline void ignore_result(const T & /* unused result */) {}
+
 namespace VeraCrypt
 {
 #ifdef TC_LINUX
@@ -78,10 +81,8 @@ namespace VeraCrypt
 			if (stat("/usr/bin/konsole", &sb) == 0)
 			{
 				args.clear ();
-				args.push_back ("--title");
-				args.push_back ("fsck");
-				args.push_back ("--caption");
-				args.push_back ("fsck");
+				args.push_back ("-p");
+				args.push_back ("tabtitle=fsck");
 				args.push_back ("-e");
 				args.push_back ("sh");
 				args.push_back ("-c");
@@ -91,8 +92,22 @@ namespace VeraCrypt
 					Process::Execute ("konsole", args, 1000);
 				} catch (TimeOut&) { }
 			}
+			else if (stat("/usr/bin/gnome-terminal", &sb) == 0 && stat("/usr/bin/dbus-launch", &sb) == 0)
+			{
+				args.clear ();
+				args.push_back ("--title");
+				args.push_back ("fsck");
+				args.push_back ("--");
+				args.push_back ("sh");
+				args.push_back ("-c");
+				args.push_back (xargs);
+				try
+				{
+					Process::Execute ("gnome-terminal", args, 1000);
+				} catch (TimeOut&) { }
+			}
 			else
-				throw;
+				throw TerminalNotFound();
 		}
 #endif
 	}
@@ -534,8 +549,8 @@ namespace VeraCrypt
 					options.Password,
 					options.Pim,
 					options.Kdf,
-					options.TrueCryptMode,
 					options.Keyfiles,
+					options.EMVSupportEnabled,
 					options.Protection,
 					options.ProtectionPassword,
 					options.ProtectionPim,
@@ -679,7 +694,7 @@ namespace VeraCrypt
 				{
 					try
 					{
-						chown (mountPoint.c_str(), GetRealUserId(), GetRealGroupId());
+						ignore_result(chown (mountPoint.c_str(), GetRealUserId(), GetRealGroupId()));
 					} catch (...) { }
 				}
 			}

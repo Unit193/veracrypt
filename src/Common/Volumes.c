@@ -27,6 +27,8 @@
 
 #ifndef DEVICE_DRIVER
 #include "Random.h"
+#else
+#include "cpu.h"
 #endif
 #endif // !defined(_UEFI)
 
@@ -167,7 +169,7 @@ typedef struct
 
 BOOL ReadVolumeHeaderRecoveryMode = FALSE;
 
-int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int selected_pkcs5_prf, int pim, BOOL truecryptMode, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo)
+int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int selected_pkcs5_prf, int pim, PCRYPTO_INFO *retInfo, CRYPTO_INFO *retHeaderCryptoInfo)
 {
 	char header[TC_VOLUME_HEADER_EFFECTIVE_SIZE];
 	unsigned char* keyInfoBuffer = NULL;
@@ -207,14 +209,6 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 	// if no PIM specified, use default value
 	if (pim < 0)
 		pim = 0;
-
-	if (truecryptMode)
-	{
-		// SHA-256 not supported in TrueCrypt mode
-		if (selected_pkcs5_prf == SHA256)
-			return ERR_PARAMETER_INCORRECT;
-		pkcs5PrfCount--; // don't count SHA-256 in case of TrueCrypt mode
-	}
 
 	if (retHeaderCryptoInfo != NULL)
 	{
@@ -283,7 +277,7 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 		*noOutstandingWorkItemEvent = CreateEvent (NULL, FALSE, TRUE, NULL);
 		if (!*noOutstandingWorkItemEvent)
 		{
-			CloseHandle (keyDerivationCompletedEvent);
+			CloseHandle (*keyDerivationCompletedEvent);
 			TCfree (keyDerivationWorkItems);
 			TCfree(keyDerivationCompletedEvent);
 			TCfree(noOutstandingWorkItemEvent);
@@ -313,9 +307,6 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 		if (selected_pkcs5_prf != 0 && enqPkcs5Prf != selected_pkcs5_prf)
 			continue;
 
-		// skip SHA-256 in case of TrueCrypt mode
-		if (truecryptMode && (enqPkcs5Prf == SHA256))
-			continue;
 #if !defined(_UEFI)
 		if ((selected_pkcs5_prf == 0) && (encryptionThreadCount > 1))
 		{
@@ -333,7 +324,7 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 
 						EncryptionThreadPoolBeginKeyDerivation (keyDerivationCompletedEvent, noOutstandingWorkItemEvent,
 							&item->KeyReady, outstandingWorkItemCount, enqPkcs5Prf, keyInfo->userKey,
-							keyInfo->keyLength, keyInfo->salt, get_pkcs5_iteration_count (enqPkcs5Prf, pim, truecryptMode, bBoot), item->DerivedKey);
+							keyInfo->keyLength, keyInfo->salt, get_pkcs5_iteration_count (enqPkcs5Prf, pim, bBoot), item->DerivedKey);
 
 						++queuedWorkItems;
 						break;
@@ -355,7 +346,7 @@ int ReadVolumeHeader (BOOL bBoot, char *encryptedHeader, Password *password, int
 					if (!item->Free && InterlockedExchangeAdd (&item->KeyReady, 0) == TRUE)
 					{
 						pkcs5_prf = item->Pkcs5Prf;
-						keyInfo->noIterations = get_pkcs5_iteration_count (pkcs5_prf, pim, truecryptMode, bBoot);
+						keyInfo->noIterations = get_pkcs5_iteration_count (pkcs5_prf, pim, bBoot);
 						memcpy (dk, item->DerivedKey, sizeof (dk));
 
 						item->Free = TRUE;
@@ -374,12 +365,12 @@ KeyReady:	;
 #endif // !defined(_UEFI)
 		{
 			pkcs5_prf = enqPkcs5Prf;
-			keyInfo->noIterations = get_pkcs5_iteration_count (enqPkcs5Prf, pim, truecryptMode, bBoot);
+			keyInfo->noIterations = get_pkcs5_iteration_count (enqPkcs5Prf, pim, bBoot);
 
 			switch (pkcs5_prf)
 			{
-			case RIPEMD160:
-				derive_key_ripemd160 (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
+			case BLAKE2S:
+				derive_key_blake2s (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
 					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
 				break;
 
@@ -463,10 +454,8 @@ KeyReady:	;
 
 				DecryptBuffer (header + HEADER_ENCRYPTED_DATA_OFFSET, HEADER_ENCRYPTED_DATA_SIZE, cryptoInfo);
 
-				// Magic 'VERA' or 'TRUE' depending if we are in TrueCrypt mode or not
-				if ((truecryptMode && GetHeaderField32 (header, TC_HEADER_OFFSET_MAGIC) != 0x54525545)
-					|| (!truecryptMode && GetHeaderField32 (header, TC_HEADER_OFFSET_MAGIC) != 0x56455241)
-					)
+				// Magic 'VERA'
+				if (GetHeaderField32 (header, TC_HEADER_OFFSET_MAGIC) != 0x56455241)
 					continue;
 
 				// Header version
@@ -486,17 +475,7 @@ KeyReady:	;
 
 				// Required program version
 				cryptoInfo->RequiredProgramVersion = GetHeaderField16 (header, TC_HEADER_OFFSET_REQUIRED_VERSION);
-				if (truecryptMode)
-				{
-					if (cryptoInfo->RequiredProgramVersion < 0x600 || cryptoInfo->RequiredProgramVersion > 0x71a)
-					{
-						status = ERR_UNSUPPORTED_TRUECRYPT_FORMAT | (((int)cryptoInfo->RequiredProgramVersion) << 16);
-						goto err;
-					}
-					cryptoInfo->LegacyVolume = FALSE;
-				}
-				else
-					cryptoInfo->LegacyVolume = cryptoInfo->RequiredProgramVersion < 0x10b;
+				cryptoInfo->LegacyVolume = cryptoInfo->RequiredProgramVersion < 0x10b;
 
 				// Check CRC of the key set
 				if (!ReadVolumeHeaderRecoveryMode
@@ -506,7 +485,7 @@ KeyReady:	;
 				// Now we have the correct password, cipher, hash algorithm, and volume type
 
 				// Check the version required to handle this volume
-				if (!truecryptMode && (cryptoInfo->RequiredProgramVersion > VERSION_NUM))
+				if (cryptoInfo->RequiredProgramVersion > VERSION_NUM)
 				{
 					status = ERR_NEW_VERSION_REQUIRED;
 					goto err;
@@ -558,7 +537,6 @@ KeyReady:	;
 					{
 						cryptoInfo->pkcs5 = pkcs5_prf;
 						cryptoInfo->noIterations = keyInfo->noIterations;
-						cryptoInfo->bTrueCryptMode = truecryptMode;
 						cryptoInfo->volumePim = pim;
 						goto ret;
 					}
@@ -577,12 +555,22 @@ KeyReady:	;
 				memcpy (keyInfo->master_keydata, header + HEADER_MASTER_KEYDATA_OFFSET, MASTER_KEYDATA_SIZE);
 #ifdef TC_WINDOWS_DRIVER
 				{
-					RMD160_CTX ctx;
-					RMD160Init (&ctx);
-					RMD160Update (&ctx, keyInfo->master_keydata, MASTER_KEYDATA_SIZE);
-					RMD160Update (&ctx, header, sizeof(header));
-					RMD160Final (cryptoInfo->master_keydata_hash, &ctx);
+					blake2s_state ctx;
+#ifndef _WIN64
+					NTSTATUS saveStatus = STATUS_INVALID_PARAMETER;
+					KFLOATING_SAVE floatingPointState;	
+					if (HasSSE2())
+						saveStatus = KeSaveFloatingPointState (&floatingPointState);
+#endif
+					blake2s_init (&ctx);
+					blake2s_update (&ctx, keyInfo->master_keydata, MASTER_KEYDATA_SIZE);
+					blake2s_update (&ctx, header, sizeof(header));
+					blake2s_final (&ctx, cryptoInfo->master_keydata_hash);
 					burn(&ctx, sizeof (ctx));
+#ifndef _WIN64
+					if (NT_SUCCESS (saveStatus))
+						KeRestoreFloatingPointState (&floatingPointState);
+#endif
 				}
 #else
 				memcpy (cryptoInfo->master_keydata, keyInfo->master_keydata, MASTER_KEYDATA_SIZE);
@@ -590,7 +578,6 @@ KeyReady:	;
 				// PKCS #5
 				cryptoInfo->pkcs5 = pkcs5_prf;
 				cryptoInfo->noIterations = keyInfo->noIterations;
-				cryptoInfo->bTrueCryptMode = truecryptMode;
 				cryptoInfo->volumePim = pim;
 
 				// Init the cipher with the decrypted master key
@@ -709,7 +696,7 @@ int ReadVolumeHeader (BOOL bBoot, char *header, Password *password, int pim, PCR
 	derive_key_sha256 (password->Text, (int) password->Length, header + HEADER_SALT_OFFSET,
 		PKCS5_SALT_SIZE, iterations, dk, sizeof (dk));
 #else
-	derive_key_ripemd160 (password->Text, (int) password->Length, header + HEADER_SALT_OFFSET,
+	derive_key_blake2s (password->Text, (int) password->Length, header + HEADER_SALT_OFFSET,
 		PKCS5_SALT_SIZE, iterations, dk, sizeof (dk));
 #endif
 
@@ -792,7 +779,7 @@ int ReadVolumeHeader (BOOL bBoot, char *header, Password *password, int pim, PCR
 #ifdef TC_WINDOWS_BOOT_SHA2
 		cryptoInfo->pkcs5 = SHA256;
 #else
-		cryptoInfo->pkcs5 = RIPEMD160;
+		cryptoInfo->pkcs5 = BLAKE2S;
 #endif
 
 		memcpy (dk, header + HEADER_MASTER_KEYDATA_OFFSET, sizeof (dk));
@@ -922,6 +909,15 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 			retVal = ERR_CIPHER_INIT_WEAK_KEY;
 			goto err;
 		}
+
+		// check that first half of keyInfo.master_keydata is different from the second half. If they are the same return error
+		// cf CCSS,NSA comment at page 3: https://csrc.nist.gov/csrc/media/Projects/crypto-publication-review-project/documents/initial-comments/sp800-38e-initial-public-comments-2021.pdf
+		if (memcmp (keyInfo.master_keydata, &keyInfo.master_keydata[bytesNeeded/2], bytesNeeded/2) == 0)
+		{
+			crypto_close (cryptoInfo);
+			retVal = ERR_CIPHER_INIT_WEAK_KEY;
+			goto err;
+		}
 	}
 	else
 	{
@@ -934,7 +930,7 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 	{
 		memcpy (keyInfo.userKey, password->Text, nUserKeyLen);
 		keyInfo.keyLength = nUserKeyLen;
-		keyInfo.noIterations = get_pkcs5_iteration_count (pkcs5_prf, pim, FALSE, bBoot);
+		keyInfo.noIterations = get_pkcs5_iteration_count (pkcs5_prf, pim, bBoot);
 	}
 	else
 	{
@@ -947,7 +943,6 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 
 	// User selected PRF
 	cryptoInfo->pkcs5 = pkcs5_prf;
-	cryptoInfo->bTrueCryptMode = FALSE;
 	cryptoInfo->noIterations = keyInfo.noIterations;
 	cryptoInfo->volumePim = pim;
 
@@ -981,8 +976,8 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 				PKCS5_SALT_SIZE, keyInfo.noIterations, dk, GetMaxPkcs5OutSize());
 			break;
 
-		case RIPEMD160:
-			derive_key_ripemd160 (keyInfo.userKey, keyInfo.keyLength, keyInfo.salt,
+		case BLAKE2S:
+			derive_key_blake2s (keyInfo.userKey, keyInfo.keyLength, keyInfo.salt,
 				PKCS5_SALT_SIZE, keyInfo.noIterations, dk, GetMaxPkcs5OutSize());
 			break;
 

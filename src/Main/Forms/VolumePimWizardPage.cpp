@@ -82,7 +82,7 @@ namespace VeraCrypt
 		}
 		else
 		{
-			VolumePimHelpStaticText->SetForegroundColour(*wxBLACK);
+			VolumePimHelpStaticText->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 			VolumePimHelpStaticText->SetLabel(LangString["IDC_PIM_HELP"]);
 		}
 		Fit();
@@ -110,7 +110,11 @@ namespace VeraCrypt
 
 		PimSizer->Replace (VolumePimTextCtrl, newTextCtrl);
 		VolumePimTextCtrl->Show (false);
-		VolumePimTextCtrl->SetValue (wxString (L'X', VolumePimTextCtrl->GetLineLength(0)));
+		int txtLen = VolumePimTextCtrl->GetLineLength(0);
+		if (txtLen > 0)
+		{
+			VolumePimTextCtrl->SetValue (wxString (L'X', txtLen));
+		}
 		GetVolumePim ();
 
 		Fit();

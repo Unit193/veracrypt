@@ -123,7 +123,6 @@ FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     EDITTEXT        IDC_OLD_PASSWORD,89,14,181,13,ES_PASSWORD | ES_AUTOHSCROLL
     COMBOBOX        IDC_PKCS5_OLD_PRF_ID,89,33,97,90,CBS_DROPDOWNLIST | WS_TABSTOP
-    CONTROL         "TrueCrypt Mode",IDC_TRUECRYPT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,193,35,83,10
     EDITTEXT        IDC_OLD_PIM,89,51,42,14,ES_RIGHT | ES_PASSWORD | ES_AUTOHSCROLL | ES_NUMBER | NOT WS_VISIBLE
     CONTROL         "Use P&IM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,89,59,115,10
     CONTROL         "Use keyfiles",IDC_ENABLE_KEYFILES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,89,72,109,10
@@ -191,7 +190,6 @@ FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     EDITTEXT        IDC_PASSWORD,69,8,179,14,ES_PASSWORD | ES_AUTOHSCROLL
     COMBOBOX        IDC_PKCS5_PRF_ID,69,26,96,90,CBS_DROPDOWNLIST | WS_TABSTOP
-    CONTROL         "&TrueCrypt Mode",IDC_TRUECRYPT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,28,76,10
     EDITTEXT        IDC_PIM,69,43,42,14,ES_RIGHT | ES_PASSWORD | ES_AUTOHSCROLL | ES_NUMBER | NOT WS_VISIBLE
     CONTROL         "Use P&IM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,70,48,97,10
     CONTROL         "Cache passwords and keyfil&es in memory",IDC_CACHE,
@@ -270,7 +268,7 @@ BEGIN
     GROUPBOX        "Shortcut",IDT_ASSIGN_HOTKEY,7,127,375,53
 END
 
-IDD_TOKEN_PREFERENCES DIALOGEX 0, 0, 316, 199
+IDD_TOKEN_PREFERENCES DIALOGEX 0, 0, 316, 229
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt - Security Token Preferences"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -280,10 +278,12 @@ BEGIN
     PUSHBUTTON      "Auto-&Detect Library",IDC_AUTO_DETECT_PKCS11_MODULE,16,41,112,14
     CONTROL         "&Close token session (log out) after a volume is successfully mounted",IDC_CLOSE_TOKEN_SESSION_AFTER_MOUNT,
                     "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,16,154,284,9
-    DEFPUSHBUTTON   "OK",IDOK,205,178,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,259,178,50,14
+    CONTROL         "&Enable EMV Support",IDC_ENABLE_EMV_SUPPORT,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,16,185,284,9
+    DEFPUSHBUTTON   "OK",IDOK,205,208,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,208,50,14
     GROUPBOX        "PKCS #11 Library Path",IDT_PKCS11_LIB_PATH,7,7,302,129
     GROUPBOX        "Security Options",IDT_SECURITY_OPTIONS,7,140,302,30
+    GROUPBOX        "EMV Options",IDT_EMV_OPTIONS,7,172,302,30
     LTEXT           "",IDT_PKCS11_LIB_HELP,16,63,286,65
 END
 
@@ -321,7 +321,7 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,255,226,50,14
 END
 
-IDD_PERFORMANCE_SETTINGS DIALOGEX 0, 0, 371, 293
+IDD_PERFORMANCE_SETTINGS DIALOGEX 0, 0, 371, 300
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "VeraCrypt - Performance Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -338,20 +338,23 @@ BEGIN
     CONTROL         "Enable extended disk control codes support",IDC_ENABLE_EXTENDED_IOCTL_SUPPORT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,198,337,10
     CONTROL         "Allow TRIM command for non-system SSD partition/drive",IDC_ALLOW_TRIM_NONSYS_SSD,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,212,337,10
-    PUSHBUTTON      "&Benchmark",IDC_BENCHMARK,7,272,59,14
-    DEFPUSHBUTTON   "OK",IDOK,257,272,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,314,272,50,14
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,211,337,10
+    CONTROL         "Allow Windows Disk Defragmenter to defragment non-system partition/drive",IDC_ALLOW_WINDOWS_DEFRAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,224,337,10
+    CONTROL         "Use CPU hardware random generator as an additional source of entropy",IDC_ENABLE_CPU_RNG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,237,335,10
+    CONTROL         "Activate encryption of keys and passwords stored in RAM",IDC_ENABLE_RAM_ENCRYPTION,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,250,337,10
+    CONTROL         "Disable memory protection for Accessibility tools compatibility",IDC_DISABLE_MEMORY_PROTECTION,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,263,339,10
+    PUSHBUTTON      "?",IDC_DISABLE_MEMORY_PROTECTION_HELP,364,259,7,14
+    PUSHBUTTON      "&Benchmark",IDC_BENCHMARK,7,279,59,14
+    DEFPUSHBUTTON   "OK",IDOK,257,279,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,314,279,50,14
     LTEXT           "Processor (CPU) in this computer supports hardware acceleration for AES:",IDT_HW_AES_SUPPORTED_BY_CPU,18,23,273,9
     GROUPBOX        "Hardware Acceleration",IDT_ACCELERATION_OPTIONS,7,6,355,74
     GROUPBOX        "Thread-Based Parallelization",IDT_PARALLELIZATION_OPTIONS,7,84,355,93
-    GROUPBOX        "Driver Configuration",IDT_DRIVER_OPTIONS,7,183,357,86
-    CONTROL         "Allow Windows Disk Defragmenter to defragment non-system partition/drive",IDC_ALLOW_WINDOWS_DEFRAG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,226,337,10
-    CONTROL         "Use CPU hardware random generator as an additional source of entropy",IDC_ENABLE_CPU_RNG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,240,335,10
-    CONTROL         "Activate encryption of keys and passwords stored in RAM",IDC_ENABLE_RAM_ENCRYPTION,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,254,337,10
+    GROUPBOX        "Driver Configuration",IDT_DRIVER_OPTIONS,7,183,357,95
 END
 
 IDD_FAVORITE_VOLUMES DIALOGEX 0, 0, 380, 368
@@ -393,7 +396,6 @@ BEGIN
     CONTROL         "Use Volume ID to mount favorite",IDC_FAVORITE_USE_VOLUME_ID,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,148,337,10
     COMBOBOX        IDC_PKCS5_PRF_ID,87,166,96,90,CBS_DROPDOWNLIST | WS_TABSTOP
-    CONTROL         "TrueCrypt Mode",IDC_TRUECRYPT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,189,168,76,10
     LTEXT           "PKCS-5 PRF:",IDT_PKCS5_PRF,19,168,63,10
 END
 
@@ -406,7 +408,6 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,111,44,50,14
     COMBOBOX        IDC_PKCS5_PRF_ID,57,24,103,90,CBS_DROPDOWNLIST | WS_TABSTOP
     LTEXT           "PKCS-5 PRF:",IDT_PKCS5_PRF,8,26,44,11
-    CONTROL         "TrueCrypt Mode",IDC_TRUECRYPT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,76,10
 END
 
 IDD_SYSENC_SETTINGS DIALOGEX 0, 0, 371, 344
@@ -523,7 +524,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 364
         TOPMARGIN, 7
-        BOTTOMMARGIN, 286
+        BOTTOMMARGIN, 293
     END
 
     IDD_FAVORITE_VOLUMES, DIALOG
@@ -559,8 +560,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,25,9,0
- PRODUCTVERSION 1,25,9,0
+ FILEVERSION 1,26,7,0
+ PRODUCTVERSION 1,26,7,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -577,11 +578,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "IDRIX"
             VALUE "FileDescription", "VeraCrypt"
-            VALUE "FileVersion", "1.25"
+            VALUE "FileVersion", "1.26.7"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCrypt.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.25"
+            VALUE "ProductVersion", "1.26.7"
         END
     END
     BLOCK "VarFileInfo"

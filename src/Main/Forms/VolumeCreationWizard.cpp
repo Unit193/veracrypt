@@ -479,7 +479,6 @@ namespace VeraCrypt
 					mountOptions.Pim = Pim;
 					mountOptions.Keyfiles = Keyfiles;
 					mountOptions.Kdf = Kdf;
-					mountOptions.TrueCryptMode = false;
 
 					shared_ptr <VolumeInfo> volume = Core->MountVolume (mountOptions);
 					finally_do_arg (shared_ptr <VolumeInfo>, volume, { Core->DismountVolume (finally_arg, true); });
@@ -795,7 +794,7 @@ namespace VeraCrypt
 						shared_ptr <VolumePassword> hiddenPassword;
 						try
 						{
-							hiddenPassword = Keyfile::ApplyListToPassword (Keyfiles, Password);
+							hiddenPassword = Keyfile::ApplyListToPassword (Keyfiles, Password, Gui->GetPreferences().EMVSupportEnabled);
 						}
 						catch (...)
 						{
@@ -846,7 +845,7 @@ namespace VeraCrypt
 					shared_ptr <VolumePassword> hiddenPassword;
 					try
 					{
-						hiddenPassword = Keyfile::ApplyListToPassword (Keyfiles, Password);
+						hiddenPassword = Keyfile::ApplyListToPassword (Keyfiles, Password, Gui->GetPreferences().EMVSupportEnabled);
 					}
 					catch (...)
 					{
@@ -1031,7 +1030,9 @@ namespace VeraCrypt
 						options->Quick = QuickFormatEnabled;
 						options->Size = VolumeSize;
 						options->Type = OuterVolume ? VolumeType::Normal : SelectedVolumeType;
-						options->VolumeHeaderKdf = Pkcs5Kdf::GetAlgorithm (*SelectedHash, false);
+						options->VolumeHeaderKdf = Pkcs5Kdf::GetAlgorithm (*SelectedHash);
+						options->EMVSupportEnabled = Gui->GetPreferences().EMVSupportEnabled;
+
 
 						Creator.reset (new VolumeCreator);
 						VolumeCreatorThreadRoutine routine(options, Creator);
@@ -1125,7 +1126,7 @@ namespace VeraCrypt
 				});
 #endif
 
-				shared_ptr <Volume> outerVolume = Core->OpenVolume (make_shared <VolumePath> (SelectedVolumePath), true, Password, Pim, Kdf, false, Keyfiles, VolumeProtection::ReadOnly);
+				shared_ptr <Volume> outerVolume = Core->OpenVolume (make_shared <VolumePath> (SelectedVolumePath), true, Password, Pim, Kdf, Keyfiles, VolumeProtection::ReadOnly);
 				try
 				{
 					MaxHiddenVolumeSize = Core->GetMaxHiddenVolumeSize (outerVolume);
@@ -1160,7 +1161,7 @@ namespace VeraCrypt
 				// remember Outer password and keyfiles in order to be able to compare it with those of Hidden volume
 				try
 				{
-					OuterPassword = Keyfile::ApplyListToPassword (Keyfiles, Password);
+					OuterPassword = Keyfile::ApplyListToPassword (Keyfiles, Password, Gui->GetPreferences().EMVSupportEnabled);
 				}
 				catch (...)
 				{

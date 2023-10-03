@@ -667,6 +667,18 @@ namespace VeraCrypt
 			}
 		}
 
+		static void NotifyService (DWORD dwNotifyCmd)
+		{
+			Elevate();
+
+			DWORD result = ElevatedComInstance->NotifyService (dwNotifyCmd);
+			if (result != ERROR_SUCCESS)
+			{
+				SetLastError (result);
+				throw SystemException(SRC_POS);
+			}
+		}
+
 		static void Release ()
 		{
 			if (--ReferenceCount == 0 && ElevatedComInstance)
@@ -700,7 +712,7 @@ namespace VeraCrypt
 
 			if (!ElevatedComInstance || ElevatedComInstanceThreadId != GetCurrentThreadId())
 			{
-				CoInitialize (NULL);
+				CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 				ElevatedComInstance = GetElevatedInstance (GetActiveWindow() ? GetActiveWindow() : MainDlg);
 				ElevatedComInstanceThreadId = GetCurrentThreadId();
 			}
@@ -1136,7 +1148,7 @@ namespace VeraCrypt
 					if (partition.Info.PartitionNumber != config.SystemPartition.Number)
 					{
 						// If there is an extra boot partition, the system partition must be located right behind it
-						if (IsOSAtLeast (WIN_7) && config.ExtraBootPartitionPresent)
+						if (config.ExtraBootPartitionPresent)
 						{
 							int64 minOffsetFound = config.DrivePartition.Info.PartitionLength.QuadPart;
 							Partition bootPartition = partition;
@@ -1264,32 +1276,9 @@ namespace VeraCrypt
 
 		finally_do_arg (SC_HANDLE, service, { CloseServiceHandle (finally_arg); });
 
-		// Windows versions preceding Vista can be installed on FAT filesystem which does not
-		// support long filenames during boot. Convert the driver path to short form if required.
-		wstring driverPath;
-		if (startOnBoot && !IsOSAtLeast (WIN_VISTA))
-		{
-			wchar_t pathBuf[MAX_PATH];
-			wchar_t filesystem[128];
-
-			wstring path (GetWindowsDirectory());
-			path += L"\\drivers\\veracrypt.sys";
-
-			if (GetVolumePathName (path.c_str(), pathBuf, ARRAYSIZE (pathBuf))
-				&& GetVolumeInformation (pathBuf, NULL, 0, NULL, NULL, NULL, filesystem, ARRAYSIZE(filesystem))
-				&& wmemcmp (filesystem, L"FAT", 3) == 0)
-			{
-				throw_sys_if (GetShortPathName (path.c_str(), pathBuf, ARRAYSIZE (pathBuf)) == 0);
-
-				// Convert absolute path to relative to the Windows directory
-				driverPath = pathBuf;
-				driverPath = driverPath.substr (driverPath.rfind (L"\\", driverPath.rfind (L"\\", driverPath.rfind (L"\\") - 1) - 1) + 1);
-			}
-		}
-
 		throw_sys_if (!ChangeServiceConfig (service, SERVICE_NO_CHANGE, SERVICE_NO_CHANGE,
 			startOnBoot ? SERVICE_ERROR_SEVERE : SERVICE_ERROR_NORMAL,
-			driverPath.empty() ? NULL : driverPath.c_str(),
+			NULL,
 			startOnBoot ? L"Filter" : NULL,
 			NULL, NULL, NULL, NULL, NULL));
 
@@ -1649,8 +1638,7 @@ namespace VeraCrypt
 	{
 		SystemDriveConfiguration config = GetSystemDriveConfiguration();
 
-		if (IsOSAtLeast (WIN_7)
-			&& config.Partitions.size() == 2
+		if (config.Partitions.size() == 2
 			&& config.ExtraBootPartitionPresent
 			&& config.DrivePartition.Info.PartitionLength.QuadPart - config.SystemPartition.Info.PartitionLength.QuadPart < 164 * BYTES_PER_MB)
 		{
@@ -1705,15 +1693,11 @@ namespace VeraCrypt
 					ea = TWOFISH;
 				else if (_stricmp (request.BootEncryptionAlgorithmName, "Camellia") == 0)
 					ea = CAMELLIA;
-#if defined(CIPHER_GOST89)
-				else if (_stricmp (request.BootEncryptionAlgorithmName, "GOST89") == 0)
-					ea = GOST89;
-#endif
 
 				if (_stricmp(request.BootPrfAlgorithmName, "SHA-256") == 0)
 					pkcs5_prf = SHA256;
-				else if (_stricmp(request.BootPrfAlgorithmName, "RIPEMD-160") == 0)
-					pkcs5_prf = RIPEMD160;
+				else if (_stricmp(request.BootPrfAlgorithmName, "BLAKE2s-256") == 0)
+					pkcs5_prf = BLAKE2S;
 				else if (_stricmp(request.BootPrfAlgorithmName, "SHA-512") == 0)
 					pkcs5_prf = SHA512;
 				else if (_stricmp(request.BootPrfAlgorithmName, "Whirlpool") == 0)
@@ -1721,7 +1705,7 @@ namespace VeraCrypt
 				else if (_stricmp(request.BootPrfAlgorithmName, "Streebog") == 0)
 					pkcs5_prf = STREEBOG;
 				else if (strlen(request.BootPrfAlgorithmName) == 0) // case of version < 1.0f
-					pkcs5_prf = RIPEMD160;
+					pkcs5_prf = BLAKE2S;
 			}
 			catch (...)
 			{
@@ -1747,8 +1731,8 @@ namespace VeraCrypt
 			pkcs5_prf = SelectedPrfAlgorithmId;
 		}
 
-		// Only RIPEMD160 and SHA-256 are supported for MBR boot loader		
-		if (!bIsGPT && pkcs5_prf != RIPEMD160 && pkcs5_prf != SHA256)
+		// Only BLAKE2s and SHA-256 are supported for MBR boot loader		
+		if (!bIsGPT && pkcs5_prf != BLAKE2S && pkcs5_prf != SHA256)
 			throw ParameterIncorrect (SRC_POS);
 
 		int bootSectorId = 0;
@@ -1830,8 +1814,7 @@ namespace VeraCrypt
 
 		*(uint16 *) (buffer + TC_BOOT_SECTOR_VERSION_OFFSET) = BE16 (VERSION_NUM);
 
-		if (IsOSAtLeast (WIN_VISTA))
-			buffer[TC_BOOT_SECTOR_CONFIG_OFFSET] |= TC_BOOT_CFG_FLAG_WINDOWS_VISTA_OR_LATER;
+		buffer[TC_BOOT_SECTOR_CONFIG_OFFSET] |= TC_BOOT_CFG_FLAG_WINDOWS_VISTA_OR_LATER;
 
 		if (rescueDisk && (ReadDriverConfigurationFlags() & TC_DRIVER_CONFIG_DISABLE_HARDWARE_ENCRYPTION))
 			buffer[TC_BOOT_SECTOR_CONFIG_OFFSET] |= TC_BOOT_CFG_FLAG_RESCUE_DISABLE_HW_ENCRYPTION;
@@ -2222,7 +2205,7 @@ namespace VeraCrypt
 	EfiBootConf::EfiBootConf() : passwordType (0),
 		passwordMsg ("Password: "),
 		passwordPicture ("login.bmp"),
-		hashMsg ("(0) TEST ALL (1) SHA512 (2) WHIRLPOOL (3) SHA256 (4) RIPEMD160 (5) STREEBOG\nHash: "),
+		hashMsg ("(0) TEST ALL (1) SHA512 (2) WHIRLPOOL (3) SHA256 (4) BLAKE2S (5) STREEBOG\nHash: "),
 		hashAlgo (0),
 		requestHash (0),
 		pimMsg ("PIM (Leave empty for default): "),
@@ -2339,7 +2322,7 @@ namespace VeraCrypt
 		passwordType = ReadConfigInteger (configContent, "PasswordType", 0);
 		passwordMsg = ReadConfigString (configContent, "PasswordMsg", "Password: ", buffer, sizeof (buffer));
 		passwordPicture = ReadConfigString (configContent, "PasswordPicture", "\\EFI\\VeraCrypt\\login.bmp", buffer, sizeof (buffer));
-		//hashMsg = ReadConfigString (configContent, "HashMsg", "(0) TEST ALL (1) SHA512 (2) WHIRLPOOL (3) SHA256 (4) RIPEMD160 (5) STREEBOG\nHash: ", buffer, sizeof (buffer));
+		//hashMsg = ReadConfigString (configContent, "HashMsg", "(0) TEST ALL (1) SHA512 (2) WHIRLPOOL (3) SHA256 (4) BLAKE2S (5) STREEBOG\nHash: ", buffer, sizeof (buffer));
 		hashAlgo = ReadConfigInteger (configContent, "Hash", 0);
 		requestHash = ReadConfigInteger (configContent, "HashRqt", 1);
 		pimMsg = ReadConfigString (configContent, "PimMsg", "PIM: ", buffer, sizeof (buffer));
@@ -4376,7 +4359,7 @@ namespace VeraCrypt
 
 		// Initial rescue disk assumes encryption of the drive has been completed (EncryptedAreaLength == volumeSize)
 		memcpy (RescueVolumeHeader, VolumeHeader, sizeof (RescueVolumeHeader));
-		if (0 != ReadVolumeHeader (TRUE, (char *) RescueVolumeHeader, password, pkcs5, pim, FALSE, NULL, cryptoInfo))
+		if (0 != ReadVolumeHeader (TRUE, (char *) RescueVolumeHeader, password, pkcs5, pim, NULL, cryptoInfo))
 			throw ParameterIncorrect (SRC_POS);
 
 		DecryptBuffer (RescueVolumeHeader + HEADER_ENCRYPTED_DATA_OFFSET, HEADER_ENCRYPTED_DATA_SIZE, cryptoInfo);
@@ -4737,9 +4720,6 @@ namespace VeraCrypt
 			break;
 
 		case DumpFilter:
-			if (!IsOSAtLeast (WIN_VISTA))
-				return;
-
 			filter = "veracrypt.sys";
 			filterReg = "DumpFilters";
 			SetLastError (RegOpenKeyEx (HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\CrashControl", 0, KEY_READ | KEY_WRITE, &regKey));
@@ -5415,7 +5395,7 @@ namespace VeraCrypt
 
 		PCRYPTO_INFO cryptoInfo = NULL;
 		
-		int status = ReadVolumeHeader (!encStatus.HiddenSystem, header, oldPassword, old_pkcs5, old_pim, FALSE, &cryptoInfo, NULL);
+		int status = ReadVolumeHeader (!encStatus.HiddenSystem, header, oldPassword, old_pkcs5, old_pim, &cryptoInfo, NULL);
 		finally_do_arg (PCRYPTO_INFO, cryptoInfo, { if (finally_arg) crypto_close (finally_arg); });
 
 		if (status != 0)
@@ -5712,6 +5692,22 @@ namespace VeraCrypt
 		throw_sys_if (!WriteLocalMachineRegistryDword (keyPath, valueName, value));
 	}
 
+	void BootEncryption::NotifyService (DWORD dwNotifyCmd)
+	{
+		if (!IsAdmin() && IsUacSupported())
+		{
+			Elevator::NotifyService (dwNotifyCmd);
+			return;
+		}
+
+		DWORD dwRet = SendServiceNotification(dwNotifyCmd);
+		if (dwRet != ERROR_SUCCESS)
+		{
+			SetLastError(dwRet);
+			throw SystemException (SRC_POS);
+		}
+	}
+
 	void BootEncryption::StartDecryption (BOOL discardUnreadableEncryptedSectors)
 	{
 		BootEncryptionStatus encStatus = GetStatus();
@@ -5835,5 +5831,33 @@ namespace VeraCrypt
 	bool BootEncryption::RestartComputer (BOOL bShutdown)
 	{
 		return (::RestartComputer(bShutdown) != FALSE);
+	}
+
+	bool BootEncryption::IsUsingUnsupportedAlgorithm(LONG driverVersion)
+	{
+		bool bRet = false;
+
+		try
+		{
+			if (driverVersion <= 0x125)
+			{
+				// version 1.25 is last version to support RIPEMD160 and GOST89
+				static int GOST89_EA = 5;
+				static int RIPEMD160_PRF = 4;
+
+				VOLUME_PROPERTIES_STRUCT props = {0};
+				GetVolumeProperties(&props);
+
+				//
+				if (props.ea == GOST89_EA || props.pkcs5 == RIPEMD160_PRF)
+					bRet = true;
+			}
+		}
+		catch(...)
+		{
+
+		}
+
+		return bRet;
 	}
 }

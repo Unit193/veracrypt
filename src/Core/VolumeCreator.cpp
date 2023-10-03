@@ -298,6 +298,11 @@ namespace VeraCrypt
 			// Master data key
 			MasterKey.Allocate (options->EA->GetKeySize() * 2);
 			RandomNumberGenerator::GetData (MasterKey);
+			// check that first half of MasterKey is different from its second half. If they are the same, through an exception
+			// cf CCSS,NSA comment at page 3: https://csrc.nist.gov/csrc/media/Projects/crypto-publication-review-project/documents/initial-comments/sp800-38e-initial-public-comments-2021.pdf
+			if (memcmp (MasterKey.Ptr(), MasterKey.Ptr() + MasterKey.Size() / 2, MasterKey.Size() / 2) == 0)
+				throw AssertionFailed (SRC_POS);
+
 			headerOptions.DataKey = MasterKey;
 
 			// PKCS5 salt
@@ -307,7 +312,7 @@ namespace VeraCrypt
 
 			// Header key
 			HeaderKey.Allocate (VolumeHeader::GetLargestSerializedKeySize());
-			PasswordKey = Keyfile::ApplyListToPassword (options->Keyfiles, options->Password);
+			PasswordKey = Keyfile::ApplyListToPassword (options->Keyfiles, options->Password, options->EMVSupportEnabled);
 			options->VolumeHeaderKdf->DeriveKey (HeaderKey, *PasswordKey, options->Pim, salt);
 			headerOptions.HeaderKey = HeaderKey;
 

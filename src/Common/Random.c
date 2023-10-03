@@ -263,7 +263,7 @@ BOOL Randmix ()
 	{
 		unsigned char hashOutputBuffer [MAX_DIGESTSIZE];
 		WHIRLPOOL_CTX	wctx;
-		RMD160_CTX		rctx;
+		blake2s_state   bctx;
 		sha512_ctx		sctx;
 		sha256_ctx		s256ctx;
 		STREEBOG_CTX	stctx;
@@ -271,8 +271,8 @@ BOOL Randmix ()
 
 		switch (HashFunction)
 		{
-		case RIPEMD160:
-			digestSize = RIPEMD160_DIGESTSIZE;
+		case BLAKE2S:
+			digestSize = BLAKE2S_DIGESTSIZE;
 			break;
 
 		case SHA512:
@@ -303,10 +303,10 @@ BOOL Randmix ()
 			/* Compute the message digest of the entire pool using the selected hash function. */
 			switch (HashFunction)
 			{
-			case RIPEMD160:
-				RMD160Init(&rctx);
-				RMD160Update(&rctx, pRandPool, RNG_POOL_SIZE);
-				RMD160Final(hashOutputBuffer, &rctx);
+			case BLAKE2S:
+				blake2s_init(&bctx);
+				blake2s_update(&bctx, pRandPool, RNG_POOL_SIZE);
+				blake2s_final(&bctx, hashOutputBuffer);
 				break;
 
 			case SHA512:
@@ -349,8 +349,8 @@ BOOL Randmix ()
 		burn (hashOutputBuffer, MAX_DIGESTSIZE);
 		switch (HashFunction)
 		{
-		case RIPEMD160:
-			burn (&rctx, sizeof(rctx));
+		case BLAKE2S:
+			burn (&bctx, sizeof(bctx));
 			break;
 
 		case SHA512:
@@ -830,7 +830,7 @@ BOOL FastPoll (void)
 	FILETIME creationTime, exitTime, kernelTime, userTime;
 	SIZE_T minimumWorkingSetSize, maximumWorkingSetSize;
 	LARGE_INTEGER performanceCount;
-	MEMORYSTATUS memoryStatus;
+	MEMORYSTATUSEX memoryStatus;
 	HANDLE handle;
 	POINT point;
 
@@ -871,9 +871,9 @@ BOOL FastPoll (void)
 	/* Get percent of memory in use, bytes of physical memory, bytes of
 	   free physical memory, bytes in paging file, free bytes in paging
 	   file, user bytes of address space, and free user bytes */
-	memoryStatus.dwLength = sizeof (MEMORYSTATUS);
-	GlobalMemoryStatus (&memoryStatus);
-	RandaddBuf ((unsigned char *) &memoryStatus, sizeof (MEMORYSTATUS));
+	memoryStatus.dwLength = sizeof (MEMORYSTATUSEX);
+	GlobalMemoryStatusEx (&memoryStatus);
+	RandaddBuf ((unsigned char *) &memoryStatus, sizeof (MEMORYSTATUSEX));
 
 	/* Get thread and process creation time, exit time, time in kernel
 	   mode, and time in user mode in 100ns intervals */

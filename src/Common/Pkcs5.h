@@ -20,9 +20,9 @@
 extern "C"
 {
 #endif
-/* output written to input_digest which must be at lease 20 bytes long */
-void hmac_ripemd160 (char *key, int keylen, char *input_digest, int len);
-void derive_key_ripemd160 (char *pwd, int pwd_len, char *salt, int salt_len, uint32 iterations, char *dk, int dklen);
+/* output written to input_digest which must be at lease 32 bytes long */
+void hmac_blake2s (char *key, int keylen, char *input_digest, int len);
+void derive_key_blake2s (char *pwd, int pwd_len, char *salt, int salt_len, uint32 iterations, char *dk, int dklen);
 
 /* output written to d which must be at lease 32 bytes long */
 void hmac_sha256 (char *k, int lk, char *d, int ld);
@@ -40,7 +40,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, uin
 void hmac_streebog (char *k, int32 lk, char *d, int32 ld);
 void derive_key_streebog (char *pwd, int pwd_len, char *salt, int salt_len, uint32 iterations, char *dk, int dklen);
 
-int get_pkcs5_iteration_count (int pkcs5_prf_id, int pim, BOOL truecryptMode, BOOL bBoot);
+int get_pkcs5_iteration_count (int pkcs5_prf_id, int pim, BOOL bBoot);
 wchar_t *get_pkcs5_prf_name (int pkcs5_prf_id);
 
 /* check if given PRF supported.*/
@@ -51,7 +51,7 @@ typedef enum
    PRF_BOOT_GPT
 } PRF_BOOT_TYPE;
 
-int is_pkcs5_prf_supported (int pkcs5_prf_id, BOOL truecryptMode, PRF_BOOT_TYPE bootType);
+int is_pkcs5_prf_supported (int pkcs5_prf_id, PRF_BOOT_TYPE bootType);
 #endif
 
 #if defined(__cplusplus)

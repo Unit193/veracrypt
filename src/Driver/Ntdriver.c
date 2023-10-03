@@ -145,6 +145,7 @@ static BOOL RamEncryptionActivated = FALSE;
 static KeSaveExtendedProcessorStateFn KeSaveExtendedProcessorStatePtr = NULL;
 static KeRestoreExtendedProcessorStateFn KeRestoreExtendedProcessorStatePtr = NULL;
 static ExGetFirmwareEnvironmentVariableFn ExGetFirmwareEnvironmentVariablePtr = NULL;
+static KeQueryInterruptTimePreciseFn KeQueryInterruptTimePrecisePtr = NULL;
 static KeAreAllApcsDisabledFn KeAreAllApcsDisabledPtr = NULL;
 static KeSetSystemGroupAffinityThreadFn KeSetSystemGroupAffinityThreadPtr = NULL;
 static KeQueryActiveGroupCountFn KeQueryActiveGroupCountPtr = NULL;
@@ -238,8 +239,17 @@ void GetDriverRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed)
 		iSeed = KeQueryPerformanceCounter (&iSeed2);
 		WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
 		WHIRLPOOL_add ((unsigned char *) &(iSeed2.QuadPart), sizeof(iSeed2.QuadPart), &tctx);
-		iSeed.QuadPart = KeQueryInterruptTime ();
-		WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
+		if (KeQueryInterruptTimePrecisePtr)
+		{
+			iSeed.QuadPart = KeQueryInterruptTimePrecisePtr (&iSeed2.QuadPart);
+			WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
+			WHIRLPOOL_add ((unsigned char *) &(iSeed2.QuadPart), sizeof(iSeed2.QuadPart), &tctx);
+		}
+		else
+		{
+			iSeed.QuadPart = KeQueryInterruptTime ();
+			WHIRLPOOL_add ((unsigned char *) &(iSeed.QuadPart), sizeof(iSeed.QuadPart), &tctx);
+		}
 
 		/* use JitterEntropy library to get good quality random bytes based on CPU timing jitter */
 		if (0 == jent_entropy_init ())
@@ -337,6 +347,14 @@ NTSTATUS DriverEntry (PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		UNICODE_STRING funcName;
 		RtlInitUnicodeString(&funcName, L"ExGetFirmwareEnvironmentVariable");
 		ExGetFirmwareEnvironmentVariablePtr = (ExGetFirmwareEnvironmentVariableFn) MmGetSystemRoutineAddress(&funcName);
+	}
+
+	// KeQueryInterruptTimePrecise is available starting from Windows 8.1
+	if ((OsMajorVersion > 6) || (OsMajorVersion == 6 && OsMinorVersion >= 3))
+	{
+		UNICODE_STRING funcName;
+		RtlInitUnicodeString(&funcName, L"KeQueryInterruptTimePrecise");
+		KeQueryInterruptTimePrecisePtr = (KeQueryInterruptTimePreciseFn) MmGetSystemRoutineAddress(&funcName);
 	}
 
 	// Load dump filter if the main driver is already loaded
@@ -1941,7 +1959,7 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 	switch (irpSp->Parameters.DeviceIoControl.IoControlCode)
 	{
 	case TC_IOCTL_GET_DRIVER_VERSION:
-	case TC_IOCTL_LEGACY_GET_DRIVER_VERSION:
+
 		if (ValidateIOBufferSize (Irp, sizeof (LONG), ValidateOutput))
 		{
 			LONG tmp = VERSION_NUM;
@@ -2375,27 +2393,11 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 						list->volumeType[ListExtension->nDosDriveNo] = PROP_VOL_TYPE_OUTER;	// Normal/outer volume (hidden volume protected)
 					else
 						list->volumeType[ListExtension->nDosDriveNo] = PROP_VOL_TYPE_NORMAL;	// Normal volume
-					list->truecryptMode[ListExtension->nDosDriveNo] = ListExtension->cryptoInfo->bTrueCryptMode;
 				}
 			}
 
 			Irp->IoStatus.Status = STATUS_SUCCESS;
 			Irp->IoStatus.Information = sizeof (MOUNT_LIST_STRUCT);
-		}
-		break;
-
-	case TC_IOCTL_LEGACY_GET_MOUNTED_VOLUMES:
-		if (ValidateIOBufferSize (Irp, sizeof (uint32), ValidateOutput))
-		{
-			// Prevent the user from downgrading to versions lower than 5.0 by faking mounted volumes.
-			// The user could render the system unbootable by downgrading when boot encryption
-			// is active or being set up.
-
-			memset (Irp->AssociatedIrp.SystemBuffer, 0, irpSp->Parameters.DeviceIoControl.OutputBufferLength);
-			*(uint32 *) Irp->AssociatedIrp.SystemBuffer = 0xffffFFFF;
-
-			Irp->IoStatus.Status = STATUS_SUCCESS;
-			Irp->IoStatus.Information = irpSp->Parameters.DeviceIoControl.OutputBufferLength;
 		}
 		break;
 
@@ -2674,7 +2676,6 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 				||	mount->pkcs5_prf < 0 || mount->pkcs5_prf > LAST_PRF_ID
 				||	mount->VolumePim < -1 || mount->VolumePim == INT_MAX
 				|| mount->ProtectedHidVolPkcs5Prf < 0 || mount->ProtectedHidVolPkcs5Prf > LAST_PRF_ID
-				|| (mount->bTrueCryptMode != FALSE && mount->bTrueCryptMode != TRUE)
 				)
 			{
 				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
@@ -2692,7 +2693,6 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 			burn (&mount->ProtectedHidVolPassword, sizeof (mount->ProtectedHidVolPassword));
 			burn (&mount->pkcs5_prf, sizeof (mount->pkcs5_prf));
 			burn (&mount->VolumePim, sizeof (mount->VolumePim));
-			burn (&mount->bTrueCryptMode, sizeof (mount->bTrueCryptMode));
 			burn (&mount->ProtectedHidVolPkcs5Prf, sizeof (mount->ProtectedHidVolPkcs5Prf));
 			burn (&mount->ProtectedHidVolPim, sizeof (mount->ProtectedHidVolPim));
 		}
@@ -3174,6 +3174,21 @@ VOID VolumeThreadProc (PVOID Context)
 	Extension->Queue.HostFileHandle = Extension->hDeviceFile;
 	Extension->Queue.VirtualDeviceLength = Extension->DiskLength;
 	Extension->Queue.MaxReadAheadOffset.QuadPart = Extension->HostLength;
+	if (bDevice && pThreadBlock->mount->bPartitionInInactiveSysEncScope
+		&& (!Extension->cryptoInfo->hiddenVolume)
+		&& (Extension->cryptoInfo->EncryptedAreaLength.Value != Extension->cryptoInfo->VolumeSize.Value)
+		)
+	{
+		// Support partial encryption only in the case of system encryption
+		Extension->Queue.EncryptedAreaStart = 0;
+		Extension->Queue.EncryptedAreaEnd = Extension->cryptoInfo->EncryptedAreaLength.Value - 1;
+		if (Extension->Queue.CryptoInfo->EncryptedAreaLength.Value == 0)
+		{
+			Extension->Queue.EncryptedAreaStart = -1;
+			Extension->Queue.EncryptedAreaEnd = -1;
+		}
+		Extension->Queue.bSupportPartialEncryption = TRUE;
+	}
 
 	if (Extension->SecurityClientContextValid)
 		Extension->Queue.SecurityClientContext = &Extension->SecurityClientContext;

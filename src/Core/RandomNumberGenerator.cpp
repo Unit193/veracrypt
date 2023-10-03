@@ -54,21 +54,19 @@ namespace VeraCrypt
 			{
 				int rndCount = read (random, buffer, buffer.Size());
 				throw_sys_sub_if ((rndCount == -1) && errno != EAGAIN && errno != ERESTART && errno != EINTR, L"/dev/random");
-				if (rndCount == -1 && (!DevRandomSucceeded || (DevRandomBytesCount < 32)))
-				{
+				if (rndCount != -1) {
+					// We count returned bytes until 32-bytes threshold reached
+					if (DevRandomBytesCount < 32)
+						DevRandomBytesCount += rndCount;
+					break;
+				}
+				else if (DevRandomBytesCount >= 32) {
+					// allow /dev/random to fail gracefully since we have enough bytes
+					break;
+				}
+				else {
 					// wait 250ms before querying /dev/random again
 					::usleep (250 * 1000);
-				}
-				else
-				{
-					if (rndCount != -1)
-					{
-						// We count returned bytes untill 32-bytes treshold reached
-						if (DevRandomBytesCount < 32)
-							DevRandomBytesCount += rndCount;
-						DevRandomSucceeded = true;
-					}
-					break;
 				}
 			}
 			
@@ -187,18 +185,26 @@ namespace VeraCrypt
 	void RandomNumberGenerator::HashMixPool ()
 	{
 		BytesAddedSincePoolHashMix = 0;
+		size_t digestSize = PoolHash->GetDigestSize();
+		size_t poolSize = Pool.Size();
+		// pool size must be multiple of digest size
+		// this is always the case with default pool size value (320 bytes)
+		if (poolSize % digestSize)
+			throw AssertionFailed (SRC_POS);
 
-		for (size_t poolPos = 0; poolPos < Pool.Size(); )
+		for (size_t poolPos = 0; poolPos < poolSize; poolPos += digestSize)
 		{
 			// Compute the message digest of the entire pool using the selected hash function
-			SecureBuffer digest (PoolHash->GetDigestSize());
+			SecureBuffer digest (digestSize);
+			PoolHash->Init();
 			PoolHash->ProcessData (Pool);
 			PoolHash->GetDigest (digest);
 
-			// Add the message digest to the pool
-			for (size_t digestPos = 0; digestPos < digest.Size() && poolPos < Pool.Size(); ++digestPos)
+			/* XOR the resultant message digest to the pool at the poolIndex position. */
+			/* this matches the documentation: https://veracrypt.fr/en/Random%20Number%20Generator.html */
+			for (size_t digestIndex = 0; digestIndex < digestSize; digestIndex++)
 			{
-				Pool[poolPos++] += digest[digestPos];
+				Pool [poolPos + digestIndex] ^= digest [digestIndex];
 			}
 		}
 	}
@@ -245,14 +251,13 @@ namespace VeraCrypt
 
 		EnrichedByUser = false;
 		Running = false;
-		DevRandomSucceeded = false;
 		DevRandomBytesCount = 0;
 	}
 
 	void RandomNumberGenerator::Test ()
 	{
 		shared_ptr <Hash> origPoolHash = PoolHash;
-		PoolHash.reset (new Ripemd160());
+		PoolHash.reset (new Blake2s());
 
 		Pool.Zero();
 		Buffer buffer (1);
@@ -262,14 +267,14 @@ namespace VeraCrypt
 			AddToPool (buffer);
 		}
 
-		if (Crc32::ProcessBuffer (Pool) != 0x2de46d17)
+ 		if (Crc32::ProcessBuffer (Pool) != 0x9c743238)
 			throw TestFailed (SRC_POS);
 
 		buffer.Allocate (PoolSize);
 		buffer.CopyFrom (PeekPool());
 		AddToPool (buffer);
 
-		if (Crc32::ProcessBuffer (Pool) != 0xcb88e019)
+ 		if (Crc32::ProcessBuffer (Pool) != 0xd2d09c8d)
 			throw TestFailed (SRC_POS);
 
 		PoolHash = origPoolHash;
@@ -284,6 +289,5 @@ namespace VeraCrypt
 	bool RandomNumberGenerator::Running = false;
 	size_t RandomNumberGenerator::WriteOffset;
 	struct rand_data *RandomNumberGenerator::JitterRngCtx = NULL;
-	bool RandomNumberGenerator::DevRandomSucceeded = false;
 	int RandomNumberGenerator::DevRandomBytesCount = 0;
 }

@@ -39,10 +39,12 @@ namespace VeraCrypt
 			DismountVolumes,
 			DisplayVersion,
 			DisplayVolumeProperties,
-			ExportSecurityTokenKeyfile,
+			ExportTokenKeyfile,
 			Help,
-			ImportSecurityTokenKeyfiles,
-			ListSecurityTokenKeyfiles,
+			ImportTokenKeyfiles,
+			ListTokenKeyfiles,
+            ListSecurityTokenKeyfiles,
+            ListEMVTokenKeyfiles,
 			ListVolumes,
 			MountVolume,
 			RestoreHeaders,
@@ -81,7 +83,6 @@ namespace VeraCrypt
 		shared_ptr <VolumePath> ArgVolumePath;
 		VolumeInfoList ArgVolumes;
 		VolumeType::Enum ArgVolumeType;
-		bool ArgTrueCryptMode;
         shared_ptr<SecureBuffer> ArgTokenPin;
         bool ArgDisableFileSizeCheck;
         bool ArgUseLegacyPassword;

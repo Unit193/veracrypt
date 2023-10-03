@@ -16,6 +16,7 @@ AES.html
 arrow_right.gif
 Authenticity and Integrity.html
 Authors.html
+Avoid Third-Party File Extensions.html
 bank_30x30.png
 BC_Logo_30x30.png
 BCH_Logo_48x30.png
@@ -44,11 +45,15 @@ Beginner's Tutorial_Image_022.jpg
 Beginner's Tutorial_Image_023.gif
 Beginner's Tutorial_Image_024.gif
 Beginner's Tutorial_Image_034.png
+BLAKE2s-256.html
 Camellia.html
 Cascades.html
 Changing Passwords and Keyfiles.html
 Choosing Passwords and Keyfiles.html
 Command Line Usage.html
+CompilingGuidelineLinux.html
+CompilingGuidelines.html
+CompilingGuidelineWin.html
 Contact.html
 Contributed Resources.html
 Converting TrueCrypt volumes and partitions.html
@@ -141,7 +146,6 @@ References.html
 Release Notes.html
 Removable Medium Volume.html
 Removing Encryption.html
-RIPEMD-160.html
 Security Model.html
 Security Requirements and Precautions.html
 Security Requirements for Hidden Volumes.html
@@ -171,6 +175,8 @@ Using VeraCrypt Without Administrator Privileges.html
 VeraCrypt Background Task.html
 VeraCrypt Hidden Operating System.html
 VeraCrypt License.html
+VeraCrypt Memory Protection.html
+VeraCrypt RAM Encryption.html
 VeraCrypt Rescue Disk.html
 VeraCrypt System Files.html
 VeraCrypt Volume Format Specification.html

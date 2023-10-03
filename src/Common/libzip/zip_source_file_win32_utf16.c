@@ -3,7 +3,7 @@
   Copyright (C) 1999-2020 Dieter Baron and Thomas Klausner
 
   This file is part of libzip, a library to manipulate ZIP archives.
-  The authors can be contacted at <libzip@nih.at>
+  The authors can be contacted at <info@libzip.org>
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions
@@ -33,19 +33,13 @@
 
 #include "zip_source_file_win32.h"
 
-#define RtlGenRandom SystemFunction036
-BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
-
-bool zip_secure_random(zip_uint8_t *buffer, zip_uint16_t length)
-{
-	return RtlGenRandom (buffer, (ULONG) length);
-}
-
-
 static char *utf16_allocate_tempname(const char *name, size_t extra_chars, size_t *lengthp);
 static HANDLE __stdcall utf16_create_file(const char *name, DWORD access, DWORD share_mode, PSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition, DWORD file_attributes, HANDLE template_file);
 static void utf16_make_tempname(char *buf, size_t len, const char *name, zip_uint32_t i);
 static char *utf16_strdup(const char *string);
+
+/* clang-format off */
+DONT_WARN_INCOMPATIBLE_FN_PTR_BEGIN
 
 zip_win32_file_operations_t ops_utf16 = {
     utf16_allocate_tempname,
@@ -59,10 +53,13 @@ zip_win32_file_operations_t ops_utf16 = {
     utf16_strdup
 };
 
+DONT_WARN_INCOMPATIBLE_FN_PTR_END
+/* clang-format on */
+
 ZIP_EXTERN zip_source_t *
 zip_source_win32w(zip_t *za, const wchar_t *fname, zip_uint64_t start, zip_int64_t len) {
     if (za == NULL)
-    return NULL;
+        return NULL;
 
     return zip_source_win32w_create(fname, start, len, &za->error);
 }
@@ -70,9 +67,9 @@ zip_source_win32w(zip_t *za, const wchar_t *fname, zip_uint64_t start, zip_int64
 
 ZIP_EXTERN zip_source_t *
 zip_source_win32w_create(const wchar_t *fname, zip_uint64_t start, zip_int64_t length, zip_error_t *error) {
-    if (fname == NULL || length < -1) {
-    zip_error_set(error, ZIP_ER_INVAL, 0);
-    return NULL;
+    if (fname == NULL || length < ZIP_LENGTH_UNCHECKED) {
+        zip_error_set(error, ZIP_ER_INVAL, 0);
+        return NULL;
     }
 
 
@@ -87,8 +84,7 @@ utf16_allocate_tempname(const char *name, size_t extra_chars, size_t *lengthp) {
 }
 
 
-static HANDLE __stdcall
-utf16_create_file(const char *name, DWORD access, DWORD share_mode, PSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition, DWORD file_attributes, HANDLE template_file) {
+static HANDLE __stdcall utf16_create_file(const char *name, DWORD access, DWORD share_mode, PSECURITY_ATTRIBUTES security_attributes, DWORD creation_disposition, DWORD file_attributes, HANDLE template_file) {
 #ifdef MS_UWP
     CREATEFILE2_EXTENDED_PARAMETERS extParams = {0};
     extParams.dwFileAttributes = file_attributes;
@@ -97,7 +93,7 @@ utf16_create_file(const char *name, DWORD access, DWORD share_mode, PSECURITY_AT
     extParams.dwSize = sizeof(extParams);
     extParams.hTemplateFile = template_file;
     extParams.lpSecurityAttributes = security_attributes;
-    
+
     return CreateFile2((const wchar_t *)name, access, share_mode, creation_disposition, &extParams);
 #else
     return CreateFileW((const wchar_t *)name, access, share_mode, security_attributes, creation_disposition, file_attributes, template_file);
@@ -107,7 +103,7 @@ utf16_create_file(const char *name, DWORD access, DWORD share_mode, PSECURITY_AT
 
 static void
 utf16_make_tempname(char *buf, size_t len, const char *name, zip_uint32_t i) {
-    _snwprintf((wchar_t *)buf, len, L"%s.%08x", (const wchar_t *)name, i);
+    _snwprintf_s((wchar_t *)buf, len, len, L"%s.%08x", (const wchar_t *)name, i);
 }
 
 

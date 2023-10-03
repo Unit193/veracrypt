@@ -52,10 +52,14 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 
 #endif // defined(_UEFI)
 
+#ifdef TC_WINDOWS_BOOT
+#include <stddef.h>
+#endif
+
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.25.9"
+#define VERSION_STRING					"1.26.7"
 
 #ifdef VC_EFI_CUSTOM_MODE
 #define VERSION_STRING_SUFFIX			"-CustomEFI"
@@ -66,12 +70,12 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #endif
 
 // Version number to compare against driver
-#define VERSION_NUM						0x0125
+#define VERSION_NUM						0x0126
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"February 19, 2022"
-#define TC_RELEASE_DATE_YEAR			2022
-#define TC_RELEASE_DATE_MONTH			 02
+#define TC_STR_RELEASE_DATE			L"October 1, 2023"
+#define TC_RELEASE_DATE_YEAR			2023
+#define TC_RELEASE_DATE_MONTH			 10
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -92,6 +96,7 @@ typedef __int8 int8;
 typedef __int16 int16;
 typedef __int32 int32;
 typedef unsigned __int8 byte;
+typedef unsigned __int8 uint8;
 typedef unsigned __int16 uint16;
 typedef unsigned __int32 uint32;
 
@@ -118,6 +123,7 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 typedef uint8_t byte;
+typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
@@ -299,6 +305,10 @@ typedef NTSTATUS (NTAPI *ExGetFirmwareEnvironmentVariableFn) (
   PULONG          Attributes
 );
 
+typedef ULONG64 (NTAPI *KeQueryInterruptTimePreciseFn)(
+  PULONG64 QpcTimeStamp
+);
+
 typedef BOOLEAN (NTAPI *KeAreAllApcsDisabledFn) ();
 
 typedef void (NTAPI *KeSetSystemGroupAffinityThreadFn)(
@@ -338,7 +348,11 @@ extern BOOLEAN VC_KeAreAllApcsDisabled (VOID);
 
 #ifndef TC_LOCAL_WIN32_WINNT_OVERRIDE
 #	undef _WIN32_WINNT
-#	define	_WIN32_WINNT 0x0501	/* Does not apply to the driver */
+#ifdef _M_ARM64
+#	define  _WIN32_WINNT 0x0A00
+#else
+#	define	_WIN32_WINNT 0x0601	/* Does not apply to the driver */
+#endif
 #endif
 
 #include <windows.h>		/* Windows header */
@@ -481,9 +495,8 @@ enum
 	ERR_SYS_HIDVOL_HEAD_REENC_MODE_WRONG	= 31,
 	ERR_NONSYS_INPLACE_ENC_INCOMPLETE		= 32,
 	ERR_USER_ABORT							= 33,
-	ERR_UNSUPPORTED_TRUECRYPT_FORMAT		= 34,
-	ERR_RAND_INIT_FAILED					= 35,
-	ERR_CAPI_INIT_FAILED					= 36
+	ERR_RAND_INIT_FAILED					= 34,
+	ERR_CAPI_INIT_FAILED					= 35
 };
 
 #endif 	// #ifndef TCDEFS_H

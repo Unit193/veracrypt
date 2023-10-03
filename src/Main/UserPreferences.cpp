@@ -58,6 +58,9 @@ namespace VeraCrypt
 
 	void UserPreferences::Load()
 	{
+		// first we clear the unknown config map entries
+		UnknownConfigMapEntries.clear();
+
 		// Preferences
 		FilePath cfgPath = Application::GetConfigFilePath (GetPreferencesFileName());
 		if (cfgPath.IsFile())
@@ -68,17 +71,18 @@ namespace VeraCrypt
 				configMap[node.Attributes[L"key"]] = node.InnerText;
 			}
 
-#define TC_CONFIG_SET(NAME) SetValue (configMap[L###NAME], NAME)
+#define TC_CONFIG_SET(NAME) if (configMap.count(L###NAME) > 0) { SetValue (configMap[L###NAME], NAME); configMap.erase (L###NAME); }
 
 			TC_CONFIG_SET (BackgroundTaskEnabled);
 			TC_CONFIG_SET (BackgroundTaskMenuDismountItemsEnabled);
 			TC_CONFIG_SET (BackgroundTaskMenuMountItemsEnabled);
 			TC_CONFIG_SET (BackgroundTaskMenuOpenItemsEnabled);
 			TC_CONFIG_SET (BeepAfterHotkeyMountDismount);
-			SetValue (configMap[L"CachePasswords"], DefaultMountOptions.CachePassword);
+			if (configMap.count(L"CachePasswords") > 0) { SetValue (configMap[L"CachePasswords"], DefaultMountOptions.CachePassword); configMap.erase (L"CachePasswords"); }
 			TC_CONFIG_SET (CloseBackgroundTaskOnNoVolumes);
 			TC_CONFIG_SET (CloseExplorerWindowsOnDismount);
 			TC_CONFIG_SET (CloseSecurityTokenSessionsAfterMount);
+			TC_CONFIG_SET (EMVSupportEnabled);
 			TC_CONFIG_SET (DisableKernelEncryptionModeWarning);
 			TC_CONFIG_SET (DismountOnInactivity);
 			TC_CONFIG_SET (DismountOnLogOff);
@@ -86,7 +90,7 @@ namespace VeraCrypt
 			TC_CONFIG_SET (DismountOnScreenSaver);
 			TC_CONFIG_SET (DisplayMessageAfterHotkeyDismount);
 			TC_CONFIG_SET (BackgroundTaskEnabled);
-			SetValue (configMap[L"FilesystemOptions"], DefaultMountOptions.FilesystemOptions);
+			if (configMap.count(L"FilesystemOptions") > 0) { SetValue (configMap[L"FilesystemOptions"], DefaultMountOptions.FilesystemOptions); configMap.erase (L"FilesystemOptions"); }
 			TC_CONFIG_SET (ForceAutoDismount);
 			TC_CONFIG_SET (LastSelectedSlotNumber);
 			TC_CONFIG_SET (MaxVolumeIdleTime);
@@ -94,31 +98,31 @@ namespace VeraCrypt
 			TC_CONFIG_SET (MountFavoritesOnLogon);
 
 			bool readOnly = false;
-			SetValue (configMap[L"MountVolumesReadOnly"], readOnly);
+			if (configMap.count(L"MountVolumesReadOnly") > 0) { SetValue (configMap[L"MountVolumesReadOnly"], readOnly); configMap.erase (L"MountVolumesReadOnly"); }
 			DefaultMountOptions.Protection = readOnly ? VolumeProtection::ReadOnly : VolumeProtection::None;
 
-			SetValue (configMap[L"MountVolumesRemovable"], DefaultMountOptions.Removable);
-			SetValue (configMap[L"NoHardwareCrypto"], DefaultMountOptions.NoHardwareCrypto);
-			SetValue (configMap[L"NoKernelCrypto"], DefaultMountOptions.NoKernelCrypto);
+			if (configMap.count(L"MountVolumesRemovable") > 0) { SetValue (configMap[L"MountVolumesRemovable"], DefaultMountOptions.Removable); configMap.erase (L"MountVolumesRemovable"); }
+			if (configMap.count(L"NoHardwareCrypto") > 0) { SetValue (configMap[L"NoHardwareCrypto"], DefaultMountOptions.NoHardwareCrypto); configMap.erase (L"NoHardwareCrypto"); }
+			if (configMap.count(L"NoKernelCrypto") > 0) { SetValue (configMap[L"NoKernelCrypto"], DefaultMountOptions.NoKernelCrypto); configMap.erase (L"NoKernelCrypto"); }
 			TC_CONFIG_SET (OpenExplorerWindowAfterMount);
-			SetValue (configMap[L"PreserveTimestamps"], DefaultMountOptions.PreserveTimestamps);
+			if (configMap.count(L"PreserveTimestamps") > 0) { SetValue (configMap[L"PreserveTimestamps"], DefaultMountOptions.PreserveTimestamps); configMap.erase (L"PreserveTimestamps"); }
 			TC_CONFIG_SET (SaveHistory);
-			SetValue (configMap[L"SecurityTokenLibrary"], SecurityTokenModule);
+			if (configMap.count(L"SecurityTokenLibrary") > 0) { SetValue (configMap[L"SecurityTokenLibrary"], SecurityTokenModule); configMap.erase (L"SecurityTokenLibrary"); }
 			TC_CONFIG_SET (StartOnLogon);
 			TC_CONFIG_SET (UseKeyfiles);
 			TC_CONFIG_SET (WipeCacheOnAutoDismount);
 			TC_CONFIG_SET (WipeCacheOnClose);
 
-			SetValue (configMap[L"DefaultTrueCryptMode"], DefaultMountOptions.TrueCryptMode);
-
 			wstring defaultPrf;
-			SetValue (configMap[L"DefaultPRF"], defaultPrf);
+			if (configMap.count(L"DefaultPRF") > 0) { SetValue (configMap[L"DefaultPRF"], defaultPrf); configMap.erase (L"DefaultPRF"); }
 
+			if (defaultPrf.empty())
+				defaultPrf = L"autodetection";
 			shared_ptr <Pkcs5Kdf> savedKdf;
 			try
 			{
 				if (defaultPrf != L"autodetection")
-					savedKdf = Pkcs5Kdf::GetAlgorithm (defaultPrf, DefaultMountOptions.TrueCryptMode);
+					savedKdf = Pkcs5Kdf::GetAlgorithm (defaultPrf);
 			}
 			catch (ParameterIncorrect&)
 			{
@@ -126,6 +130,9 @@ namespace VeraCrypt
 
 			DefaultMountOptions.Kdf = savedKdf;
 			DefaultMountOptions.ProtectionKdf = savedKdf;
+
+			// at this point, the configMap should be empty, if not, we have unknown config entries that we need to store
+			UnknownConfigMapEntries = configMap;
 		}
 
 		// Default keyfiles
@@ -197,6 +204,7 @@ namespace VeraCrypt
 		TC_CONFIG_ADD (CloseBackgroundTaskOnNoVolumes);
 		TC_CONFIG_ADD (CloseExplorerWindowsOnDismount);
 		TC_CONFIG_ADD (CloseSecurityTokenSessionsAfterMount);
+        TC_CONFIG_ADD (EMVSupportEnabled);
 		TC_CONFIG_ADD (DisableKernelEncryptionModeWarning);
 		TC_CONFIG_ADD (DismountOnInactivity);
 		TC_CONFIG_ADD (DismountOnLogOff);
@@ -223,12 +231,16 @@ namespace VeraCrypt
 		TC_CONFIG_ADD (WipeCacheOnAutoDismount);
 		TC_CONFIG_ADD (WipeCacheOnClose);
 
-		formatter.AddEntry (L"DefaultTrueCryptMode", DefaultMountOptions.TrueCryptMode);
-
 		wstring defaultPrf = L"autodetection";
 		if (DefaultMountOptions.Kdf)
 			defaultPrf = DefaultMountOptions.Kdf->GetName ();
 		formatter.AddEntry (L"DefaultPRF", defaultPrf);
+
+		// add unknown config entries by iterating over all elements of the UnknownConfigMapEntries map
+		for (map<wxString, wxString>::const_iterator it = UnknownConfigMapEntries.begin(); it != UnknownConfigMapEntries.end(); ++it)
+		{
+			formatter.AddEntry(it->first.c_str(), it->second);
+		}		
 
 		XmlWriter writer (Application::GetConfigFilePath (GetPreferencesFileName(), true));
 		writer.WriteNode (formatter.XmlConfig);

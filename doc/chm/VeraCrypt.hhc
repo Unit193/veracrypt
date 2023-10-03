@@ -96,6 +96,14 @@
 			</OBJECT>
 	</UL>
 	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Normal Dismount vs Force Dismount ">
+		<param name="Local" value="Normal Dismount vs Force Dismount.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Avoid Third-Party File Extensions">
+		<param name="Local" value="Avoid Third-Party File Extensions.html">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
 		<param name="Name" value="Parallelization">
 		<param name="Local" value="Parallelization.html">
 		</OBJECT>
@@ -175,8 +183,8 @@
 		</OBJECT>
 	<UL>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Name" value="RIPEMD-160">
-			<param name="Local" value="RIPEMD-160.html">
+			<param name="Name" value="BLAKE2s-256">
+			<param name="Local" value="BLAKE2s-256.html">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="SHA-256">
@@ -233,6 +241,14 @@
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="Unencrypted Data in RAM">
 			<param name="Local" value="Unencrypted Data in RAM.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="VeraCrypt RAM Encryption">
+			<param name="Local" value="VeraCrypt RAM Encryption.html">
+			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="VeraCrypt Memory Protection">
+			<param name="Local" value="VeraCrypt Memory Protection.html">
 			</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Name" value="Physical Security">
@@ -390,6 +406,20 @@
 			<param name="Name" value="Source Code">
 			<param name="Local" value="Source Code.html">
 			</OBJECT>
+		<LI> <OBJECT type="text/sitemap">
+			<param name="Name" value="Building VeraCrypt From Source">
+			<param name="Local" value="CompilingGuidelines.html">
+			</OBJECT>
+		<UL>
+			<LI> <OBJECT type="text/sitemap">
+				<param name="Name" value="Windows Build Guide">
+				<param name="Local" value="CompilingGuidelineWin.html">
+				</OBJECT>
+			<LI> <OBJECT type="text/sitemap">
+				<param name="Name" value="Linux Build Guide">
+				<param name="Local" value="CompilingGuidelineLinux.html">
+				</OBJECT>
+		</UL>
 	</UL>
 	<LI> <OBJECT type="text/sitemap">
 		<param name="Name" value="Contact">
