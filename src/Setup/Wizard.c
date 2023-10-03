@@ -45,8 +45,8 @@ enum wizard_pages
 
 HWND hCurPage = NULL;		/* Handle to current wizard page */
 int nCurPageNo = -1;		/* The current wizard page */
-wchar_t WizardDestInstallPath [TC_MAX_PATH];
-wchar_t WizardDestExtractPath [TC_MAX_PATH];
+wchar_t WizardDestInstallPath [TC_MAX_PATH] = { 0 };
+wchar_t WizardDestExtractPath [TC_MAX_PATH] = { 0 };
 wchar_t SelfFile [TC_MAX_PATH];
 
 HBITMAP hbmWizardBitmapRescaled = NULL;
@@ -212,6 +212,7 @@ static int GetDonVal (int minVal, int maxVal)
 BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static char PageDebugId[128];
+	static HWND hDisableMemProtectionTooltipWnd = NULL;
 	WORD lw = LOWORD (wParam);
 	WORD hw = HIWORD (wParam);
 
@@ -439,9 +440,16 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					EnableWindow (GetDlgItem (hwndDlg, IDC_SYSTEM_RESTORE), FALSE);
 				}
 
+				hDisableMemProtectionTooltipWnd = CreateToolTip (IDC_DISABLE_MEMORY_PROTECTION, hwndDlg, "DISABLE_MEMORY_PROTECTION_WARNING");
+				// make IDC_DISABLE_MEMORY_PROTECTION control fit the text so that the tooltip is shown only when mouse is over the text
+				AccommodateCheckBoxTextWidth(hwndDlg, IDC_DISABLE_MEMORY_PROTECTION);
+				// make the help button adjacent to the checkbox
+				MakeControlsContiguous(hwndDlg, IDC_DISABLE_MEMORY_PROTECTION, IDC_DISABLE_MEMORY_PROTECTION_HELP);
+
 				SetCheckBox (hwndDlg, IDC_ALL_USERS, bForAllUsers);
 				SetCheckBox (hwndDlg, IDC_FILE_TYPE, bRegisterFileExt);
 				SetCheckBox (hwndDlg, IDC_PROG_GROUP, bAddToStartMenu);
+				SetCheckBox (hwndDlg, IDC_DISABLE_MEMORY_PROTECTION, bDisableMemoryProtection);
 				SetCheckBox (hwndDlg, IDC_DESKTOP_ICON, bDesktopIcon);
 
 				SetWindowTextW (GetDlgItem (GetParent (hwndDlg), IDC_NEXT), GetString (bUpgrade ? "UPGRADE" : "INSTALL"));
@@ -646,7 +654,7 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			switch (lw)
 			{
 			case IDC_BROWSE:
-				if (BrowseDirectories (hwndDlg, "SELECT_DEST_DIR", WizardDestExtractPath))
+				if (BrowseDirectories (hwndDlg, "SELECT_DEST_DIR", WizardDestExtractPath, WizardDestExtractPath))
 				{
 					if (WizardDestExtractPath [wcslen(WizardDestExtractPath)-1] != L'\\')
 					{
@@ -667,7 +675,7 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			switch (lw)
 			{
 			case IDC_BROWSE:
-				if (BrowseDirectories (hwndDlg, "SELECT_DEST_DIR", WizardDestInstallPath))
+				if (BrowseDirectories (hwndDlg, "SELECT_DEST_DIR", WizardDestInstallPath, WizardDestInstallPath))
 				{
 					if (WizardDestInstallPath [wcslen(WizardDestInstallPath)-1] != L'\\')
 					{
@@ -683,6 +691,18 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 			case IDC_ALL_USERS:
 				bForAllUsers = IsButtonChecked (GetDlgItem (hCurPage, IDC_ALL_USERS));
+				return 1;
+
+			case IDC_DISABLE_MEMORY_PROTECTION:
+				bDisableMemoryProtection = IsButtonChecked (GetDlgItem (hCurPage, IDC_DISABLE_MEMORY_PROTECTION));
+				if (bDisableMemoryProtection)
+				{
+					Warning ("DISABLE_MEMORY_PROTECTION_WARNING", hwndDlg);
+				}
+				return 1;
+
+			case IDC_DISABLE_MEMORY_PROTECTION_HELP:
+				Applink("memoryprotection");
 				return 1;
 
 			case IDC_FILE_TYPE:
@@ -759,6 +779,16 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			ReleaseDC (hCurPage, hdc);
 		}
 		return 0;
+
+	case WM_DESTROY:
+	
+		if (hDisableMemProtectionTooltipWnd != NULL)
+		{
+			DestroyWindow (hDisableMemProtectionTooltipWnd);
+			hDisableMemProtectionTooltipWnd = NULL;
+		}
+
+		break;
 
 	}
 
@@ -852,6 +882,9 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 #endif
 
 			DonColorSchemeId = GetDonVal (2, 9);
+
+			// get the initial value of bDisableMemoryProtection by reading the registry
+			bDisableMemoryProtection = bOriginalDisableMemoryProtection = ReadMemoryProtectionConfig()? FALSE : TRUE;
 
 			if (bDevm)
 			{

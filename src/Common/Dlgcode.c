@@ -18,6 +18,7 @@
 #include <dbt.h>
 #include <Setupapi.h>
 #include <aclapi.h>
+#include <Netlistmgr.h>
 #include <fcntl.h>
 #include <io.h>
 #include <math.h>
@@ -31,6 +32,9 @@
 #if defined (TCMOUNT) || defined (VOLFORMAT)
 #include <process.h>
 #include <Tlhelp32.h>
+#endif
+#if _WIN32_WINNT >= 0x0602
+#include "processthreadsapi.h"
 #endif
 
 #include "Resource.h"
@@ -87,7 +91,10 @@
 #include <Wbemidl.h>
 
 #pragma comment(lib, "wbemuuid.lib")
-#pragma comment( lib, "setupapi.lib" )
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "setupapi.lib" )
+#pragma comment(lib, "Wintrust.lib" )
+#pragma comment(lib, "Comctl32.lib" )
 
 #ifndef TTI_INFO_LARGE
 #define TTI_INFO_LARGE          4
@@ -207,10 +214,13 @@ BOOL LastMountedVolumeDirty;
 BOOL MountVolumesAsSystemFavorite = FALSE;
 BOOL FavoriteMountOnArrivalInProgress = FALSE;
 BOOL MultipleMountOperationInProgress = FALSE;
+BOOL EMVSupportEnabled = FALSE;
 
 volatile BOOL NeedPeriodicDeviceListUpdate = FALSE;
 BOOL DisablePeriodicDeviceListUpdate = FALSE;
 BOOL EnableMemoryProtection = FALSE;
+
+BOOL MemoryProtectionActivated = FALSE;
 
 BOOL WaitDialogDisplaying = FALSE;
 
@@ -284,139 +294,13 @@ DWORD SystemFileSelectorCallerThreadId;
 #define RANDPOOL_DISPLAY_ROWS 16
 #define RANDPOOL_DISPLAY_COLUMNS 20
 
-HMODULE hRichEditDll = NULL;
-HMODULE hComctl32Dll = NULL;
-HMODULE hSetupDll = NULL;
-HMODULE hShlwapiDll = NULL;
-HMODULE hProfApiDll = NULL;
-HMODULE hUsp10Dll = NULL;
-HMODULE hCryptSpDll = NULL;
-HMODULE hUXThemeDll = NULL;
-HMODULE hUserenvDll = NULL;
-HMODULE hRsaenhDll = NULL;
-HMODULE himm32dll = NULL;
-HMODULE hMSCTFdll = NULL;
-HMODULE hfltlibdll = NULL;
-HMODULE hframedyndll = NULL;
-HMODULE hpsapidll = NULL;
-HMODULE hsecur32dll = NULL;
-HMODULE hnetapi32dll = NULL;
-HMODULE hauthzdll = NULL;
-HMODULE hxmllitedll = NULL;
-HMODULE hmprdll = NULL;
-HMODULE hsppdll = NULL;
-HMODULE vssapidll = NULL;
-HMODULE hvsstracedll = NULL;
-HMODULE hcfgmgr32dll = NULL;
-HMODULE hdevobjdll = NULL;
-HMODULE hpowrprofdll = NULL;
-HMODULE hsspiclidll = NULL;
-HMODULE hcryptbasedll = NULL;
-HMODULE hdwmapidll = NULL;
-HMODULE hmsasn1dll = NULL;
-HMODULE hcrypt32dll = NULL;
-HMODULE hbcryptdll = NULL;
-HMODULE hbcryptprimitivesdll = NULL;
-HMODULE hMsls31 = NULL;
-HMODULE hntmartadll = NULL;
-HMODULE hwinscarddll = NULL;
-HMODULE hmsvcrtdll = NULL;
-HMODULE hWinTrustLib = NULL;
-HMODULE hAdvapi32Dll = NULL;
-
-#define FREE_DLL(h)	if (h) { FreeLibrary (h); h = NULL;}
-
-#ifndef BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE
-#define BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE 0x00000001
-#endif
-
-#ifndef BASE_SEARCH_PATH_PERMANENT
-#define BASE_SEARCH_PATH_PERMANENT 0x00008000
-#endif
 
 #ifndef LOAD_LIBRARY_SEARCH_SYSTEM32
 #define LOAD_LIBRARY_SEARCH_SYSTEM32   0x00000800
 #endif
-
-typedef BOOL (WINAPI *SetDllDirectoryPtr)(LPCWSTR lpPathName);
-typedef BOOL (WINAPI *SetSearchPathModePtr)(DWORD Flags);
 typedef BOOL (WINAPI *SetDefaultDllDirectoriesPtr)(DWORD DirectoryFlags);
 
-
-typedef void (WINAPI *InitCommonControlsPtr)(void);
-typedef HIMAGELIST  (WINAPI *ImageList_CreatePtr)(int cx, int cy, UINT flags, int cInitial, int cGrow);
-typedef int         (WINAPI *ImageList_AddPtr)(HIMAGELIST himl, HBITMAP hbmImage, HBITMAP hbmMask);
-
-typedef VOID (WINAPI *SetupCloseInfFilePtr)(HINF InfHandle);
-typedef HKEY (WINAPI *SetupDiOpenClassRegKeyPtr)(CONST GUID *ClassGuid,REGSAM samDesired);
-typedef BOOL (WINAPI *SetupInstallFromInfSectionWPtr)(HWND,HINF,PCWSTR,UINT,HKEY,PCWSTR,UINT,PSP_FILE_CALLBACK_W,PVOID,HDEVINFO,PSP_DEVINFO_DATA);
-typedef HINF (WINAPI *SetupOpenInfFileWPtr)(PCWSTR FileName,PCWSTR InfClass,DWORD InfStyle,PUINT ErrorLine);
-
-typedef LSTATUS (STDAPICALLTYPE *SHDeleteKeyWPtr)(HKEY hkey, LPCWSTR pszSubKey);
-
-typedef HRESULT (STDAPICALLTYPE *SHStrDupWPtr)(LPCWSTR psz, LPWSTR *ppwsz);
-
-typedef HRESULT (STDAPICALLTYPE *UrlUnescapeWPtr)(
-  PWSTR pszUrl,
-  PWSTR pszUnescaped,
-  DWORD *pcchUnescaped,
-  DWORD dwFlags
-);
-
-// ChangeWindowMessageFilter
-typedef BOOL (WINAPI *ChangeWindowMessageFilterPtr) (UINT, DWORD);
-
-typedef BOOL (WINAPI *CreateProcessWithTokenWFn)(
-    __in        HANDLE hToken,
-    __in        DWORD dwLogonFlags,
-    __in_opt    LPCWSTR lpApplicationName,
-    __inout_opt LPWSTR lpCommandLine,
-    __in        DWORD dwCreationFlags,
-    __in_opt    LPVOID lpEnvironment,
-    __in_opt    LPCWSTR lpCurrentDirectory,
-    __in        LPSTARTUPINFOW lpStartupInfo,
-    __out       LPPROCESS_INFORMATION lpProcessInformation
-      );
-
-typedef HRESULT (WINAPI *IUnknown_QueryServiceFn)(
-	__in IUnknown* punk, 
-	__in REFGUID guidService, 
-	__in REFIID riid, 
-	__deref_out void ** ppvOut);
-
-SetDllDirectoryPtr SetDllDirectoryFn = NULL;
-SetSearchPathModePtr SetSearchPathModeFn = NULL;
-SetDefaultDllDirectoriesPtr SetDefaultDllDirectoriesFn = NULL;
-
-ImageList_CreatePtr ImageList_CreateFn = NULL;
-ImageList_AddPtr ImageList_AddFn = NULL;
-
-SetupCloseInfFilePtr SetupCloseInfFileFn = NULL;
-SetupDiOpenClassRegKeyPtr SetupDiOpenClassRegKeyFn = NULL;
-SetupInstallFromInfSectionWPtr SetupInstallFromInfSectionWFn = NULL;
-SetupOpenInfFileWPtr SetupOpenInfFileWFn = NULL;
-SHDeleteKeyWPtr SHDeleteKeyWFn = NULL;
-SHStrDupWPtr SHStrDupWFn = NULL;
-UrlUnescapeWPtr UrlUnescapeWFn = NULL;
-ChangeWindowMessageFilterPtr ChangeWindowMessageFilterFn = NULL;
-CreateProcessWithTokenWFn CreateProcessWithTokenWPtr = NULL;
-IUnknown_QueryServiceFn IUnknown_QueryServicePtr = NULL;
-
-typedef LONG (WINAPI *WINVERIFYTRUST)(HWND hwnd, GUID *pgActionID, LPVOID pWVTData);
-typedef CRYPT_PROVIDER_DATA* (WINAPI *WTHELPERPROVDATAFROMSTATEDATA)(HANDLE hStateData);
-typedef CRYPT_PROVIDER_SGNR* (WINAPI *WTHELPERGETPROVSIGNERFROMCHAIN)(CRYPT_PROVIDER_DATA *pProvData,
-                                                                       DWORD idxSigner,
-                                                                       BOOL fCounterSigner,
-                                                                       DWORD idxCounterSigner);
-typedef CRYPT_PROVIDER_CERT* (WINAPI *WTHELPERGETPROVCERTFROMCHAIN)(CRYPT_PROVIDER_SGNR *pSgnr,
-                                                                     DWORD idxCert);
-
-static WINVERIFYTRUST WinVerifyTrustFn = NULL;
-static WTHELPERPROVDATAFROMSTATEDATA WTHelperProvDataFromStateDataFn = NULL;
-static WTHELPERGETPROVSIGNERFROMCHAIN WTHelperGetProvSignerFromChainFn = NULL;
-static WTHELPERGETPROVCERTFROMCHAIN WTHelperGetProvCertFromChainFn = NULL;
-
-static unsigned char gpbSha256CodeSignCertFingerprint[64] = {
+static unsigned char gpbSha512CodeSignCertFingerprint[64] = {
 	0x9C, 0xA0, 0x21, 0xD3, 0x7C, 0x90, 0x61, 0x88, 0xEF, 0x5F, 0x99, 0x3D,
 	0x54, 0x9F, 0xB8, 0xCE, 0x72, 0x32, 0x4F, 0x57, 0x4F, 0x19, 0xD2, 0xA4,
 	0xDC, 0x84, 0xFF, 0xE2, 0x84, 0x2B, 0xD4, 0x30, 0xAB, 0xA7, 0xE4, 0x63,
@@ -425,22 +309,14 @@ static unsigned char gpbSha256CodeSignCertFingerprint[64] = {
 	0xDB, 0x6F, 0xC0, 0x62
 };
 
-static unsigned char gpbSha256MSCodeSignCertFingerprint[64] = {
-	0x9C, 0x96, 0x81, 0x3B, 0x88, 0x54, 0xCB, 0x81, 0xB5, 0x94, 0x40, 0x4E,
-	0x15, 0x81, 0x20, 0xA1, 0x19, 0x00, 0x4E, 0x49, 0x8A, 0xA8, 0x98, 0x13,
-	0x9D, 0xE2, 0x86, 0x6A, 0xC1, 0xFA, 0xD3, 0x00, 0x0D, 0xAC, 0xE9, 0xE3,
-	0x3B, 0xFC, 0x6B, 0x26, 0xCE, 0xC8, 0xE2, 0x36, 0x3B, 0x60, 0x9C, 0x8E,
-	0x0A, 0x2A, 0x74, 0x20, 0xD7, 0x4E, 0x0F, 0xEE, 0x2E, 0x79, 0xE2, 0xAF,
-	0x1C, 0x90, 0x0B, 0x9C
+static unsigned char gpbSha512MSCodeSignCertFingerprint[64] = {
+	0xEB, 0x76, 0x2E, 0xD3, 0x5B, 0x4A, 0xB1, 0x0E, 0xF5, 0x3B, 0x99, 0x4E,
+	0xC1, 0xF7, 0x48, 0x88, 0xF6, 0xA0, 0xE9, 0xAC, 0x32, 0x69, 0xCF, 0x20,
+	0xE1, 0x60, 0xC4, 0x0C, 0xEF, 0x01, 0x1F, 0xCB, 0x41, 0x95, 0x72, 0xB9,
+	0xED, 0x63, 0x0C, 0x6B, 0xB9, 0xE9, 0xA2, 0x72, 0xA6, 0x78, 0x96, 0x4C,
+	0x69, 0x9F, 0x90, 0x3F, 0xB1, 0x3C, 0x64, 0xF2, 0xAB, 0xCF, 0x14, 0x1D,
+	0xEC, 0x7C, 0xB0, 0xC7
 };
-
-
-typedef HRESULT (WINAPI *SHGETKNOWNFOLDERPATH) (
-  _In_     REFKNOWNFOLDERID rfid,
-  _In_     DWORD            dwFlags,
-  _In_opt_ HANDLE           hToken,
-  _Out_    PWSTR            *ppszPath
-);
 
 /* Windows dialog class */
 #define WINDOWS_DIALOG_CLASS L"#32770"
@@ -611,6 +487,7 @@ char *LoadFile (const wchar_t *fileName, DWORD *size)
 	char *buf;
 	DWORD fileSize = INVALID_FILE_SIZE;
 	HANDLE h = CreateFile (fileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	*size = 0;
 	if (h == INVALID_HANDLE_VALUE)
 		return NULL;
 
@@ -620,8 +497,7 @@ char *LoadFile (const wchar_t *fileName, DWORD *size)
 		return NULL;
 	}
 
-	*size = fileSize;
-	buf = (char *) calloc (*size + 1, 1);
+	buf = (char *) calloc (fileSize + 1, 1);
 
 	if (buf == NULL)
 	{
@@ -629,10 +505,14 @@ char *LoadFile (const wchar_t *fileName, DWORD *size)
 		return NULL;
 	}
 
-	if (!ReadFile (h, buf, *size, size, NULL))
+	if (!ReadFile (h, buf, fileSize, size, NULL))
 	{
 		free (buf);
 		buf = NULL;
+	}
+	else
+	{
+		buf[*size] = 0; //make coverity happy eventhough buf is guaranteed to be null terminated because of fileSize+1 in calloc call
 	}
 
 	CloseHandle (h);
@@ -968,54 +848,6 @@ BOOL TCCopyFile (wchar_t *sourceFileName, wchar_t *destinationFile)
 	return TCCopyFileBase (src, dst);
 }
 
-#if defined(NDEBUG) && !defined(VC_SKIP_OS_DRIVER_REQ_CHECK)
-static BOOL InitializeWintrust()
-{
-	if (!hWinTrustLib)
-	{
-		wchar_t szPath[MAX_PATH] = {0};
-
-		if (GetSystemDirectory(szPath, MAX_PATH))
-			StringCchCatW (szPath, MAX_PATH, L"\\Wintrust.dll");
-		else
-			StringCchCopyW (szPath, MAX_PATH, L"C:\\Windows\\System32\\Wintrust.dll");
-
-		hWinTrustLib = LoadLibrary (szPath);
-		if (hWinTrustLib)
-		{
-			WinVerifyTrustFn = (WINVERIFYTRUST) GetProcAddress (hWinTrustLib, "WinVerifyTrust");
-			WTHelperProvDataFromStateDataFn = (WTHELPERPROVDATAFROMSTATEDATA) GetProcAddress (hWinTrustLib, "WTHelperProvDataFromStateData");
-			WTHelperGetProvSignerFromChainFn = (WTHELPERGETPROVSIGNERFROMCHAIN) GetProcAddress (hWinTrustLib, "WTHelperGetProvSignerFromChain");
-			WTHelperGetProvCertFromChainFn = (WTHELPERGETPROVCERTFROMCHAIN) GetProcAddress (hWinTrustLib, "WTHelperGetProvCertFromChain");
-
-			if (	!WinVerifyTrustFn 
-				||	!WTHelperProvDataFromStateDataFn 
-				||	!WTHelperGetProvSignerFromChainFn 
-				||	!WTHelperGetProvCertFromChainFn)
-			{
-				FreeLibrary (hWinTrustLib);
-				hWinTrustLib = NULL;
-			}
-
-		}
-	}
-
-	if (hWinTrustLib)
-		return TRUE;
-	else
-		return FALSE;
-}
-
-static void FinalizeWintrust()
-{
-	if (hWinTrustLib)
-	{
-		FreeLibrary (hWinTrustLib);
-		hWinTrustLib = NULL;
-	}
-}
-
-#endif
 
 BOOL VerifyModuleSignature (const wchar_t* path)
 {
@@ -1046,9 +878,6 @@ BOOL VerifyModuleSignature (const wchar_t* path)
 	if (filePath [wcslen (filePath) - 1] == L'"')
 		filePath [wcslen (filePath) - 1] = 0;
 
-	if (!InitializeWintrust ())
-		return FALSE;
-
 	fileInfo.cbStruct = sizeof(WINTRUST_FILE_INFO);
 	fileInfo.pcwszFilePath = filePath;
 	fileInfo.hFile = NULL;
@@ -1061,23 +890,23 @@ BOOL VerifyModuleSignature (const wchar_t* path)
 	WVTData.dwStateAction       = WTD_STATEACTION_VERIFY;
 	WVTData.dwProvFlags         = WTD_REVOCATION_CHECK_NONE | WTD_CACHE_ONLY_URL_RETRIEVAL;
 
-	hResult = WinVerifyTrustFn(0, &gActionID, &WVTData);
+	hResult = WinVerifyTrust(0, &gActionID, &WVTData);
 	if (0 == hResult)
 	{
-		PCRYPT_PROVIDER_DATA pProviderData = WTHelperProvDataFromStateDataFn (WVTData.hWVTStateData);
+		PCRYPT_PROVIDER_DATA pProviderData = WTHelperProvDataFromStateData (WVTData.hWVTStateData);
 		if (pProviderData)
 		{
-			PCRYPT_PROVIDER_SGNR pProviderSigner = WTHelperGetProvSignerFromChainFn (pProviderData, 0, FALSE, 0);
+			PCRYPT_PROVIDER_SGNR pProviderSigner = WTHelperGetProvSignerFromChain (pProviderData, 0, FALSE, 0);
 			if (pProviderSigner)
 			{
-				PCRYPT_PROVIDER_CERT pProviderCert = WTHelperGetProvCertFromChainFn (pProviderSigner, 0);
+				PCRYPT_PROVIDER_CERT pProviderCert = WTHelperGetProvCertFromChain (pProviderSigner, 0);
 				if (pProviderCert && (pProviderCert->pCert))
 				{
 					BYTE hashVal[64];
 					sha512 (hashVal, pProviderCert->pCert->pbCertEncoded, pProviderCert->pCert->cbCertEncoded);
 
-					if (	(0 ==  memcmp (hashVal, gpbSha256CodeSignCertFingerprint, 64))
-						||	(0 ==  memcmp (hashVal, gpbSha256MSCodeSignCertFingerprint, 64))
+					if (	(0 ==  memcmp (hashVal, gpbSha512CodeSignCertFingerprint, 64))
+						||	(0 ==  memcmp (hashVal, gpbSha512MSCodeSignCertFingerprint, 64))
 						)
 					{
 						bResult = TRUE;
@@ -1089,9 +918,7 @@ BOOL VerifyModuleSignature (const wchar_t* path)
 
 	WVTData.dwUIChoice = WTD_UI_NONE;
 	WVTData.dwStateAction = WTD_STATEACTION_CLOSE;
-	WinVerifyTrustFn(0, &gActionID, &WVTData);
-
-	FinalizeWintrust ();
+	WinVerifyTrust(0, &gActionID, &WVTData);
 
 	return bResult;
 #else
@@ -1360,47 +1187,6 @@ void AbortProcessDirect (wchar_t *abortMsg)
 	// Note that this function also causes localcleanup() to be called (see atexit())
 	MessageBeep (MB_ICONEXCLAMATION);
 	MessageBoxW (NULL, abortMsg, lpszTitle, ICON_HAND);
-#ifndef VC_COMREG
-	FREE_DLL (hRichEditDll);
-	FREE_DLL (hComctl32Dll);
-	FREE_DLL (hSetupDll);
-	FREE_DLL (hShlwapiDll);
-	FREE_DLL (hProfApiDll);
-	FREE_DLL (hUsp10Dll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hUXThemeDll);
-	FREE_DLL (hUserenvDll);
-	FREE_DLL (hRsaenhDll);
-	FREE_DLL (himm32dll);
-	FREE_DLL (hMSCTFdll);
-	FREE_DLL (hfltlibdll);
-	FREE_DLL (hframedyndll);
-	FREE_DLL (hpsapidll);
-	FREE_DLL (hsecur32dll);
-	FREE_DLL (hnetapi32dll);
-	FREE_DLL (hauthzdll);
-	FREE_DLL (hxmllitedll);
-	FREE_DLL (hmprdll);
-	FREE_DLL (hsppdll);
-	FREE_DLL (vssapidll);
-	FREE_DLL (hvsstracedll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hcfgmgr32dll);
-	FREE_DLL (hdevobjdll);
-	FREE_DLL (hpowrprofdll);
-	FREE_DLL (hsspiclidll);
-	FREE_DLL (hcryptbasedll);
-	FREE_DLL (hdwmapidll);
-	FREE_DLL (hmsasn1dll);
-	FREE_DLL (hcrypt32dll);
-	FREE_DLL (hbcryptdll);
-	FREE_DLL (hbcryptprimitivesdll);
-	FREE_DLL (hMsls31);
-	FREE_DLL (hntmartadll);
-	FREE_DLL (hwinscarddll);
-	FREE_DLL (hmsvcrtdll);
-	FREE_DLL (hAdvapi32Dll);
-#endif
 	exit (1);
 }
 
@@ -1419,46 +1205,6 @@ void AbortProcess (char *stringId)
 #ifndef VC_COMREG
 void AbortProcessSilent (void)
 {
-	FREE_DLL (hRichEditDll);
-	FREE_DLL (hComctl32Dll);
-	FREE_DLL (hSetupDll);
-	FREE_DLL (hShlwapiDll);
-	FREE_DLL (hProfApiDll);
-	FREE_DLL (hUsp10Dll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hUXThemeDll);
-	FREE_DLL (hUserenvDll);
-	FREE_DLL (hRsaenhDll);
-	FREE_DLL (himm32dll);
-	FREE_DLL (hMSCTFdll);
-	FREE_DLL (hfltlibdll);
-	FREE_DLL (hframedyndll);
-	FREE_DLL (hpsapidll);
-	FREE_DLL (hsecur32dll);
-	FREE_DLL (hnetapi32dll);
-	FREE_DLL (hauthzdll);
-	FREE_DLL (hxmllitedll);
-	FREE_DLL (hmprdll);
-	FREE_DLL (hsppdll);
-	FREE_DLL (vssapidll);
-	FREE_DLL (hvsstracedll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hcfgmgr32dll);
-	FREE_DLL (hdevobjdll);
-	FREE_DLL (hpowrprofdll);
-	FREE_DLL (hsspiclidll);
-	FREE_DLL (hcryptbasedll);
-	FREE_DLL (hdwmapidll);
-	FREE_DLL (hmsasn1dll);
-	FREE_DLL (hcrypt32dll);
-	FREE_DLL (hbcryptdll);
-	FREE_DLL (hbcryptprimitivesdll);
-	FREE_DLL (hMsls31);
-	FREE_DLL (hntmartadll);
-	FREE_DLL (hwinscarddll);
-	FREE_DLL (hmsvcrtdll);
-	FREE_DLL (hAdvapi32Dll);
-
 	// Note that this function also causes localcleanup() to be called (see atexit())
 	exit (1);
 }
@@ -1579,11 +1325,11 @@ void LowerCaseCopy (wchar_t *lpszDest, const wchar_t *lpszSource)
 
 void UpperCaseCopy (wchar_t *lpszDest, size_t cbDest, const wchar_t *lpszSource)
 {
-	if (lpszDest && cbDest)
+	if (lpszDest && (cbDest >= 2))
 	{
 		size_t i = wcslen (lpszSource);
-		if (i >= cbDest)
-			i = cbDest - 1;
+		if (i >= (cbDest/2))
+			i = (cbDest/2) - 1;
 
 		lpszDest[i] = 0;
 		i++;
@@ -2014,6 +1760,88 @@ void AccommodateTextField (HWND hwndDlg, UINT ctrlId, BOOL bFirstUpdate, HFONT h
 	}
 }
 
+// Resizes width of a checkbox according to actual width in pixels of its label text (font size is taken into account)
+void AccommodateCheckBoxTextWidth (HWND hwndDlg, UINT ctrlId)
+{
+	RECT rec;
+	HWND hwndCtrl = GetDlgItem (hwndDlg, ctrlId);
+	int width, origWidth, origHeight;
+	int horizSubOffset;
+	wchar_t text [MAX_URL_LENGTH];
+	HFONT hFont = (HFONT) SendDlgItemMessage (hwndDlg, ctrlId, WM_GETFONT, 0, 0);
+
+	// Resize the field according to its length and font size and move if centered or right-aligned
+
+	GetWindowTextW (hwndCtrl, text, sizeof (text) / sizeof (wchar_t));
+
+	width = GetTextGfxWidth (hwndCtrl, text, hFont);
+
+	// add to width variable value the width of the checkbox square. We use SM_CXMENUCHECK which is a little larger than actual width
+	width += GetSystemMetrics(SM_CXMENUCHECK);
+	
+
+	GetClientRect (hwndCtrl, &rec);	
+	origWidth = rec.right;
+	origHeight = rec.bottom;
+
+	if (width >= 0
+		&& (origWidth > width))	// The original width of the field is the maximum allowed size 
+	{
+		horizSubOffset = origWidth - width;
+
+		// Resize the text field
+		SetWindowPos (hwndCtrl, 0, 0, 0,
+			origWidth - horizSubOffset,
+			origHeight,
+			SWP_NOMOVE | SWP_NOZORDER);
+
+		InvalidateRect (hwndCtrl, NULL, TRUE);
+	}
+}
+
+// makes controls contiguous by moving the second control right next to the first one horizontally
+void MakeControlsContiguous(HWND hwndDlg, UINT ctrl1ID, UINT ctrl2ID) {
+    HWND hwndCtrl1 = GetDlgItem(hwndDlg, ctrl1ID);
+    HWND hwndCtrl2 = GetDlgItem(hwndDlg, ctrl2ID);
+	RECT rect1, rect2;
+	POINT pt1, pt2;
+	int newLeftPosition;
+
+    // Exit silently if one or both controls are missing
+    if (!hwndCtrl1 || !hwndCtrl2) {
+        return;
+    }
+
+    
+    GetWindowRect(hwndCtrl1, &rect1);
+    GetWindowRect(hwndCtrl2, &rect2);
+
+    // Convert the top-right point of the first control from screen to client coordinates
+    pt1.x = rect1.right;
+	pt1.y = rect1.top;
+    if (!ScreenToClient(hwndDlg, &pt1)) {
+        return; // Exit if the conversion fails
+    }
+
+    // Convert the top-left point of the second control from screen to client coordinates
+    pt2.x = rect2.left;
+	pt2.y = rect2.top;
+    if (!ScreenToClient(hwndDlg, &pt2)) {
+        return; // Exit if the conversion fails
+    }
+
+    // Ensure the second control is always placed to the right of the first one
+    newLeftPosition = pt1.x + 1;
+
+    if (pt2.x < pt1.x) { // if the second control is to the left of the first one
+        newLeftPosition += (pt1.x - pt2.x);
+    }
+
+    // Move the second control to its new position
+    SetWindowPos(hwndCtrl2, NULL, newLeftPosition, pt2.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+}
+
+
 // Note that the user can still close the window by right-clicking its taskbar icon and selecting 'Close window', or by pressing Alt-F4, or using the Task Manager.
 void DisableCloseButton (HWND hwndDlg)
 {
@@ -2328,20 +2156,20 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 			L"Based on TrueCrypt 7.1a, freely available at http://www.truecrypt.org/ .\r\n\r\n"
 
 			L"Portions of this software:\r\n"
-			L"Copyright \xA9 2013-2022 IDRIX. All rights reserved.\r\n"
+			L"Copyright \xA9 2013-2023 IDRIX. All rights reserved.\r\n"
 			L"Copyright \xA9 2003-2012 TrueCrypt Developers Association. All Rights Reserved.\r\n"
 			L"Copyright \xA9 1998-2000 Paul Le Roux. All Rights Reserved.\r\n"
 			L"Copyright \xA9 1998-2008 Brian Gladman. All Rights Reserved.\r\n"
 			L"Copyright \xA9 1995-2017 Jean-loup Gailly and Mark Adler.\r\n"
 			L"Copyright \xA9 2016 Disk Cryptography Services for EFI (DCS), Alex Kolotnikov.\r\n"
-			L"Copyright \xA9 1999-2017 Dieter Baron and Thomas Klausner.\r\n"
+			L"Copyright \xA9 1999-2020 Dieter Baron and Thomas Klausner.\r\n"
 			L"Copyright \xA9 2013, Alexey Degtyarev. All rights reserved.\r\n"
 			L"Copyright \xA9 1999-2016 Jack Lloyd. All rights reserved.\r\n"
 			L"Copyright \xA9 2013-2019 Stephan Mueller <smueller@chronox.de>\r\n"
 			L"Copyright \xA9 1999-2021 Igor Pavlov\r\n\r\n"
 
 			L"This software as a whole:\r\n"
-			L"Copyright \xA9 2013-2022 IDRIX. All rights reserved.\r\n\r\n"
+			L"Copyright \xA9 2013-2023 IDRIX. All rights reserved.\r\n\r\n"
 
 			L"An IDRIX Release");
 
@@ -2382,6 +2210,42 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 	}
 
 	return 0;
+}
+
+HWND CreateToolTip(int toolID, HWND hDlg, const char* strID)
+{
+    if (!toolID || !hDlg)
+    {
+        return FALSE;
+    }
+    
+    // Create the tooltip.
+    HWND hwndTip = CreateWindowExW(NULL, TOOLTIPS_CLASS, NULL,
+                              WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_BALLOON,
+                              CW_USEDEFAULT, CW_USEDEFAULT,
+                              CW_USEDEFAULT, CW_USEDEFAULT,
+                              hDlg, NULL, 
+                              hInst, NULL);
+    
+   if (!hwndTip)
+   {
+       return (HWND)NULL;
+   }                              
+                              
+    // Associate the tooltip with the tool.
+    TOOLINFOW toolInfo = { 0 };
+    toolInfo.cbSize = sizeof(toolInfo);
+    toolInfo.hwnd = hDlg;
+    toolInfo.uFlags = TTF_SUBCLASS | TTF_IDISHWND;
+    toolInfo.uId = (UINT_PTR) GetDlgItem(hDlg, toolID);
+    toolInfo.lpszText = GetString(strID);
+
+	// set tooltip maximum width
+	SendMessage(hwndTip, TTM_SETMAXTIPWIDTH, 0, (LPARAM) 300);
+
+    SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
+    return hwndTip;
 }
 
 
@@ -2503,7 +2367,7 @@ void InitDialog (HWND hwndDlg)
 	{
 		StringCbCopyW ((WCHAR *)metric.lfMessageFont.lfFaceName, sizeof (metric.lfMessageFont.lfFaceName), font->FaceName);
 	}
-	else if (IsOSAtLeast (WIN_VISTA))
+	else
 	{
 		// Vista's new default font (size and spacing) breaks compatibility with Windows 2k/XP applications.
 		// Force use of Tahoma (as Microsoft does in many dialogs) until a native Vista look is implemented.
@@ -3498,6 +3362,24 @@ uint32 ReadEncryptionThreadPoolFreeCpuCountLimit ()
 	return count;
 }
 
+BOOL ReadMemoryProtectionConfig ()
+{
+	DWORD config;
+
+	if (!ReadLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", VC_ENABLE_MEMORY_PROTECTION, &config))
+	{
+		// enabled by default
+		config = 1;
+	}
+	return (config)? TRUE: FALSE;
+}
+
+BOOL WriteMemoryProtectionConfig (BOOL bEnable)
+{
+	DWORD config = bEnable? 1: 0;
+
+	return WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", VC_ENABLE_MEMORY_PROTECTION, config);
+}
 
 BOOL LoadSysEncSettings ()
 {
@@ -3674,24 +3556,38 @@ void DoPostInstallTasks (HWND hwndDlg)
 		SavePostInstallTasksSettings (TC_POST_INSTALL_CFG_REMOVE_ALL);
 }
 
-static void LoadSystemDll (LPCTSTR szModuleName, HMODULE *pHandle, BOOL bIgnoreError, const char* srcPos)
-{
-	wchar_t dllPath[MAX_PATH];
-
-	/* Load dll explictely from System32 to avoid Dll hijacking attacks*/
-	if (!GetSystemDirectory(dllPath, MAX_PATH))
-		StringCbCopyW(dllPath, sizeof(dllPath), L"C:\\Windows\\System32");
-
-	StringCbCatW(dllPath, sizeof(dllPath), L"\\");
-	StringCbCatW(dllPath, sizeof(dllPath), szModuleName);
-
-	if (((*pHandle = LoadLibrary(dllPath)) == NULL) && !bIgnoreError)
+#ifndef SETUP_DLL
+// Use an idea proposed in https://medium.com/@1ndahous3/safe-code-pitfalls-dll-side-loading-winapi-and-c-73baaf48bdf5
+// it allows to set safe DLL search mode for the entire process very early on, before even the CRT is initialized and global constructors are called
+#pragma comment(linker, "/ENTRY:CustomMainCrtStartup")
+extern "C" {
+	int wWinMainCRTStartup();
+	int APIENTRY CustomMainCrtStartup()
 	{
-		// This error is fatal
-		handleWin32Error (NULL, srcPos);
-		AbortProcess ("INIT_DLL");
+		SetDefaultDllDirectoriesPtr SetDefaultDllDirectoriesFn = NULL;
+		SetDefaultDllDirectoriesFn = (SetDefaultDllDirectoriesPtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
+		if (SetDefaultDllDirectoriesFn)
+		{
+		   /* remove current directory from dll search path */
+		   SetDllDirectoryW (L"");
+		   // Force loading dlls from system32 directory only
+		   SetDefaultDllDirectoriesFn (LOAD_LIBRARY_SEARCH_SYSTEM32);
+		}
+
+		// activate process mitigations (currently only ASLR, dynamic code and extensions points)
+		ActivateProcessMitigations();
+
+#ifndef SETUP
+		// call ActivateMemoryProtection if corresponding setting has been enabled (default is enabled)
+		if (ReadMemoryProtectionConfig())
+		{
+			ActivateMemoryProtection();
+		}
+#endif
+		return wWinMainCRTStartup();
 	}
 }
+#endif
 
 /* InitApp - initialize the application, this function is called once in the
    applications WinMain function, but before the main dialog has been created */
@@ -3699,170 +3595,61 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 {
 	WNDCLASSW wc;
 	char langId[6];	
-	InitCommonControlsPtr InitCommonControlsFn = NULL;	
+	SetDefaultDllDirectoriesPtr SetDefaultDllDirectoriesFn = NULL;
+#if !defined(SETUP)
 	wchar_t modPath[MAX_PATH];
+#endif
+	INITCOMMONCONTROLSEX InitCtrls;
 
-	GetModuleFileNameW (NULL, modPath, ARRAYSIZE (modPath));
+	InitOSVersionInfo();
 
-   /* remove current directory from dll search path */
-   SetDllDirectoryFn = (SetDllDirectoryPtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetDllDirectoryW");
-   SetSearchPathModeFn = (SetSearchPathModePtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetSearchPathMode");
-   SetDefaultDllDirectoriesFn = (SetDefaultDllDirectoriesPtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
+	if (!IsOSAtLeast (WIN_7))
+	{
+		// abort using a message that says that VeraCrypt can run only on Windows 7 and later and that it is officially supported only on Windows 10 and later
+		AbortProcessDirect(L"VeraCrypt requires at least Windows 7 to run.");
+	}
 
-   if (SetDllDirectoryFn)
-      SetDllDirectoryFn (L"");
-   if (SetSearchPathModeFn)
-      SetSearchPathModeFn (BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
-   if (SetDefaultDllDirectoriesFn)
-      SetDefaultDllDirectoriesFn (LOAD_LIBRARY_SEARCH_SYSTEM32);
-
-   InitOSVersionInfo();
+	SetDefaultDllDirectoriesFn = (SetDefaultDllDirectoriesPtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
+	if (!SetDefaultDllDirectoriesFn)
+	{
+		// This can happen only if KB2533623 is missing from Windows 7
+		AbortProcessDirect(L"VeraCrypt requires KB2533623 to be installed on Windows 7 and Windows Server 2008 R2 in order to run.");
+	}
 
 	VirtualLock (&CmdTokenPin, sizeof (CmdTokenPin));
 
 	InitGlobalLocks ();
-
-	LoadSystemDll (L"msvcrt.dll", &hmsvcrtdll, TRUE, SRC_POS);
-	LoadSystemDll (L"ntmarta.dll", &hntmartadll, TRUE, SRC_POS);
-	LoadSystemDll (L"MPR.DLL", &hmprdll, TRUE, SRC_POS);
-#ifdef SETUP
-	if (IsOSAtLeast (WIN_7))
-	{
-		LoadSystemDll (L"ProfApi.DLL", &hProfApiDll, TRUE, SRC_POS);
-		LoadSystemDll (L"cryptbase.dll", &hcryptbasedll, TRUE, SRC_POS);
-		LoadSystemDll (L"sspicli.dll", &hsspiclidll, TRUE, SRC_POS);
-	}
-#endif
-	LoadSystemDll (L"psapi.dll", &hpsapidll, TRUE, SRC_POS);
-	LoadSystemDll (L"secur32.dll", &hsecur32dll, TRUE, SRC_POS);
-	LoadSystemDll (L"msasn1.dll", &hmsasn1dll, TRUE, SRC_POS);
-	LoadSystemDll (L"Usp10.DLL", &hUsp10Dll, TRUE, SRC_POS);
-	if (IsOSAtLeast (WIN_7))
-		LoadSystemDll (L"dwmapi.dll", &hdwmapidll, TRUE, SRC_POS);
-	LoadSystemDll (L"UXTheme.dll", &hUXThemeDll, TRUE, SRC_POS);   
-
-	LoadSystemDll (L"msls31.dll", &hMsls31, TRUE, SRC_POS);	
-	LoadSystemDll (L"SETUPAPI.DLL", &hSetupDll, FALSE, SRC_POS);
-	LoadSystemDll (L"SHLWAPI.DLL", &hShlwapiDll, FALSE, SRC_POS);	
-
-	LoadSystemDll (L"userenv.dll", &hUserenvDll, TRUE, SRC_POS);
-	LoadSystemDll (L"rsaenh.dll", &hRsaenhDll, TRUE, SRC_POS);
-
-#ifdef SETUP
-	if (nCurrentOS < WIN_7)
-	{
-		if (nCurrentOS == WIN_XP)
-		{
-			LoadSystemDll (L"imm32.dll", &himm32dll, TRUE, SRC_POS);
-			LoadSystemDll (L"MSCTF.dll", &hMSCTFdll, TRUE, SRC_POS);
-			LoadSystemDll (L"fltlib.dll", &hfltlibdll, TRUE, SRC_POS);
-			LoadSystemDll (L"wbem\\framedyn.dll", &hframedyndll, TRUE, SRC_POS);
-		}
-
-		if (IsOSAtLeast (WIN_VISTA))
-		{					
-			LoadSystemDll (L"netapi32.dll", &hnetapi32dll, TRUE, SRC_POS);
-			LoadSystemDll (L"authz.dll", &hauthzdll, TRUE, SRC_POS);
-			LoadSystemDll (L"xmllite.dll", &hxmllitedll, TRUE, SRC_POS);
-		}
-	}
-
-	if (IsOSAtLeast (WIN_VISTA))
-	{					
-		LoadSystemDll (L"atl.dll", &hsppdll, TRUE, SRC_POS);
-		LoadSystemDll (L"vsstrace.dll", &hvsstracedll, TRUE, SRC_POS);
-		LoadSystemDll (L"vssapi.dll", &vssapidll, TRUE, SRC_POS);
-		LoadSystemDll (L"spp.dll", &hsppdll, TRUE, SRC_POS);
-	}
-#endif
-
-	LoadSystemDll (L"crypt32.dll", &hcrypt32dll, TRUE, SRC_POS);
 	
-	if (IsOSAtLeast (WIN_7))
-	{
-		LoadSystemDll (L"CryptSP.dll", &hCryptSpDll, TRUE, SRC_POS);
+	// call InitCommonControlsEx function to initialize the common controls
+	InitCtrls.dwSize = sizeof (InitCtrls);
+	InitCtrls.dwICC = ICC_WIN95_CLASSES | ICC_PAGESCROLLER_CLASS | ICC_NATIVEFNTCTL_CLASS | ICC_STANDARD_CLASSES | ICC_LINK_CLASS;
+	InitCommonControlsEx (&InitCtrls);
 
-		LoadSystemDll (L"cfgmgr32.dll", &hcfgmgr32dll, TRUE, SRC_POS);
-		LoadSystemDll (L"devobj.dll", &hdevobjdll, TRUE, SRC_POS);
-		LoadSystemDll (L"powrprof.dll", &hpowrprofdll, TRUE, SRC_POS);
-
-		LoadSystemDll (L"bcrypt.dll", &hbcryptdll, TRUE, SRC_POS);
-		LoadSystemDll (L"bcryptprimitives.dll", &hbcryptprimitivesdll, TRUE, SRC_POS);								
-	}	
-
-#ifndef SETUP
-	LoadSystemDll (L"WINSCARD.DLL", &hwinscarddll, TRUE, SRC_POS);
-#endif
-
-	LoadSystemDll (L"COMCTL32.DLL", &hComctl32Dll, FALSE, SRC_POS);
-	
-	// call InitCommonControls function
-	InitCommonControlsFn = (InitCommonControlsPtr) GetProcAddress (hComctl32Dll, "InitCommonControls");
-	ImageList_AddFn = (ImageList_AddPtr) GetProcAddress (hComctl32Dll, "ImageList_Add");
-	ImageList_CreateFn = (ImageList_CreatePtr) GetProcAddress (hComctl32Dll, "ImageList_Create");
-
-	if (InitCommonControlsFn && ImageList_AddFn && ImageList_CreateFn)
-	{
-		InitCommonControlsFn();
-	}
-	else
-		AbortProcess ("INIT_DLL");
-
-	LoadSystemDll (L"Riched20.dll", &hRichEditDll, FALSE, SRC_POS);
-	LoadSystemDll (L"Advapi32.dll", &hAdvapi32Dll, FALSE, SRC_POS);
+	// Load RichEdit library in order to be able to use RichEdit20W class
+	LoadLibraryEx (L"Riched20.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
 #if !defined(SETUP)
+	GetModuleFileNameW (NULL, modPath, ARRAYSIZE (modPath));
 	if (!VerifyModuleSignature (modPath))
-		AbortProcess ("DIST_PACKAGE_CORRUPTED");
+		AbortProcessDirect (L"This distribution package is damaged. Please try downloading it again (preferably from the official VeraCrypt website at https://www.veracrypt.fr).");
 #endif
-	// Get SetupAPI functions pointers
-	SetupCloseInfFileFn = (SetupCloseInfFilePtr) GetProcAddress (hSetupDll, "SetupCloseInfFile");
-	SetupDiOpenClassRegKeyFn = (SetupDiOpenClassRegKeyPtr) GetProcAddress (hSetupDll, "SetupDiOpenClassRegKey");
-	SetupInstallFromInfSectionWFn = (SetupInstallFromInfSectionWPtr) GetProcAddress (hSetupDll, "SetupInstallFromInfSectionW");
-	SetupOpenInfFileWFn = (SetupOpenInfFileWPtr) GetProcAddress (hSetupDll, "SetupOpenInfFileW");
-
-	if (!SetupCloseInfFileFn || !SetupDiOpenClassRegKeyFn || !SetupInstallFromInfSectionWFn || !SetupOpenInfFileWFn)
-		AbortProcess ("INIT_DLL");
-
-	// Get SHDeleteKeyW,SHStrDupW, UrlUnescapeW functions pointers
-	SHDeleteKeyWFn = (SHDeleteKeyWPtr) GetProcAddress (hShlwapiDll, "SHDeleteKeyW");
-	SHStrDupWFn = (SHStrDupWPtr) GetProcAddress (hShlwapiDll, "SHStrDupW");
-	UrlUnescapeWFn = (UrlUnescapeWPtr) GetProcAddress(hShlwapiDll, "UrlUnescapeW");
-	IUnknown_QueryServicePtr = (IUnknown_QueryServiceFn) GetProcAddress(hShlwapiDll, "IUnknown_QueryService");
-	if (!IUnknown_QueryServicePtr)
-		IUnknown_QueryServicePtr = (IUnknown_QueryServiceFn) GetProcAddress(hShlwapiDll, MAKEINTRESOURCEA(176));
-	if (!SHDeleteKeyWFn || !SHStrDupWFn || !UrlUnescapeWFn || !IUnknown_QueryServicePtr)
-		AbortProcess ("INIT_DLL");
-
-	if (IsOSAtLeast (WIN_VISTA))
-	{
-		/* Get ChangeWindowMessageFilter used to enable some messages bypasss UIPI (User Interface Privilege Isolation) */
-		ChangeWindowMessageFilterFn = (ChangeWindowMessageFilterPtr) GetProcAddress (GetModuleHandle (L"user32.dll"), "ChangeWindowMessageFilter");
 
 #ifndef SETUP
-		/* enable drag-n-drop when we are running elevated */
-		AllowMessageInUIPI (WM_DROPFILES);
-		AllowMessageInUIPI (WM_COPYDATA);
-		AllowMessageInUIPI (WM_COPYGLOBALDATA);
+	/* enable drag-n-drop when we are running elevated */
+	AllowMessageInUIPI (WM_DROPFILES);
+	AllowMessageInUIPI (WM_COPYDATA);
+	AllowMessageInUIPI (WM_COPYGLOBALDATA);
 #endif
-	}
-
-	// Get CreateProcessWithTokenW function pointer
-	CreateProcessWithTokenWPtr = (CreateProcessWithTokenWFn) GetProcAddress(hAdvapi32Dll, "CreateProcessWithTokenW");
 
 	/* Save the instance handle for later */
 	hInst = hInstance;
 
 	SetErrorMode (SetErrorMode (0) | SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
-	CoInitialize (NULL);
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 #ifndef SETUP
 	// Application ID
-	typedef HRESULT (WINAPI *SetAppId_t) (PCWSTR appID);
-	SetAppId_t setAppId = (SetAppId_t) GetProcAddress (GetModuleHandle (L"shell32.dll"), "SetCurrentProcessExplicitAppUserModelID");
-
-	if (setAppId)
-		setAppId (TC_APPLICATION_ID);
+	SetCurrentProcessExplicitAppUserModelID (TC_APPLICATION_ID);
 #endif
 
 	// Language
@@ -3940,10 +3727,10 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 		exit (1);
 	}
 #else
-	// in TESTSIGNING mode, we support only Windows Vista, Windows 7, Windows 8/8.1
-	if (	!IsOSVersionAtLeast(WIN_VISTA, 0) 
+	// in TESTSIGNING mode, we support only Windows 7 and Windows 8/8.1
+	if (
 #ifndef SETUP
-		||	IsOSVersionAtLeast(WIN_10, 0)
+			IsOSVersionAtLeast(WIN_10, 0)
 #else
 		||	(IsOSVersionAtLeast(WIN_10, 0) && !bMakePackage)
 #endif
@@ -3962,24 +3749,6 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 		exit (1);
 	}
 #endif
-	else
-	{
-		// Service pack check & warnings about critical MS issues
-		switch (nCurrentOS)
-		{
-		case WIN_XP:
-			if (CurrentOSServicePack < 1)
-			{
-				HKEY k;
-				// PE environment does not report version of SP
-				if (RegOpenKeyExW (HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Control\\minint", 0, KEY_READ, &k) != ERROR_SUCCESS)
-					Warning ("LARGE_IDE_WARNING_XP", NULL);
-				else
-					RegCloseKey (k);
-			}
-			break;
-		}
-	}
 	
 	/* Get the attributes for the standard dialog class */
 	if ((GetClassInfoW (hInst, WINDOWS_DIALOG_CLASS, &wc)) == 0)
@@ -4026,104 +3795,19 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 
 #ifndef SETUP
 #ifdef _WIN64
-	if (IsOSAtLeast (WIN_7))
+	EnableRamEncryption ((ReadDriverConfigurationFlags() & VC_DRIVER_CONFIG_ENABLE_RAM_ENCRYPTION) ? TRUE : FALSE);
+	if (IsRamEncryptionEnabled())
 	{
-		EnableRamEncryption ((ReadDriverConfigurationFlags() & VC_DRIVER_CONFIG_ENABLE_RAM_ENCRYPTION) ? TRUE : FALSE);
-		if (IsRamEncryptionEnabled())
-		{
-			if (!InitializeSecurityParameters(GetAppRandomSeed))
-				AbortProcess("OUTOFMEMORY");
-		}
+		if (!InitializeSecurityParameters(GetAppRandomSeed))
+			AbortProcess("OUTOFMEMORY");
 	}
 #endif
 	if (!EncryptionThreadPoolStart (ReadEncryptionThreadPoolFreeCpuCountLimit()))
 	{
 		handleWin32Error (NULL, SRC_POS);
-		FREE_DLL (hRichEditDll);
-		FREE_DLL (hComctl32Dll);
-		FREE_DLL (hSetupDll);
-		FREE_DLL (hShlwapiDll);
-		FREE_DLL (hProfApiDll);
-		FREE_DLL (hUsp10Dll);
-		FREE_DLL (hCryptSpDll);
-		FREE_DLL (hUXThemeDll);
-		FREE_DLL (hUserenvDll);
-		FREE_DLL (hRsaenhDll);
-		FREE_DLL (himm32dll);
-		FREE_DLL (hMSCTFdll);
-		FREE_DLL (hfltlibdll);
-		FREE_DLL (hframedyndll);
-		FREE_DLL (hpsapidll);
-		FREE_DLL (hsecur32dll);
-		FREE_DLL (hnetapi32dll);
-		FREE_DLL (hauthzdll);
-		FREE_DLL (hxmllitedll);
-		FREE_DLL (hmprdll);
-		FREE_DLL (hsppdll);
-		FREE_DLL (vssapidll);
-		FREE_DLL (hvsstracedll);
-		FREE_DLL (hCryptSpDll);
-		FREE_DLL (hcfgmgr32dll);
-		FREE_DLL (hdevobjdll);
-		FREE_DLL (hpowrprofdll);
-		FREE_DLL (hsspiclidll);
-		FREE_DLL (hcryptbasedll);
-		FREE_DLL (hdwmapidll);
-		FREE_DLL (hmsasn1dll);
-		FREE_DLL (hcrypt32dll);
-		FREE_DLL (hbcryptdll);
-		FREE_DLL (hbcryptprimitivesdll);
-		FREE_DLL (hMsls31);
-		FREE_DLL (hntmartadll);
-		FREE_DLL (hwinscarddll);
-		FREE_DLL (hmsvcrtdll);
-		FREE_DLL (hAdvapi32Dll);
 		exit (1);
 	}
 #endif
-}
-
-void FinalizeApp (void)
-{
-	FREE_DLL (hRichEditDll);
-	FREE_DLL (hComctl32Dll);
-	FREE_DLL (hSetupDll);
-	FREE_DLL (hShlwapiDll);
-	FREE_DLL (hProfApiDll);
-	FREE_DLL (hUsp10Dll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hUXThemeDll);
-	FREE_DLL (hUserenvDll);
-	FREE_DLL (hRsaenhDll);
-	FREE_DLL (himm32dll);
-	FREE_DLL (hMSCTFdll);
-	FREE_DLL (hfltlibdll);
-	FREE_DLL (hframedyndll);
-	FREE_DLL (hpsapidll);
-	FREE_DLL (hsecur32dll);
-	FREE_DLL (hnetapi32dll);
-	FREE_DLL (hauthzdll);
-	FREE_DLL (hxmllitedll);
-	FREE_DLL (hmprdll);
-	FREE_DLL (hsppdll);
-	FREE_DLL (vssapidll);
-	FREE_DLL (hvsstracedll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hcfgmgr32dll);
-	FREE_DLL (hdevobjdll);
-	FREE_DLL (hpowrprofdll);
-	FREE_DLL (hsspiclidll);
-	FREE_DLL (hcryptbasedll);
-	FREE_DLL (hdwmapidll);
-	FREE_DLL (hmsasn1dll);
-	FREE_DLL (hcrypt32dll);
-	FREE_DLL (hbcryptdll);
-	FREE_DLL (hbcryptprimitivesdll);
-	FREE_DLL (hMsls31);
-	FREE_DLL (hntmartadll);
-	FREE_DLL (hwinscarddll);
-	FREE_DLL (hmsvcrtdll);
-	FREE_DLL (hAdvapi32Dll);
 }
 
 void InitHelpFileName (void)
@@ -4261,24 +3945,21 @@ BOOL GetSysDevicePaths (HWND hwndDlg)
 				StringCchCopyW (device.IsPartition ? SysPartitionDevicePath : SysDriveDevicePath, TC_MAX_PATH, device.Path.c_str()); 
 		}
 
-		if (IsOSAtLeast (WIN_7))
+		// Find extra boot partition
+		foreach (const HostDevice &drive, GetAvailableHostDevices (false, false))
 		{
-			// Find extra boot partition
-			foreach (const HostDevice &drive, GetAvailableHostDevices (false, false))
+			if (drive.ContainsSystem)
 			{
-				if (drive.ContainsSystem)
+				foreach (const HostDevice &sysDrivePartition, drive.Partitions)
 				{
-					foreach (const HostDevice &sysDrivePartition, drive.Partitions)
+					if (sysDrivePartition.Bootable)
 					{
-						if (sysDrivePartition.Bootable)
-						{
-							if (sysDrivePartition.Size <= TC_MAX_EXTRA_BOOT_PARTITION_SIZE)
-								ExtraBootPartitionDevicePath = sysDrivePartition.Path;
-							break;
-						}
+						if (sysDrivePartition.Size <= TC_MAX_EXTRA_BOOT_PARTITION_SIZE)
+							ExtraBootPartitionDevicePath = sysDrivePartition.Path;
+						break;
 					}
-					break;
 				}
+				break;
 			}
 		}
 
@@ -5204,7 +4885,6 @@ static int DriverLoad ()
 
 BOOL DriverUnload ()
 {
-	MOUNT_LIST_STRUCT driver;
 	int refCount;
 	int volumesMounted;
 	DWORD dwResult;
@@ -5228,13 +4908,6 @@ BOOL DriverUnload ()
 
 	// Test for mounted volumes
 	bResult = DeviceIoControl (hDriver, TC_IOCTL_IS_ANY_VOLUME_MOUNTED, NULL, 0, &volumesMounted, sizeof (volumesMounted), &dwResult, NULL);
-
-	if (!bResult)
-	{
-		bResult = DeviceIoControl (hDriver, TC_IOCTL_LEGACY_GET_MOUNTED_VOLUMES, NULL, 0, &driver, sizeof (driver), &dwResult, NULL);
-		if (bResult)
-			volumesMounted = driver.ulMountedDrives;
-	}
 
 	if (bResult)
 	{
@@ -5402,9 +5075,6 @@ load:
 
 		BOOL bResult = DeviceIoControl (hDriver, TC_IOCTL_GET_DRIVER_VERSION, NULL, 0, &DriverVersion, sizeof (DriverVersion), &dwResult, NULL);
 
-		if (!bResult)
-			bResult = DeviceIoControl (hDriver, TC_IOCTL_LEGACY_GET_DRIVER_VERSION, NULL, 0, &DriverVersion, sizeof (DriverVersion), &dwResult, NULL);
-
 #ifndef SETUP // Don't check version during setup to allow removal of another version
 		if (bResult == FALSE)
 		{
@@ -5452,245 +5122,312 @@ void ResetCurrentDirectory ()
 }
 
 
-BOOL BrowseFiles (HWND hwndDlg, char *stringId, wchar_t *lpszFileName, BOOL keepHistory, BOOL saveMode, wchar_t *browseFilter)
+BOOL BrowseFiles (HWND hwndDlg, char *stringId, wchar_t *lpszFileName, BOOL keepHistory, BOOL saveMode)
 {
-	return BrowseFilesInDir (hwndDlg, stringId, NULL, lpszFileName, keepHistory, saveMode, browseFilter);
+	return BrowseFilesInDir (hwndDlg, stringId, NULL, lpszFileName, keepHistory, saveMode, NULL);
 }
 
-
-BOOL BrowseFilesInDir (HWND hwndDlg, char *stringId, wchar_t *initialDir, wchar_t *lpszFileName, BOOL keepHistory, BOOL saveMode, wchar_t *browseFilter, const wchar_t *initialFileName, const wchar_t *defaultExtension)
+BOOL BrowseFilesInDir(HWND hwndDlg, char *stringId, wchar_t *initialDir, wchar_t *lpszFileName, BOOL keepHistory, BOOL saveMode, wchar_t *browseFilter, const wchar_t *initialFileName, const wchar_t *defaultExtension)
 {
-	OPENFILENAMEW ofn;
-	wchar_t file[TC_MAX_PATH] = { 0 };
+	IFileDialog *pfd = NULL;
+	HRESULT hr;
 	wchar_t filter[1024];
 	BOOL status = FALSE;
 
-	CoInitialize (NULL);
-
-	ZeroMemory (&ofn, sizeof (ofn));
-	*lpszFileName = 0;
-
-	if (initialDir)
+	hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (FAILED(hr))
 	{
-		ofn.lpstrInitialDir			= initialDir;
-	}
-
-	if (initialFileName)
-		StringCchCopyW (file, array_capacity (file), initialFileName);
-
-	ofn.lStructSize				= sizeof (ofn);
-	ofn.hwndOwner				= hwndDlg;
-
-	StringCbPrintfW (filter, sizeof(filter), L"%ls (*.*)%c*.*%c%ls (*.hc)%c*.hc%c%c",
-		GetString ("ALL_FILES"), 0, 0, GetString ("TC_VOLUMES"), 0, 0, 0);
-	ofn.lpstrFilter				= browseFilter ? browseFilter : filter;
-	ofn.nFilterIndex			= 1;
-	ofn.lpstrFile				= file;
-	ofn.nMaxFile				= sizeof (file) / sizeof (file[0]);
-	ofn.lpstrTitle				= GetString (stringId);
-	ofn.lpstrDefExt				= defaultExtension;
-	ofn.Flags					= OFN_HIDEREADONLY
-		| OFN_PATHMUSTEXIST
-		| (keepHistory ? 0 : OFN_DONTADDTORECENT)
-		| (saveMode ? OFN_OVERWRITEPROMPT : 0);
-
-	if (!keepHistory)
-		CleanLastVisitedMRU ();
-
-	SystemFileSelectorCallerThreadId = GetCurrentThreadId();
-	SystemFileSelectorCallPending = TRUE;
-
-	if (!saveMode)
-	{
-		if (!GetOpenFileNameW (&ofn))
-			goto ret;
-	}
-	else
-	{
-		if (!GetSaveFileNameW (&ofn))
-			goto ret;
-	}
-
-	SystemFileSelectorCallPending = FALSE;
-
-	StringCchCopyW (lpszFileName, MAX_PATH, file);
-
-	if (!keepHistory)
-		CleanLastVisitedMRU ();
-
-	status = TRUE;
-
-ret:
-	SystemFileSelectorCallPending = FALSE;
-	ResetCurrentDirectory();
-	CoUninitialize();
-
-	return status;
-}
-
-
-static wchar_t SelectMultipleFilesPath[131072];
-static int SelectMultipleFilesOffset;
-
-BOOL SelectMultipleFiles (HWND hwndDlg, const char *stringId, wchar_t *lpszFileName, size_t cbFileName,BOOL keepHistory)
-{
-	OPENFILENAMEW ofn;
-	wchar_t filter[1024];
-	BOOL status = FALSE;
-
-	CoInitialize (NULL);
-
-	ZeroMemory (&ofn, sizeof (ofn));
-
-	SelectMultipleFilesPath[0] = 0;
-	*lpszFileName = 0;
-	ofn.lStructSize				= sizeof (ofn);
-	ofn.hwndOwner				= hwndDlg;
-	StringCbPrintfW (filter, sizeof(filter), L"%ls (*.*)%c*.*%c%ls (*.hc)%c*.hc%c%c",
-		GetString ("ALL_FILES"), 0, 0, GetString ("TC_VOLUMES"), 0, 0, 0);
-	ofn.lpstrFilter				= filter;
-	ofn.nFilterIndex			= 1;
-	ofn.lpstrFile				= SelectMultipleFilesPath;
-	ofn.nMaxFile				= 0xffff * 2; // The size must not exceed 0xffff*2 due to a bug in Windows 2000 and XP SP1
-	ofn.lpstrTitle				= GetString (stringId);
-	ofn.Flags					= OFN_HIDEREADONLY
-		| OFN_EXPLORER
-		| OFN_PATHMUSTEXIST
-		| OFN_ALLOWMULTISELECT
-		| (keepHistory ? 0 : OFN_DONTADDTORECENT);
-	
-	if (!keepHistory)
-		CleanLastVisitedMRU ();
-
-	SystemFileSelectorCallerThreadId = GetCurrentThreadId();
-	SystemFileSelectorCallPending = TRUE;
-
-	if (!GetOpenFileNameW (&ofn))
-		goto ret;
-
-	SystemFileSelectorCallPending = FALSE;
-
-	if (SelectMultipleFilesPath[ofn.nFileOffset - 1] != 0)
-	{
-		// Single file selected
-		StringCbCopyW (lpszFileName, cbFileName, SelectMultipleFilesPath);
-		SelectMultipleFilesOffset = 0;
-		SecureZeroMemory (SelectMultipleFilesPath, sizeof (SelectMultipleFilesPath));
-	}
-	else
-	{
-		// Multiple files selected
-		SelectMultipleFilesOffset = ofn.nFileOffset;
-		SelectMultipleFilesNext (lpszFileName, cbFileName);
-	}
-
-	if (!keepHistory)
-		CleanLastVisitedMRU ();
-
-	status = TRUE;
-	
-ret:
-	SystemFileSelectorCallPending = FALSE;
-	ResetCurrentDirectory();
-	CoUninitialize();
-
-	return status;
-}
-
-
-BOOL SelectMultipleFilesNext (wchar_t *lpszFileName, size_t cbFileName)
-{
-	if (SelectMultipleFilesOffset == 0)
 		return FALSE;
-
-	StringCbCopyW (lpszFileName, cbFileName,SelectMultipleFilesPath);
-	lpszFileName[TC_MAX_PATH - 1] = 0;
-
-	if (lpszFileName[wcslen (lpszFileName) - 1] != L'\\')
-		StringCbCatW (lpszFileName, cbFileName,L"\\");
-
-	StringCbCatW (lpszFileName, cbFileName,SelectMultipleFilesPath + SelectMultipleFilesOffset);
-
-	SelectMultipleFilesOffset += (int) wcslen (SelectMultipleFilesPath + SelectMultipleFilesOffset) + 1;
-	if (SelectMultipleFilesPath[SelectMultipleFilesOffset] == 0)
-	{
-		SelectMultipleFilesOffset = 0;
-		SecureZeroMemory (SelectMultipleFilesPath, sizeof (SelectMultipleFilesPath));
 	}
 
-	return TRUE;
-}
-
-
-static int CALLBACK BrowseCallbackProc(HWND hwnd,UINT uMsg,LPARAM lp, LPARAM pData) 
-{
-	switch(uMsg) {
-	case BFFM_INITIALIZED: 
+	// Choose between the File Open or File Save dialog depending on the saveMode.
+	if (saveMode)
 	{
-	  /* WParam is TRUE since we are passing a path.
-	   It would be FALSE if we were passing a pidl. */
-	   SendMessageW (hwnd,BFFM_SETSELECTION,TRUE,(LPARAM)pData);
-	   break;
+		hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+	}
+	else
+	{
+		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
 	}
 
-	case BFFM_SELCHANGED: 
+	if (SUCCEEDED(hr))
 	{
-		wchar_t szDir[TC_MAX_PATH];
-
-	   /* Set the status window to the currently selected path. */
-	   if (SHGetPathFromIDList((LPITEMIDLIST) lp ,szDir)) 
-	   {
-		  SendMessage (hwnd,BFFM_SETSTATUSTEXT,0,(LPARAM)szDir);
-	   }
-	   break;
-	}
-
-	default:
-	   break;
-	}
-
-	return 0;
-}
-
-
-BOOL BrowseDirectories (HWND hwndDlg, char *lpszTitle, wchar_t *dirName)
-{
-	BROWSEINFOW bi;
-	LPITEMIDLIST pidl;
-	LPMALLOC pMalloc;
-	BOOL bOK  = FALSE;
-
-	CoInitialize (NULL);
-
-	if (SUCCEEDED (SHGetMalloc (&pMalloc))) 
-	{
-		ZeroMemory (&bi, sizeof(bi));
-		bi.hwndOwner = hwndDlg;
-		bi.pszDisplayName = 0;
-		bi.lpszTitle = GetString (lpszTitle);
-		bi.pidlRoot = 0;
-		bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT;
-		bi.lpfn = BrowseCallbackProc;
-		bi.lParam = (LPARAM)dirName;
-
-		pidl = SHBrowseForFolderW (&bi);
-		if (pidl != NULL) 
+		// Set the options for the dialog.
+		DWORD dwFlags;
+		hr = pfd->GetOptions(&dwFlags);
+		if (SUCCEEDED(hr))
 		{
-			if (SHGetPathFromIDList(pidl, dirName)) 
-			{
-				bOK = TRUE;
-			}
-
-			pMalloc->Free (pidl);
-			pMalloc->Release();
+			dwFlags |= FOS_NOCHANGEDIR | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_FORCEFILESYSTEM | FOS_NOVALIDATE;
+			if (!keepHistory)
+				dwFlags |= FOS_DONTADDTORECENT;
+			if (saveMode)
+				dwFlags |= FOS_NOTESTFILECREATE | FOS_OVERWRITEPROMPT | FOS_DEFAULTNOMINIMODE;
+			hr = pfd->SetOptions(dwFlags);
 		}
+
+		// Set the initial directory, if provided.
+		if (initialDir)
+		{
+			IShellItem *psi;
+			hr = SHCreateItemFromParsingName(initialDir, NULL, IID_PPV_ARGS(&psi));
+			if (SUCCEEDED(hr))
+			{
+				pfd->SetFolder(psi);
+				psi->Release();
+			}
+		}
+
+		// Set the initial file name, if provided.
+		if (initialFileName)
+		{
+			pfd->SetFileName(initialFileName);
+		}
+
+		// Set the title.
+		pfd->SetTitle(GetString(stringId));
+
+		// Set the default extension.
+		if (defaultExtension)
+		{
+			pfd->SetDefaultExtension(defaultExtension);
+		}
+
+		// Prepare the filter
+		COMDLG_FILTERSPEC filterSpec[5];
+		UINT cfilterSpec = 0;
+
+		if (!browseFilter)
+		{
+			StringCbPrintfW(filter, sizeof(filter), L"%ls (*.*)%c*.*%c%ls (*.hc)%c*.hc%c%c",
+							GetString("ALL_FILES"), 0, 0, GetString("TC_VOLUMES"), 0, 0, 0);
+			browseFilter = filter;
+		}
+
+		// Assume browseFilter is a formatted wide string like L"Text Files (*.txt)\0*.txt\0"
+		// loop over all the filters in the string and add them to filterSpec array
+		while (*browseFilter)
+		{
+			filterSpec[cfilterSpec].pszName = browseFilter;
+			browseFilter += wcslen(browseFilter) + 1;
+			filterSpec[cfilterSpec].pszSpec = browseFilter;
+			browseFilter += wcslen(browseFilter) + 1;
+			cfilterSpec++;
+
+			if (cfilterSpec >= ARRAYSIZE(filterSpec))
+				break;
+		}
+
+		// Set the file types filter.
+		hr = pfd->SetFileTypes(cfilterSpec, filterSpec);
+		hr = pfd->SetFileTypeIndex(1);
+
+		if (!keepHistory)
+			CleanLastVisitedMRU();
+
+		SystemFileSelectorCallerThreadId = GetCurrentThreadId();
+		SystemFileSelectorCallPending = TRUE;
+
+		// Show the dialog.
+		hr = pfd->Show(hwndDlg);
+
+		// Obtain the result if the user clicked the "OK" button.
+		if (SUCCEEDED(hr))
+		{
+			IShellItem *pItem;
+			hr = pfd->GetResult(&pItem);
+			if (SUCCEEDED(hr))
+			{
+				PWSTR pszFilePath;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+				if (SUCCEEDED(hr))
+				{
+					StringCchCopyW(lpszFileName, MAX_PATH, pszFilePath);
+					CoTaskMemFree(pszFilePath);
+					status = TRUE;
+				}
+				pItem->Release();
+			}
+		}
+
+		pfd->Release();
+
+		if (!keepHistory)
+			CleanLastVisitedMRU();
+	}
+
+	SystemFileSelectorCallPending = FALSE;
+	ResetCurrentDirectory();
+	CoUninitialize();
+
+	return status;
+}
+
+BOOL SelectMultipleFiles(HWND hwndDlg, const char *stringId, BOOL keepHistory, std::vector<std::wstring> &filesList)
+{
+	IFileOpenDialog *pfd = NULL;
+	HRESULT hr;
+	BOOL status = FALSE;
+
+	filesList.clear();
+
+	hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (FAILED(hr))
+	{
+		return FALSE;
+	}
+
+	// Create the File Open Dialog object.
+	hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+	if (SUCCEEDED(hr))
+	{
+		DWORD dwFlags;
+		hr = pfd->GetOptions(&dwFlags);
+		if (SUCCEEDED(hr))
+		{
+			dwFlags |= FOS_ALLOWMULTISELECT | FOS_NOCHANGEDIR | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_FORCEFILESYSTEM | FOS_NOVALIDATE;
+			if (!keepHistory)
+				dwFlags |= FOS_DONTADDTORECENT;
+
+			hr = pfd->SetOptions(dwFlags);
+		}
+
+		// Set the title and filter
+		pfd->SetTitle(GetString(stringId));
+
+		wchar_t allFilesfilter[512];
+		wchar_t volumesfilter[512];
+
+		StringCbPrintfW(allFilesfilter, sizeof(allFilesfilter), L"%ls (*.*)", GetString("ALL_FILES"));
+		StringCbPrintfW(volumesfilter, sizeof(volumesfilter), L"%ls (*.hc)", GetString("TC_VOLUMES"));
+
+		COMDLG_FILTERSPEC rgSpec[] =
+			{
+				{allFilesfilter, L"*.*"},
+				{volumesfilter, L"*.hc"}};
+		hr = pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+
+		if (!keepHistory)
+			CleanLastVisitedMRU();
+
+		// Show the dialog
+		hr = pfd->Show(hwndDlg);
+		if (SUCCEEDED(hr))
+		{
+			IShellItemArray *psiaResults;
+			hr = pfd->GetResults(&psiaResults);
+			if (SUCCEEDED(hr))
+			{
+				DWORD count;
+				hr = psiaResults->GetCount(&count);
+				if (SUCCEEDED(hr))
+				{
+					for (DWORD i = 0; i < count; ++i)
+					{
+						IShellItem *psi;
+						hr = psiaResults->GetItemAt(i, &psi);
+						if (SUCCEEDED(hr))
+						{
+							PWSTR pszFilePath;
+							hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+							if (SUCCEEDED(hr))
+							{
+								filesList.push_back(pszFilePath);
+								CoTaskMemFree(pszFilePath);
+							}
+							psi->Release();
+						}
+					}
+
+					status = TRUE;
+				}
+				psiaResults->Release();
+			}
+		}
+
+		if (!keepHistory)
+			CleanLastVisitedMRU();
+
+		pfd->Release();
 	}
 
 	CoUninitialize();
+	return status;
+}
 
+BOOL BrowseDirectories(HWND hwndDlg, char *lpszTitle, wchar_t *dirName, const wchar_t *initialDir)
+{
+	IFileDialog *pfd = NULL;
+	HRESULT hr;
+	BOOL bOK = FALSE;
+
+	hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (FAILED(hr))
+	{
+		return FALSE;
+	}
+
+	hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+	if (SUCCEEDED(hr))
+	{
+		// Set the options on the dialog.
+		DWORD dwFlags;
+		hr = pfd->GetOptions(&dwFlags);
+		if (SUCCEEDED(hr))
+		{
+			dwFlags |= FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR; // Important to enable folder-picking mode
+			hr = pfd->SetOptions(dwFlags);
+		}
+
+		// Set the title.
+		if (lpszTitle)
+		{
+			pfd->SetTitle(GetString(lpszTitle));
+		}
+
+		IShellItem *psi;
+		if (initialDir)
+		{
+			// Set the initial directory, if provided.
+			hr = SHCreateItemFromParsingName(initialDir, NULL, IID_PPV_ARGS(&psi));
+		}
+		else
+		{
+			// set folder to "This PC" shel item
+			hr = SHCreateItemInKnownFolder(FOLDERID_ComputerFolder, 0, NULL, IID_PPV_ARGS(&psi));
+		}
+		if (SUCCEEDED(hr))
+		{
+			pfd->SetFolder(psi);
+			psi->Release();
+		}
+
+		// Show the dialog.
+		hr = pfd->Show(hwndDlg);
+		if (SUCCEEDED(hr))
+		{
+			// Obtain the result when the user clicks the "OK" button.
+			// The result is an IShellItem object.
+			IShellItem *pItem;
+			hr = pfd->GetResult(&pItem);
+			if (SUCCEEDED(hr))
+			{
+				PWSTR pszFolderPath;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFolderPath);
+				if (SUCCEEDED(hr))
+				{
+					StringCchCopyW(dirName, MAX_PATH, pszFolderPath);
+					CoTaskMemFree(pszFolderPath);
+					bOK = TRUE;
+				}
+				pItem->Release();
+			}
+		}
+		pfd->Release();
+	}
+
+	CoUninitialize();
 	return bOK;
 }
-
 
 std::wstring GetWrongPasswordErrorMessage (HWND hwndDlg)
 {
@@ -5826,11 +5563,6 @@ void handleError (HWND hwndDlg, int code, const char* srcPos)
 	case ERR_USER_ABORT:
 	case ERR_DONT_REPORT:
 		// A non-error
-		break;
-
-	case ERR_UNSUPPORTED_TRUECRYPT_FORMAT:
-		StringCbPrintfW (szTmp, sizeof(szTmp), GetString ("UNSUPPORTED_TRUECRYPT_FORMAT"), (code >> 24), (code >> 16) & 0x000000FF);
-		MessageBoxW (hwndDlg, AppendSrcPos (szTmp, srcPos).c_str(), lpszTitle, ICON_HAND);
 		break;
 
 #ifndef SETUP
@@ -6412,7 +6144,7 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 		{
 			BYTE digest [MAX_DIGESTSIZE];
 			WHIRLPOOL_CTX	wctx;
-			RMD160_CTX		rctx;
+			blake2s_state   bctx;
 			sha512_ctx		s2ctx;
 			sha256_ctx		s256ctx;
 			STREEBOG_CTX		stctx;
@@ -6441,10 +6173,10 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 						sha256_end ((unsigned char *) digest, &s256ctx);
 						break;
 
-					case RIPEMD160:
-						RMD160Init(&rctx);
-						RMD160Update(&rctx, lpTestBuffer, benchmarkBufferSize);
-						RMD160Final((unsigned char *) digest, &rctx);
+					case BLAKE2S:
+						blake2s_init(&bctx);
+						blake2s_update(&bctx, lpTestBuffer, benchmarkBufferSize);
+						blake2s_final(&bctx, (unsigned char *) digest);
 						break;
 
 					case WHIRLPOOL:
@@ -6501,27 +6233,27 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 
 				case SHA512:
 					/* PKCS-5 test with HMAC-SHA-512 used as the PRF */
-					derive_key_sha512 ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, FALSE, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
+					derive_key_sha512 ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
 
 				case SHA256:
 					/* PKCS-5 test with HMAC-SHA-256 used as the PRF */
-					derive_key_sha256 ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, FALSE, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
+					derive_key_sha256 ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
 
-				case RIPEMD160:
-					/* PKCS-5 test with HMAC-RIPEMD-160 used as the PRF */
-					derive_key_ripemd160 ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, FALSE, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
+				case BLAKE2S:
+					/* PKCS-5 test with HMAC-BLAKE2s used as the PRF */
+					derive_key_blake2s ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
 
 				case WHIRLPOOL:
 					/* PKCS-5 test with HMAC-Whirlpool used as the PRF */
-					derive_key_whirlpool ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, FALSE, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
+					derive_key_whirlpool ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
 
 				case STREEBOG:
 					/* PKCS-5 test with HMAC-STREEBOG used as the PRF */
-					derive_key_streebog("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, FALSE, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
+					derive_key_streebog("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
 				}
 			}
@@ -6531,7 +6263,7 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 
 			benchmarkTable[benchmarkTotalItems].encSpeed = performanceCountEnd.QuadPart - performanceCountStart.QuadPart;
 			benchmarkTable[benchmarkTotalItems].id = thid;
-			benchmarkTable[benchmarkTotalItems].decSpeed = get_pkcs5_iteration_count(thid, benchmarkPim, FALSE, benchmarkPreBoot);
+			benchmarkTable[benchmarkTotalItems].decSpeed = get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot);
 			benchmarkTable[benchmarkTotalItems].meanBytesPerSec = (unsigned __int64) (1000 * ((float) benchmarkTable[benchmarkTotalItems].encSpeed / benchmarkPerformanceFrequency.QuadPart / 2));
 			if (benchmarkPreBoot)
 			{
@@ -7163,6 +6895,7 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 	case WM_INITDIALOG:
 		{
 			HWND hComboBox = GetDlgItem (hwndDlg, IDC_PRF_ID);
+			HWND hSizeUnit = GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE_UNIT);
 			HCRYPTPROV hRngProv = NULL;
 
 			VirtualLock (randPool, sizeof(randPool));
@@ -7192,6 +6925,16 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			}
 			SelectAlgo (hComboBox, &hash_algo);
 
+			// populate keyfiles size unit combo
+			SendMessage (hSizeUnit, CB_RESETCONTENT, 0, 0);
+			AddComboPair (hSizeUnit,  GetString ("BYTES"), 0);
+			AddComboPair (hSizeUnit, GetString ("KB"), 1);
+			AddComboPair (hSizeUnit, GetString ("MB"), 2);
+			AddComboPair (hSizeUnit, GetString ("GB"), 3);
+
+			// set default keyfiles size unit
+			SendMessage (hSizeUnit, CB_SETCURSEL, 0, 0);
+
 			SetCheckBox (hwndDlg, IDC_DISPLAY_POOL_CONTENTS, bDisplayPoolContents);
 			hEntropyBar = GetDlgItem (hwndDlg, IDC_ENTROPY_BAR);
 			SendMessage (hEntropyBar, PBM_SETRANGE32, 0, maxEntropyLevel);
@@ -7215,6 +6958,8 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			SetWindowText(GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE), L"64");
 			// set the maximum length of the keyfile base name to (TC_MAX_PATH - 1)
 			SendMessage (GetDlgItem (hwndDlg, IDC_KEYFILES_BASE_NAME), EM_SETLIMITTEXT, (WPARAM) (TC_MAX_PATH - 1), 0);
+
+			ToHyperlink (hwndDlg, IDC_LINK_KEYFILES_EXTENSIONS_WARNING);
 			return 1;
 		}
 
@@ -7299,6 +7044,13 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 		if (lw == IDC_KEYFILES_RANDOM_SIZE)
 		{
 			EnableWindow(GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE), !GetCheckBox (hwndDlg, IDC_KEYFILES_RANDOM_SIZE));
+			EnableWindow(GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE_UNIT), !GetCheckBox (hwndDlg, IDC_KEYFILES_RANDOM_SIZE));
+		}
+
+		if (lw == IDC_LINK_KEYFILES_EXTENSIONS_WARNING)
+		{
+			Applink ("keyfilesextensions");
+			return 1;
 		}
 
 		if (lw == IDC_GENERATE_AND_SAVE_KEYFILE)
@@ -7309,7 +7061,10 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			wchar_t szFileName [2*TC_MAX_PATH + 16];
 			unsigned char *keyfile = NULL;
 			int fhKeyfile = -1, status;
-			long keyfilesCount = 0, keyfilesSize = 0, i;
+			long keyfilesCount = 0, i;
+			unsigned long long keyfilesSize = 0, remainingBytes = 0;
+			int selectedUnitIndex, selectedUnitFactor, loopIndex, rndBytesLength;
+			DWORD dwLastError = 0;
 			wchar_t* fileExtensionPtr = 0;
 			wchar_t szSuffix[32];
 			BOOL bRandomSize = GetCheckBox (hwndDlg, IDC_KEYFILES_RANDOM_SIZE);
@@ -7331,7 +7086,16 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 					szNumber[0] = 0;
 
 				keyfilesSize = wcstoul(szNumber, NULL, 0);
-				if (keyfilesSize < 64 || keyfilesSize > 1024*1024)
+				// multiply by the unit factor
+				selectedUnitIndex = ComboBox_GetCurSel (GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE_UNIT));
+				if (selectedUnitIndex != CB_ERR)
+				{
+					selectedUnitFactor = (CK_SLOT_ID) ComboBox_GetItemData (GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE_UNIT), selectedUnitIndex);
+					for (loopIndex = 0; loopIndex < selectedUnitFactor; loopIndex++)
+						keyfilesSize *= 1024ULL;
+				}
+
+				if (keyfilesSize < 64)
 				{
 					Warning("KEYFILE_INCORRECT_SIZE", hwndDlg);
 					SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM) GetDlgItem (hwndDlg, IDC_KEYFILES_SIZE), TRUE);
@@ -7360,7 +7124,7 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			fileExtensionPtr = wcsrchr(szFileBaseName, L'.');
 
 			/* Select directory */
-			if (!BrowseDirectories (hwndDlg, "SELECT_KEYFILE_GENERATION_DIRECTORY", szDirName))
+			if (!BrowseDirectories (hwndDlg, "SELECT_KEYFILE_GENERATION_DIRECTORY", szDirName, NULL))
 				return 1;
 
 			if (szDirName[wcslen(szDirName) - 1] != L'\\' && szDirName[wcslen(szDirName) - 1] != L'/')
@@ -7368,7 +7132,7 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 
 			WaitCursor();
 
-			keyfile = (unsigned char*) TCalloc( bRandomSize? KEYFILE_MAX_READ_LEN : keyfilesSize );
+			keyfile = (unsigned char*) TCalloc(KEYFILE_MAX_READ_LEN);
 
 			for (i= 0; i < keyfilesCount; i++)
 			{
@@ -7431,32 +7195,46 @@ BOOL CALLBACK KeyfileGeneratorDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LP
 						return 1;
 					}
 					
-					/* since keyfilesSize < 1024 * 1024, we mask with 0x000FFFFF */
-					keyfilesSize = (long) (((unsigned long) keyfilesSize) & 0x000FFFFF);
+					/* since random keyfilesSize < 1024 * 1024, we mask with 0x000FFFFF */
+					keyfilesSize = (unsigned long long) (((unsigned long) keyfilesSize) & 0x000FFFFF);
 
 					keyfilesSize %= ((KEYFILE_MAX_READ_LEN - 64) + 1);
 					keyfilesSize += 64;
+
 				}
 
-				/* Generate the keyfile */ 				
-				if (!RandgetBytesFull (hwndDlg, keyfile, keyfilesSize, TRUE, TRUE))
-				{
-					_close (fhKeyfile);
-					DeleteFile (szFileName);
-					TCfree(keyfile);
-					NormalCursor();
-					return 1;
-				}				
+				remainingBytes = keyfilesSize;
 
-				/* Write the keyfile */
-				status = _write (fhKeyfile, keyfile, keyfilesSize);
-				burn (keyfile, keyfilesSize);
+				do {
+					rndBytesLength = (int) min (remainingBytes, (unsigned long long) KEYFILE_MAX_READ_LEN);
+
+					/* Generate the keyfile */ 				
+					if (!RandgetBytesFull (hwndDlg, keyfile, rndBytesLength, TRUE, TRUE))
+					{
+						_close (fhKeyfile);
+						DeleteFile (szFileName);
+						TCfree(keyfile);
+						NormalCursor();
+						return 1;
+					}				
+
+					/* Write the keyfile */
+					status = _write (fhKeyfile, keyfile, rndBytesLength);
+				} while (status != -1 && (remainingBytes -= (unsigned long long) rndBytesLength) > 0);
+
+				/* save last error code */
+				if (status == -1)
+					dwLastError = GetLastError();
+
+				burn (keyfile, KEYFILE_MAX_READ_LEN);
 				_close (fhKeyfile);
 
 				if (status == -1)
 				{
 					TCfree(keyfile);
 					NormalCursor();
+					/* restore last error code */
+					SetLastError(dwLastError);
 					handleWin32Error (hwndDlg, SRC_POS);
 					return 1;
 				}				
@@ -7895,9 +7673,6 @@ ResetCipherTest(HWND hwndDlg, int idTestCipher)
 	SetWindowText(GetDlgItem(hwndDlg, IDC_CIPHERTEXT), L"0000000000000000");
 
 	if (idTestCipher == AES || idTestCipher == SERPENT || idTestCipher == TWOFISH || idTestCipher == CAMELLIA
-#if defined(CIPHER_GOST89)
-		|| idTestCipher == GOST89
-#endif
 		|| idTestCipher == KUZNYECHIK
 		)
 	{
@@ -8194,15 +7969,6 @@ BOOL CheckFileExtension (wchar_t *fileName)
 	return FALSE;
 }
 
-BOOL IsTrueCryptFileExtension (wchar_t *fileName)
-{
-	wchar_t *ext = wcsrchr (fileName, L'.');
-	if (ext && !_wcsicmp (ext, L".tc"))
-		return TRUE;
-	else
-		return FALSE;
-}
-
 void CorrectFileName (wchar_t* fileName)
 {
 	/* replace '/' by '\' */
@@ -8431,7 +8197,7 @@ void BroadcastDeviceChange (WPARAM message, int nDosDriveNo, DWORD driveMap)
 		eventId = SHCNE_DRIVEADD;
 	else if (message == DBT_DEVICEREMOVECOMPLETE)
 		eventId = SHCNE_DRIVEREMOVED;
-	else if (IsOSAtLeast (WIN_7) && message == DBT_DEVICEREMOVEPENDING) // Explorer on Windows 7 holds open handles of all drives when 'Computer' is expanded in navigation pane. SHCNE_DRIVEREMOVED must be used as DBT_DEVICEREMOVEPENDING is ignored.
+	else if (message == DBT_DEVICEREMOVEPENDING) // Explorer on Windows 7 holds open handles of all drives when 'Computer' is expanded in navigation pane. SHCNE_DRIVEREMOVED must be used as DBT_DEVICEREMOVEPENDING is ignored.
 		eventId = SHCNE_DRIVEREMOVED;
 
 	if (driveMap == 0)
@@ -8846,7 +8612,6 @@ int MountVolume (HWND hwndDlg,
 				 Password *password,
 				 int pkcs5,
 				 int pim,
-				 BOOL truecryptMode,
 				 BOOL cachePassword,
 				 BOOL cachePim,
 				 BOOL sharedAccess,
@@ -8886,7 +8651,7 @@ int MountVolume (HWND hwndDlg,
 	}
 
 	// If using cached passwords, check cache status first
-	if (password == NULL && IsPasswordCacheEmpty ())
+	if (password == NULL && (mountOptions->SkipCachedPasswords || IsPasswordCacheEmpty ()))
 		return 0;
 
 	ZeroMemory (&mount, sizeof (mount));
@@ -8927,7 +8692,6 @@ retry:
 	else
 		mount.bMountManager = TRUE;
 	mount.pkcs5_prf = pkcs5;
-	mount.bTrueCryptMode = truecryptMode;
 	mount.VolumePim = pim;
 
 	wstring path = volumePath;
@@ -8994,47 +8758,44 @@ retry:
 				mount.BytesPerPhysicalSector = bps;
 			}
 			
-			if (IsOSAtLeast (WIN_VISTA))
+			if (	(wcslen(root) >= 2)
+				&&	(root[1] == L':')
+				&&	(towupper(root[0]) >= L'A' && towupper(root[0]) <= L'Z')
+				)
 			{
-				if (	(wcslen(root) >= 2)
-					&&	(root[1] == L':')
-					&&	(towupper(root[0]) >= L'A' && towupper(root[0]) <= L'Z')
-					)
+				wstring drivePath = L"\\\\.\\X:";
+				HANDLE dev = INVALID_HANDLE_VALUE;
+				VOLUME_DISK_EXTENTS extents = {0};
+				DWORD dwResult = 0;
+				drivePath[4] = root[0];
+
+				if ((dev = CreateFile (drivePath.c_str(),0, 0, NULL, OPEN_EXISTING, 0, NULL)) != INVALID_HANDLE_VALUE)
 				{
-					wstring drivePath = L"\\\\.\\X:";
-					HANDLE dev = INVALID_HANDLE_VALUE;
-					VOLUME_DISK_EXTENTS extents = {0};
-					DWORD dwResult = 0;
-					drivePath[4] = root[0];
-
-					if ((dev = CreateFile (drivePath.c_str(),0, 0, NULL, OPEN_EXISTING, 0, NULL)) != INVALID_HANDLE_VALUE)
+					if (DeviceIoControl (dev, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, NULL, 0, &extents, sizeof(extents), &dwResult, NULL))
 					{
-						if (DeviceIoControl (dev, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, NULL, 0, &extents, sizeof(extents), &dwResult, NULL))
+						if (extents.NumberOfDiskExtents > 0)
 						{
-							if (extents.NumberOfDiskExtents > 0)
+							STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR accessDesc;
+							STORAGE_ADAPTER_DESCRIPTOR adapterDesc;
+
+							if (GetPhysicalDriveStorageInformation (extents.Extents[0].DiskNumber, &accessDesc, &adapterDesc))
 							{
-								STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR accessDesc;
-								STORAGE_ADAPTER_DESCRIPTOR adapterDesc;
-
-								if (GetPhysicalDriveStorageInformation (extents.Extents[0].DiskNumber, &accessDesc, &adapterDesc))
+								if (accessDesc.Size >= sizeof (STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR))
 								{
-									if (accessDesc.Size >= sizeof (STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR))
-									{
-										mount.BytesPerSector = accessDesc.BytesPerLogicalSector;
-										mount.BytesPerPhysicalSector = accessDesc.BytesPerPhysicalSector;
-									}
+									mount.BytesPerSector = accessDesc.BytesPerLogicalSector;
+									mount.BytesPerPhysicalSector = accessDesc.BytesPerPhysicalSector;
+								}
 
-									if (adapterDesc.Size >= sizeof (STORAGE_ADAPTER_DESCRIPTOR))
-									{
-										mount.MaximumTransferLength = adapterDesc.MaximumTransferLength;
-										mount.MaximumPhysicalPages = adapterDesc.MaximumPhysicalPages;
-										mount.AlignmentMask = adapterDesc.AlignmentMask;
-									}
+								if (adapterDesc.Size >= sizeof (STORAGE_ADAPTER_DESCRIPTOR))
+								{
+									mount.MaximumTransferLength = adapterDesc.MaximumTransferLength;
+									mount.MaximumPhysicalPages = adapterDesc.MaximumPhysicalPages;
+									mount.AlignmentMask = adapterDesc.AlignmentMask;
 								}
 							}
 						}
-						CloseHandle (dev);
 					}
+					CloseHandle (dev);
 				}
 			}
 
@@ -9048,8 +8809,7 @@ retry:
 	{
 		if (mount.wszVolume == NULL || swscanf_s ((const wchar_t *) mount.wszVolume,
 			WIDE("\\Device\\Harddisk%d\\Partition"),
-			&mount.nPartitionInInactiveSysEncScopeDriveNo,
-			sizeof(mount.nPartitionInInactiveSysEncScopeDriveNo)) != 1)
+			&mount.nPartitionInInactiveSysEncScopeDriveNo) != 1)
 		{
 			if (!quiet)
 				Warning ("NO_SYSENC_PARTITION_SELECTED", hwndDlg);
@@ -9083,7 +8843,6 @@ retry:
 	burn (&mount.VolumePassword, sizeof (mount.VolumePassword));
 	burn (&mount.ProtectedHidVolPassword, sizeof (mount.ProtectedHidVolPassword));
 	burn (&mount.pkcs5_prf, sizeof (mount.pkcs5_prf));
-	burn (&mount.bTrueCryptMode, sizeof (mount.bTrueCryptMode));
 	burn (&mount.ProtectedHidVolPkcs5Prf, sizeof (mount.ProtectedHidVolPkcs5Prf));
 
 	SetLastError (dwLastError);
@@ -9242,6 +9001,17 @@ retry:
 		}
 	}
 
+	if (mount.VolumeMountedReadOnlyAfterPartialSysEnc
+		&& !Silent
+		&& bDevice)
+	{
+		wchar_t msg[1024];
+		wchar_t mountPoint[] = { L'A' + (wchar_t) driveNo, L':', 0 };
+		StringCbPrintfW (msg, sizeof(msg), GetString ("PARTIAL_SYSENC_MOUNT_READONLY"), mountPoint);
+
+		WarningDirect (msg, hwndDlg);
+	}
+
 	if (mount.wszLabel[0] && !mount.bDriverSetLabel)
 	{
 		// try setting the drive label on user-mode using registry
@@ -9328,12 +9098,9 @@ retry:
 				goto retry;
 			}
 
-			if (IsOSAtLeast (WIN_7))
-			{
-				// Undo SHCNE_DRIVEREMOVED
-				wchar_t root[] = { (wchar_t) nDosDriveNo + L'A', L':', L'\\', 0 };
-				SHChangeNotify (SHCNE_DRIVEADD, SHCNF_PATH, root, NULL);
-			}
+			// Undo SHCNE_DRIVEREMOVED
+			wchar_t root[] = { (wchar_t) nDosDriveNo + L'A', L':', L'\\', 0 };
+			SHChangeNotify (SHCNE_DRIVEADD, SHCNF_PATH, root, NULL);
 
 			return FALSE;
 		}
@@ -9532,9 +9299,6 @@ BOOL IsUacSupported ()
 {
 	HKEY hkey;
 	DWORD value = 1, size = sizeof (DWORD);
-
-	if (!IsOSAtLeast (WIN_VISTA))
-		return FALSE;
 
 	if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", 0, KEY_READ, &hkey) == ERROR_SUCCESS)
 	{
@@ -10202,12 +9966,12 @@ void CleanLastVisitedMRU (void)
 	GetModuleFileNameW (NULL, exeFilename, sizeof (exeFilename) / sizeof(exeFilename[0]));
 	strToMatch = wcsrchr (exeFilename, L'\\') + 1;
 
-	StringCbPrintfW (regPath, sizeof(regPath), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisited%sMRU", IsOSAtLeast (WIN_VISTA) ? L"Pidl" : L"");
+	StringCbCopyW (regPath, sizeof(regPath), L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU");
 
-	for (id = (IsOSAtLeast (WIN_VISTA) ? 0 : L'a'); id <= (IsOSAtLeast (WIN_VISTA) ? 1000 : L'z'); id++)
+	for (id = 0; id <= 1000; id++)
 	{
 		*strTmp = 0;
-		StringCbPrintfW (key, sizeof(key), (IsOSAtLeast (WIN_VISTA) ? L"%d" : L"%c"), id);
+		StringCbPrintfW (key, sizeof(key), L"%d", id);
 
 		if ((len = ReadRegistryBytes (regPath, key, (char *) strTmp, sizeof (strTmp))) > 0)
 		{
@@ -10223,47 +9987,25 @@ void CleanLastVisitedMRU (void)
 				DeleteRegistryValue (regPath, key);
 
 				// Remove ID from MRUList
-				if (IsOSAtLeast (WIN_VISTA))
+				int *p = (int *)buf;
+				int *pout = (int *)bufout;
+				int l;
+
+				l = len = ReadRegistryBytes (L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU", L"MRUListEx", buf, sizeof (buf));
+				while (l > 0)
 				{
-					int *p = (int *)buf;
-					int *pout = (int *)bufout;
-					int l;
+					l -= sizeof (int);
 
-					l = len = ReadRegistryBytes (L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU", L"MRUListEx", buf, sizeof (buf));
-					while (l > 0)
+					if (*p == id)
 					{
-						l -= sizeof (int);
-
-						if (*p == id)
-						{
-							p++;
-							len -= sizeof (int);
-							continue;
-						}
-						*pout++ = *p++;
+						p++;
+						len -= sizeof (int);
+						continue;
 					}
-
-					WriteRegistryBytes (L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU", L"MRUListEx", bufout, len);
+					*pout++ = *p++;
 				}
-				else
-				{
-					wchar_t *p = (wchar_t*) buf;
-					wchar_t *pout = (wchar_t*) bufout;
 
-					ReadRegistryString (L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedMRU", L"MRUList", L"", (wchar_t*) buf, sizeof (buf));
-					while (*p)
-					{
-						if (*p == id)
-						{
-							p++;
-							continue;
-						}
-						*pout++ = *p++;
-					}
-					*pout++ = 0;
-
-					WriteRegistryString (L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedMRU", L"MRUList", (wchar_t*) bufout);
-				}
+				WriteRegistryBytes (L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU", L"MRUListEx", bufout, len);
 
 				break;
 			}
@@ -10445,7 +10187,7 @@ void TaskBarIconDisplayBalloonTooltip (HWND hwnd, wchar_t *headline, wchar_t *te
 
 	tnid.uFlags = NIF_INFO;
 	tnid.dwInfoFlags = (warning ? NIIF_WARNING : NIIF_INFO);
-	tnid.uTimeout = (IsOSAtLeast (WIN_VISTA) ? 1000 : 5000); // in ms
+	tnid.uTimeout = 1000; // in ms
 
 	StringCbCopyW (tnid.szInfoTitle, sizeof(tnid.szInfoTitle), headline);
 	StringCbCopyW (tnid.szInfo, sizeof(tnid.szInfo),text);
@@ -11042,17 +10784,8 @@ BOOL IsSupportedOS ()
 		else
 			MessageBoxW (NULL, L"SHA-2 support missing from Windows.\n\nPlease Install KB3033929 or KB4474419", lpszTitle, MB_ICONWARNING);
 	}
-	else if (IsOSAtLeast(WIN_VISTA))
-	{
-		if (OneOfKBsInstalled(szWinVistaKBs, 2))
-			bRet = TRUE;
-		else
-			MessageBoxW (NULL, L"SHA-2 support missing from Windows.\n\nPlease Install KB4039648 or KB4474419", lpszTitle, MB_ICONWARNING);
-	}
-	else if (IsOSAtLeast(WIN_XP))
-		bRet = TRUE;
 #else
-	if (IsOSAtLeast(WIN_XP))
+	if (IsOSAtLeast(WIN_7))
 		bRet = TRUE;
 #endif
 
@@ -11390,6 +11123,10 @@ void Applink (const char *dest)
 	{
 		StringCbCopyW (page, sizeof (page),L"Keyfiles.html");
 	}
+	else if (strcmp(dest, "keyfilesextensions") == 0)
+	{
+		StringCbCopyW (page, sizeof (page),L"Avoid%20Third-Party%20File%20Extensions.html");
+	}
 	else if (strcmp(dest, "introcontainer") == 0)
 	{
 		StringCbCopyW (page, sizeof (page),L"Creating%20New%20Volumes.html");
@@ -11475,6 +11212,10 @@ void Applink (const char *dest)
 	{
 		StringCbCopyW (page, sizeof (page),L"Personal%20Iterations%20Multiplier%20%28PIM%29.html");
 	}
+	else if (strcmp(dest, "memoryprotection") == 0)
+	{
+		StringCbCopyW (page, sizeof (page),L"VeraCrypt%20Memory%20Protection.html");
+	}
 	else
 	{
 		StringCbCopyW (url, sizeof (url),TC_APPLINK);
@@ -11483,11 +11224,25 @@ void Applink (const char *dest)
 	
 	if (buildUrl)
 	{
+		// in case of setup, open the online documentation if we are connected to Internet because existing documentation may be outdated
+#ifdef SETUP
+		if (IsInternetConnected())
+		{
+			StringCbPrintfW (url, sizeof (url), L"https://www.veracrypt.fr/en/%s", page);
+			buildUrl = FALSE;
+		}
+		else
+		{
+			StringCbPrintfW (url, sizeof (url), L"file:///%sdocs/html/en/%s", installDir, page);
+			CorrectURL (url);
+		}
+#else
 		StringCbPrintfW (url, sizeof (url), L"file:///%sdocs/html/en/%s", installDir, page);
 		CorrectURL (url);
+#endif
 	}
 
-	if (IsOSAtLeast (WIN_VISTA) && IsAdmin ())
+	if (IsAdmin ())
 	{
 		int openDone = 0;
 		if (buildUrl)
@@ -11497,7 +11252,7 @@ void Applink (const char *dest)
 
 			StringCbCopyW (pageFileName, sizeof(pageFileName), page);
 			/* remove escape sequences from the page name before calling FileExists function */
-			if (S_OK == UrlUnescapeWFn (pageFileName, pageFileName, &cchUnescaped, URL_UNESCAPE_INPLACE))
+			if (S_OK == UrlUnescapeW (pageFileName, pageFileName, &cchUnescaped, URL_UNESCAPE_INPLACE))
 			{
 				std::wstring pageFullPath = installDir;
 				pageFullPath += L"docs\\html\\en\\";
@@ -11569,8 +11324,6 @@ void HandleDriveNotReadyError (HWND hwnd)
 	{
 		Warning ("SYS_AUTOMOUNT_DISABLED", hwnd);
 	}
-	else if (nCurrentOS == WIN_VISTA && CurrentOSServicePack < 1)
-		Warning ("SYS_ASSIGN_DRIVE_LETTER", hwnd);
 	else
 		Warning ("DEVICE_NOT_READY_ERROR", hwnd);
 
@@ -11662,7 +11415,7 @@ void ReportUnexpectedState (const char *techInfo)
 
 #ifndef SETUP
 
-int OpenVolume (OpenVolumeContext *context, const wchar_t *volumePath, Password *password, int pkcs5_prf, int pim, BOOL truecryptMode, BOOL write, BOOL preserveTimestamps, BOOL useBackupHeader)
+int OpenVolume (OpenVolumeContext *context, const wchar_t *volumePath, Password *password, int pkcs5_prf, int pim, BOOL write, BOOL preserveTimestamps, BOOL useBackupHeader)
 {
 	int status = ERR_PARAMETER_INCORRECT;
 	int volumeType;
@@ -11837,7 +11590,7 @@ int OpenVolume (OpenVolumeContext *context, const wchar_t *volumePath, Password 
 		}
 
 		// Decrypt volume header
-		status = ReadVolumeHeader (FALSE, buffer, password, pkcs5_prf, pim, truecryptMode, &context->CryptoInfo, NULL);
+		status = ReadVolumeHeader (FALSE, buffer, password, pkcs5_prf, pim, &context->CryptoInfo, NULL);
 
 		if (status == ERR_PASSWORD_WRONG)
 			continue;		// Try next volume type
@@ -12166,11 +11919,11 @@ static BOOL CALLBACK NewSecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPA
 			WaitCursor();
 			finally_do ({ NormalCursor(); });
 
-			list <SecurityTokenInfo> tokens;
+			list <shared_ptr<TokenInfo>> tokens;
 
 			try
 			{
-				tokens = SecurityToken::GetAvailableTokens();
+				tokens = Token::GetAvailableTokens();
 			}
 			catch (Exception &e)
 			{
@@ -12184,12 +11937,12 @@ static BOOL CALLBACK NewSecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPA
 				return 1;
 			}
 
-			foreach (const SecurityTokenInfo &token, tokens)
+			foreach (const shared_ptr<TokenInfo> token, tokens)
 			{
 				wstringstream tokenLabel;
-				tokenLabel << L"[" << token.SlotId << L"] " << token.Label;
+				tokenLabel << L"[" << token->SlotId << L"] " << token->Label;
 
-				AddComboPair (GetDlgItem (hwndDlg, IDC_SELECTED_TOKEN), tokenLabel.str().c_str(), token.SlotId);
+				AddComboPair (GetDlgItem (hwndDlg, IDC_SELECTED_TOKEN), tokenLabel.str().c_str(), token->SlotId);
 			}
 
 			ComboBox_SetCurSel (GetDlgItem (hwndDlg, IDC_SELECTED_TOKEN), 0);
@@ -12243,7 +11996,7 @@ static BOOL CALLBACK NewSecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPA
 }
 
 
-static void SecurityTokenKeyfileDlgFillList (HWND hwndDlg, const vector <SecurityTokenKeyfile> &keyfiles)
+static void SecurityTokenKeyfileDlgFillList (HWND hwndDlg, const vector <shared_ptr<TokenKeyfile>> &keyfiles)
 {
 	HWND tokenListControl = GetDlgItem (hwndDlg, IDC_TOKEN_FILE_LIST);
 	LVITEMW lvItem;
@@ -12251,18 +12004,18 @@ static void SecurityTokenKeyfileDlgFillList (HWND hwndDlg, const vector <Securit
 
 	ListView_DeleteAllItems (tokenListControl);
 
-	foreach (const SecurityTokenKeyfile &keyfile, keyfiles)
+	foreach (const shared_ptr<TokenKeyfile> keyfile, keyfiles)
 	{
 		memset (&lvItem, 0, sizeof(lvItem));
 		lvItem.mask = LVIF_TEXT;
 		lvItem.iItem = line++;
 
 		wstringstream s;
-		s << keyfile.SlotId;
+		s << keyfile->Token->SlotId;
 
 		ListItemAdd (tokenListControl, lvItem.iItem, (wchar_t *) s.str().c_str());
-		ListSubItemSet (tokenListControl, lvItem.iItem, 1, (wchar_t *) keyfile.Token.Label.c_str());
-		ListSubItemSet (tokenListControl, lvItem.iItem, 2, (wchar_t *) keyfile.Id.c_str());
+		ListSubItemSet (tokenListControl, lvItem.iItem, 1, (wchar_t *) keyfile->Token->Label.c_str());
+		ListSubItemSet (tokenListControl, lvItem.iItem, 2, (wchar_t *) keyfile->Id.c_str());
 	}
 
 	BOOL selected = (ListView_GetNextItem (GetDlgItem (hwndDlg, IDC_TOKEN_FILE_LIST), -1, LVIS_SELECTED) != -1);
@@ -12271,10 +12024,10 @@ static void SecurityTokenKeyfileDlgFillList (HWND hwndDlg, const vector <Securit
 }
 
 
-static list <SecurityTokenKeyfile> SecurityTokenKeyfileDlgGetSelected (HWND hwndDlg, const vector <SecurityTokenKeyfile> &keyfiles)
+static list <shared_ptr<TokenKeyfile>> SecurityTokenKeyfileDlgGetSelected (HWND hwndDlg, const vector <shared_ptr<TokenKeyfile>> &keyfiles)
 {
 	HWND tokenListControl = GetDlgItem (hwndDlg, IDC_TOKEN_FILE_LIST);
-	list <SecurityTokenKeyfile> selectedKeyfiles;
+	list <shared_ptr<TokenKeyfile>> selectedKeyfiles;
 
 	int itemId = -1;
 	while ((itemId = ListView_GetNextItem (tokenListControl, itemId, LVIS_SELECTED)) != -1)
@@ -12288,8 +12041,8 @@ static list <SecurityTokenKeyfile> SecurityTokenKeyfileDlgGetSelected (HWND hwnd
 
 BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	static list <SecurityTokenKeyfilePath> *selectedTokenKeyfiles;
-	static vector <SecurityTokenKeyfile> keyfiles;
+	static list <TokenKeyfilePath> *selectedTokenKeyfiles;
+	static vector <shared_ptr<TokenKeyfile>> keyfiles;
 
 	WORD lw = LOWORD (wParam);
 
@@ -12297,7 +12050,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 	{
 	case WM_INITDIALOG:
 		{
-			selectedTokenKeyfiles = (list <SecurityTokenKeyfilePath> *) lParam;
+			selectedTokenKeyfiles = (list <TokenKeyfilePath> *) lParam;
 
 			LVCOLUMNW LvCol;
 			HWND tokenListControl = GetDlgItem (hwndDlg, IDC_TOKEN_FILE_LIST);
@@ -12332,7 +12085,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 				WaitCursor();
 				finally_do ({ NormalCursor(); });
 
-				keyfiles = SecurityToken::GetAvailableKeyfiles();
+				keyfiles = Token::GetAvailableKeyfiles(EMVSupportEnabled? true : false);
 			}
 			catch (UserAbort&)
 			{
@@ -12360,9 +12113,9 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 		{
 			if (selectedTokenKeyfiles)
 			{
-				foreach (const SecurityTokenKeyfile &keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
+				foreach (const shared_ptr<TokenKeyfile> &keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
 				{
-					selectedTokenKeyfiles->push_back (SecurityTokenKeyfilePath (keyfile));
+					selectedTokenKeyfiles->push_back (TokenKeyfilePath (*keyfile));
 				}
 			}
 
@@ -12373,8 +12126,19 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 		if (msg == WM_NOTIFY && ((LPNMHDR) lParam)->code == LVN_ITEMCHANGED)
 		{
 			BOOL selected = (ListView_GetNextItem (GetDlgItem (hwndDlg, IDC_TOKEN_FILE_LIST), -1, LVIS_SELECTED) != -1);
+			BOOL deletable = selected;
+			// Multiple key files can be selected.
+			// Therefore, if one of them is not deletable, it means the delete button must be disabled for all.
+			foreach (const shared_ptr<TokenKeyfile> &keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
+			{
+				if (!keyfile->Token->isEditable())
+				{
+					deletable = false;
+					break;
+				}
+			}
 			EnableWindow (GetDlgItem (hwndDlg, IDC_EXPORT), selected);
-			EnableWindow (GetDlgItem (hwndDlg, IDC_DELETE), selected);
+			EnableWindow (GetDlgItem (hwndDlg, IDC_DELETE), deletable);
 			return 1;
 		}
 
@@ -12390,7 +12154,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 				{
 					wchar_t keyfilePath[TC_MAX_PATH];
 
-					if (BrowseFiles (hwndDlg, "SELECT_KEYFILE", keyfilePath, bHistory, FALSE, NULL))
+					if (BrowseFiles (hwndDlg, "SELECT_KEYFILE", keyfilePath, bHistory, FALSE))
 					{
 						DWORD keyfileSize;
 						byte *keyfileData = (byte *) LoadFile (keyfilePath, &keyfileSize);
@@ -12421,7 +12185,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 
 									SecurityToken::CreateKeyfile (newParams.SlotId, keyfileDataVector, newParams.Name);
 
-									keyfiles = SecurityToken::GetAvailableKeyfiles();
+									keyfiles = Token::GetAvailableKeyfiles(EMVSupportEnabled? true : false);
 									SecurityTokenKeyfileDlgFillList (hwndDlg, keyfiles);
 								}
 								catch (Exception &e)
@@ -12449,11 +12213,11 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 				{
 					try
 					{
-						foreach (const SecurityTokenKeyfile &keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
+						foreach (const shared_ptr<TokenKeyfile> &keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
 						{
 							wchar_t keyfilePath[TC_MAX_PATH];
 
-							if (!BrowseFiles (hwndDlg, "OPEN_TITLE", keyfilePath, bHistory, TRUE, NULL))
+							if (!BrowseFiles (hwndDlg, "OPEN_TITLE", keyfilePath, bHistory, TRUE))
 								break;
 
 							{
@@ -12462,7 +12226,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 
 								vector <byte> keyfileData;
 
-								SecurityToken::GetKeyfileData (keyfile, keyfileData);
+								keyfile->GetKeyfileData (keyfileData);
 
 								if (keyfileData.empty())
 								{
@@ -12498,12 +12262,12 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 						WaitCursor();
 						finally_do ({ NormalCursor(); });
 
-						foreach (const SecurityTokenKeyfile &keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
+						foreach (const shared_ptr<TokenKeyfile> keyfile, SecurityTokenKeyfileDlgGetSelected (hwndDlg, keyfiles))
 						{
-							SecurityToken::DeleteKeyfile (keyfile);
+							SecurityToken::DeleteKeyfile (dynamic_cast<SecurityTokenKeyfile&>(*keyfile.get()));
 						}
 
-						keyfiles = SecurityToken::GetAvailableKeyfiles();
+						keyfiles = Token::GetAvailableKeyfiles(EMVSupportEnabled? true : false);
 						SecurityTokenKeyfileDlgFillList (hwndDlg, keyfiles);
 					}
 					catch (Exception &e)
@@ -13468,11 +13232,6 @@ BOOL IsWindowsIsoBurnerAvailable ()
 {
 	wchar_t path[MAX_PATH*2] = { 0 };
 
-	if (!IsOSAtLeast (WIN_7))
-	{
-		return FALSE;
-	}
-
 	if (SUCCEEDED(SHGetFolderPath (NULL, CSIDL_SYSTEM, NULL, 0, path)))
 	{
 		StringCbCatW (path, MAX_PATH*2, L"\\" ISO_BURNER_TOOL);
@@ -13746,36 +13505,36 @@ void RegisterDriverInf (bool registerFilter, const string& filter, const string&
 	infFile.Write ((byte *) infTxt.c_str(), (DWORD) infTxt.size());
 	infFile.Close();
 
-	HINF hInf = SetupOpenInfFileWFn (infFileName.c_str(), NULL, INF_STYLE_OLDNT | INF_STYLE_WIN4, NULL);
+	HINF hInf = SetupOpenInfFileW (infFileName.c_str(), NULL, INF_STYLE_OLDNT | INF_STYLE_WIN4, NULL);
 	throw_sys_if (hInf == INVALID_HANDLE_VALUE);
-	finally_do_arg (HINF, hInf, { SetupCloseInfFileFn (finally_arg); });
+	finally_do_arg (HINF, hInf, { SetupCloseInfFile (finally_arg); });
 
-	throw_sys_if (!SetupInstallFromInfSectionWFn (ParentWindow, hInf, L"veracrypt", SPINST_REGISTRY, regKey, NULL, 0, NULL, NULL, NULL, NULL));
+	throw_sys_if (!SetupInstallFromInfSectionW (ParentWindow, hInf, L"veracrypt", SPINST_REGISTRY, regKey, NULL, 0, NULL, NULL, NULL, NULL));
 }
 
 HKEY OpenDeviceClassRegKey (const GUID *deviceClassGuid)
 {
-	return SetupDiOpenClassRegKeyFn (deviceClassGuid, KEY_READ | KEY_WRITE);
+	return SetupDiOpenClassRegKey (deviceClassGuid, KEY_READ | KEY_WRITE);
 }
 
 LSTATUS DeleteRegistryKey (HKEY hKey, LPCTSTR keyName)
 {
-	return SHDeleteKeyWFn(hKey, keyName);
+	return SHDeleteKeyW(hKey, keyName);
 }
 
 HIMAGELIST  CreateImageList(int cx, int cy, UINT flags, int cInitial, int cGrow)
 {
-	return ImageList_CreateFn(cx, cy, flags, cInitial, cGrow);
+	return ImageList_Create(cx, cy, flags, cInitial, cGrow);
 }
 
 int AddBitmapToImageList(HIMAGELIST himl, HBITMAP hbmImage, HBITMAP hbmMask)
 {
-	return ImageList_AddFn(himl, hbmImage, hbmMask);
+	return ImageList_Add(himl, hbmImage, hbmMask);
 }
 
 HRESULT VCStrDupW(LPCWSTR psz, LPWSTR *ppwsz)
 {
-	return SHStrDupWFn (psz, ppwsz);
+	return SHStrDupW (psz, ppwsz);
 }
 
 
@@ -13798,16 +13557,13 @@ void ProcessEntropyEstimate (HWND hProgress, DWORD* pdwInitialValue, DWORD dwCou
 		else
 			*pdwEntropy = dwMaxLevel;
 
-		if (IsOSAtLeast (WIN_VISTA))
-		{
-			int state = PBST_ERROR;
-			if (*pdwEntropy >= (dwMaxLevel/2))
-				state = PBST_NORMAL;
-			else if (*pdwEntropy >= (dwMaxLevel/4))
-				state = PBST_PAUSED;
+		int state = PBST_ERROR;
+		if (*pdwEntropy >= (dwMaxLevel/2))
+			state = PBST_NORMAL;
+		else if (*pdwEntropy >= (dwMaxLevel/4))
+			state = PBST_PAUSED;
 
-			SendMessage (hProgress, PBM_SETSTATE, state, 0);
-		}
+		SendMessage (hProgress, PBM_SETSTATE, state, 0);
 
 		SendMessage (hProgress, PBM_SETPOS,
 		(WPARAM) (*pdwEntropy),
@@ -13817,10 +13573,8 @@ void ProcessEntropyEstimate (HWND hProgress, DWORD* pdwInitialValue, DWORD dwCou
 
 void AllowMessageInUIPI (UINT msg)
 {
-	if (ChangeWindowMessageFilterFn)
-	{
-		ChangeWindowMessageFilterFn (msg, MSGFLT_ADD);
-	}
+	/* ChangeWindowMessageFilter is used to enable some messages bypasss UIPI (User Interface Privilege Isolation) */
+	ChangeWindowMessageFilter (msg, MSGFLT_ADD);
 }
 
 BOOL IsRepeatedByteArray (byte value, const byte* buffer, size_t bufferSize)
@@ -13936,7 +13690,45 @@ BOOL SetPrivilege(LPTSTR szPrivilegeName, BOOL bEnable)
 			tkp.Privileges[0].Attributes = bEnable? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_REMOVED;
 			
 			bRet = AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, NULL, NULL);
-			if (!bRet)
+			dwLastError = GetLastError ();
+			if ( ERROR_SUCCESS != dwLastError)
+			{
+				bRet = FALSE;
+			}
+		}
+		else
+			dwLastError = GetLastError ();
+
+		CloseHandle(hToken);
+	}
+	else
+		dwLastError = GetLastError ();
+
+	SetLastError (dwLastError);
+
+	return bRet;
+}
+
+BOOL IsPrivilegeEnabled (LPTSTR szPrivilegeName)
+{
+	HANDLE hToken;
+	TOKEN_PRIVILEGES tkp;
+	BOOL bRet = FALSE;
+	DWORD dwLastError = 0;
+
+	if (OpenProcessToken(GetCurrentProcess(),
+		TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+		&hToken))
+	{
+		if (LookupPrivilegeValue(NULL, szPrivilegeName,
+				&tkp.Privileges[0].Luid))
+		{
+			DWORD dwSize = sizeof (tkp);
+			if (GetTokenInformation (hToken, TokenPrivileges, &tkp, dwSize, &dwSize))
+			{
+				bRet = (tkp.Privileges[0].Attributes & SE_PRIVILEGE_ENABLED) != 0;
+			}
+			else
 				dwLastError = GetLastError ();
 		}
 		else
@@ -14031,13 +13823,14 @@ typedef struct
 	DLGPROC lpDialogFunc;
 	LPARAM dwInitParam;
 	INT_PTR retValue;
+	BOOL bDlgDisplayed; // set to TRUE if the dialog was displayed on secure desktop
 } SecureDesktopThreadParam;
 
 typedef struct
 {
 	LPCWSTR szVCDesktopName;
 	HDESK hVcDesktop;
-	volatile BOOL* pbStopMonitoring;
+	HANDLE hStopEvent; // event to signal when to stop monitoring
 } SecureDesktopMonitoringThreadParam;
 
 #define SECUREDESKTOP_MONOTIR_PERIOD	500
@@ -14049,11 +13842,12 @@ static unsigned int __stdcall SecureDesktopMonitoringThread( LPVOID lpThreadPara
 	SecureDesktopMonitoringThreadParam* pMonitorParam = (SecureDesktopMonitoringThreadParam*) lpThreadParameter;
 	if (pMonitorParam)
 	{
-		volatile BOOL* pbStopMonitoring = pMonitorParam->pbStopMonitoring;
+		HANDLE hStopEvent = pMonitorParam->hStopEvent;
 		LPCWSTR szVCDesktopName = pMonitorParam->szVCDesktopName;
 		HDESK hVcDesktop = pMonitorParam->hVcDesktop;
 
-		while (!*pbStopMonitoring)
+		// loop until the stop event is signaled
+		while (WaitForSingleObject (hStopEvent, SECUREDESKTOP_MONOTIR_PERIOD) == WAIT_TIMEOUT)
 		{
 			// check that our secure desktop is still the input desktop
 			// otherwise, switch to it
@@ -14081,22 +13875,18 @@ static unsigned int __stdcall SecureDesktopMonitoringThread( LPVOID lpThreadPara
 
 			if (bPerformSwitch)
 				SwitchDesktop (hVcDesktop);
-
-			Sleep (SECUREDESKTOP_MONOTIR_PERIOD);
 		}
 	}
 
 	return 0;
 }
 
-static DWORD WINAPI SecureDesktopThread(LPVOID lpThreadParameter)
+static unsigned int __stdcall SecureDesktopThread( LPVOID lpThreadParameter )
 {
-	volatile BOOL bStopMonitoring = FALSE;
 	HANDLE hMonitoringThread = NULL;
 	unsigned int monitoringThreadID = 0;
 	SecureDesktopThreadParam* pParam = (SecureDesktopThreadParam*) lpThreadParameter;
 	SecureDesktopMonitoringThreadParam monitorParam;
-	HDESK hOriginalDesk = GetThreadDesktop (GetCurrentThreadId ());
 	BOOL bNewDesktopSet = FALSE;
 
 	// wait for SwitchDesktop to succeed before using it for current thread
@@ -14104,38 +13894,48 @@ static DWORD WINAPI SecureDesktopThread(LPVOID lpThreadParameter)
 	{
 		if (SwitchDesktop (pParam->hDesk))
 		{
-			bNewDesktopSet = TRUE;
 			break;
 		}
 		Sleep (SECUREDESKTOP_MONOTIR_PERIOD);
 	}
 
+	bNewDesktopSet = SetThreadDesktop (pParam->hDesk);
+
 	if (bNewDesktopSet)
 	{
-		SetThreadDesktop (pParam->hDesk);
-
 		// create the thread that will ensure that VeraCrypt secure desktop has always user input
-		monitorParam.szVCDesktopName = pParam->szDesktopName;
-		monitorParam.hVcDesktop = pParam->hDesk;
-		monitorParam.pbStopMonitoring = &bStopMonitoring;
-		hMonitoringThread = (HANDLE) _beginthreadex (NULL, 0, SecureDesktopMonitoringThread, (LPVOID) &monitorParam, 0, &monitoringThreadID);
+		// this is done only if the stop event is created successfully
+		HANDLE hStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (hStopEvent)
+		{
+			monitorParam.szVCDesktopName = pParam->szDesktopName;
+			monitorParam.hVcDesktop = pParam->hDesk;
+			monitorParam.hStopEvent = hStopEvent;
+			hMonitoringThread = (HANDLE) _beginthreadex (NULL, 0, SecureDesktopMonitoringThread, (LPVOID) &monitorParam, 0, &monitoringThreadID);
+		}
+
+		pParam->retValue = DialogBoxParamW (pParam->hInstance, pParam->lpTemplateName, 
+							NULL, pParam->lpDialogFunc, pParam->dwInitParam);
+
+		if (hMonitoringThread)
+		{
+			// notify the monitoring thread to stop
+			SetEvent(hStopEvent);
+
+			WaitForSingleObject (hMonitoringThread, INFINITE);
+			CloseHandle (hMonitoringThread);
+		}
+
+		if (hStopEvent)
+		{
+			CloseHandle (hStopEvent);
+		}
+
+		pParam->bDlgDisplayed = TRUE;
 	}
-
-	pParam->retValue = DialogBoxParamW (pParam->hInstance, pParam->lpTemplateName, 
-						NULL, pParam->lpDialogFunc, pParam->dwInitParam);
-
-	if (hMonitoringThread)
+	else
 	{
-		bStopMonitoring = TRUE;
-
-		WaitForSingleObject (hMonitoringThread, INFINITE);
-		CloseHandle (hMonitoringThread);
-	}
-
-	if (bNewDesktopSet)
-	{
-		SetThreadDesktop (hOriginalDesk);
-		SwitchDesktop (hOriginalDesk);
+		pParam->bDlgDisplayed = FALSE;
 	}
 
 	return 0;
@@ -14195,6 +13995,7 @@ INT_PTR SecureDesktopDialogBoxParam(
 			map<DWORD, BOOL> ctfmonBeforeList, ctfmonAfterList;
 			DWORD desktopAccess = DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW | DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP | DESKTOP_WRITEOBJECTS;
 			HDESK hSecureDesk;
+			HDESK hOriginalDesk = GetThreadDesktop (GetCurrentThreadId());
 
 			HDESK hInputDesk = NULL;
 
@@ -14226,8 +14027,10 @@ INT_PTR SecureDesktopDialogBoxParam(
 				param.lpDialogFunc = lpDialogFunc;
 				param.dwInitParam = dwInitParam;
 				param.retValue = 0;
+				param.bDlgDisplayed = FALSE;
 
-				HANDLE hThread = ::CreateThread (NULL, 0, SecureDesktopThread, (LPVOID) &param, 0, NULL);
+				// use _beginthreadex instead of CreateThread because lpDialogFunc may be using the C runtime library
+				HANDLE hThread = (HANDLE) _beginthreadex (NULL, 0, SecureDesktopThread, (LPVOID) &param, 0, NULL);
 				if (hThread)
 				{
 					StringCbCopy(SecureDesktopName, sizeof (SecureDesktopName), szDesktopName);
@@ -14235,8 +14038,15 @@ INT_PTR SecureDesktopDialogBoxParam(
 					WaitForSingleObject (hThread, INFINITE);
 					CloseHandle (hThread);
 
-					retValue = param.retValue;
-					bSuccess = TRUE;
+					if (param.bDlgDisplayed)
+					{
+						// dialog box was indeed displayed in Secure Desktop
+						retValue = param.retValue;
+						bSuccess = TRUE;
+					}
+
+					// switch back to original desktop
+					SwitchDesktop (hOriginalDesk);
 				}
 
 				CloseDesktop (hSecureDesk);
@@ -14257,6 +14067,7 @@ INT_PTR SecureDesktopDialogBoxParam(
 				}
 			}
 
+			CloseDesktop(hOriginalDesk);
 			burn (szDesktopName, sizeof (szDesktopName));
 		}
 	}
@@ -14351,37 +14162,26 @@ void GetInstallationPath (HWND hwndDlg, wchar_t* szInstallPath, DWORD cchSize, B
 
 BOOL GetSetupconfigLocation (wchar_t* path, DWORD cchSize)
 {
-	wchar_t szShell32Path[MAX_PATH] = {0};
-	HMODULE hShell32 = NULL;
 	BOOL bResult = FALSE;
 
 	path[0] = 0;
 
-	if (GetSystemDirectory(szShell32Path, MAX_PATH))
-		StringCchCatW (szShell32Path, MAX_PATH, L"\\Shell32.dll");
-	else
-		StringCchCopyW (szShell32Path, MAX_PATH, L"C:\\Windows\\System32\\Shell32.dll");
-
-	hShell32 = LoadLibrary (szShell32Path);
-	if (hShell32)
+	wchar_t* pszUsersPath = NULL;
+	if (S_OK == SHGetKnownFolderPath (FOLDERID_UserProfiles, 0, NULL, &pszUsersPath))
 	{
-		SHGETKNOWNFOLDERPATH SHGetKnownFolderPathFn = (SHGETKNOWNFOLDERPATH) GetProcAddress (hShell32, "SHGetKnownFolderPath");
-		if (SHGetKnownFolderPathFn)
-		{
-			wchar_t* pszUsersPath = NULL;
-			if (S_OK == SHGetKnownFolderPathFn (FOLDERID_UserProfiles, 0, NULL, &pszUsersPath))
-			{
-				StringCchPrintfW (path, cchSize, L"%s\\Default\\AppData\\Local\\Microsoft\\Windows\\WSUS\\", pszUsersPath);
-				CoTaskMemFree (pszUsersPath);
-				bResult = TRUE;
-			}
-		}
-		FreeLibrary (hShell32);
+		StringCchPrintfW (path, cchSize, L"%s\\Default\\AppData\\Local\\Microsoft\\Windows\\WSUS\\", pszUsersPath);
+		CoTaskMemFree (pszUsersPath);
+		bResult = TRUE;
 	}
 
 	if (!bResult && CurrentOSMajor >= 10)
 	{
-		StringCchPrintfW (path, cchSize, L"%c:\\Users\\Default\\AppData\\Local\\Microsoft\\Windows\\WSUS\\", szShell32Path[0]);					
+		wchar_t szSys32Path[MAX_PATH];
+		if (!GetSystemDirectory (szSys32Path, ARRAYSIZE (szSys32Path)))
+		{
+			StringCchCopy(szSys32Path, ARRAYSIZE (szSys32Path), L"C:\\Windows\\System32");
+		}
+		StringCchPrintfW (path, cchSize, L"%c:\\Users\\Default\\AppData\\Local\\Microsoft\\Windows\\WSUS\\", szSys32Path[0]);					
 		bResult = TRUE;
 	}
 
@@ -14411,7 +14211,7 @@ BOOL BufferHasPattern (const unsigned char* buffer, size_t bufferLen, const void
  *
  * Reduce current user acess rights for this process to the minimum in order to forbid non-admin users from reading the process memory.
  */
-BOOL EnableProcessProtection()
+BOOL ActivateMemoryProtection()
 {
     BOOL bSuccess = FALSE;
 
@@ -14426,7 +14226,10 @@ BOOL EnableProcessProtection()
 
 	// Acces mask
 	DWORD dwAccessMask = SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE; // same as protected process
-	
+
+    if (MemoryProtectionActivated)
+        return TRUE;
+    
 	if (IsAdmin ())
 	{
 		// if we are running elevated, we allow CreateProcessXXX calls alongside PROCESS_DUP_HANDLE and PROCESS_QUERY_INFORMATION in order to be able 
@@ -14489,6 +14292,9 @@ BOOL EnableProcessProtection()
                                     NULL // do not change SACL
                     ))? TRUE: FALSE;
 
+    if (bSuccess)
+        MemoryProtectionActivated = TRUE;
+
 Cleanup:
 
     if (pACL != NULL) {
@@ -14502,6 +14308,92 @@ Cleanup:
     }
 
     return bSuccess;
+}
+
+// define missing structures Windows 8
+#if (_WIN32_WINNT < 0x0602)
+
+typedef struct _PROCESS_MITIGATION_ASLR_POLICY {
+    union {
+        DWORD Flags;
+        struct {
+            DWORD EnableBottomUpRandomization : 1;
+            DWORD EnableForceRelocateImages : 1;
+            DWORD EnableHighEntropy : 1;
+            DWORD DisallowStrippedImages : 1;
+            DWORD ReservedFlags : 28;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+} PROCESS_MITIGATION_ASLR_POLICY, *PPROCESS_MITIGATION_ASLR_POLICY;
+
+typedef struct _PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY {
+    union {
+        DWORD Flags;
+        struct {
+            DWORD DisableExtensionPoints : 1;
+            DWORD ReservedFlags : 31;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+} PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY, *PPROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY;
+
+typedef struct _PROCESS_MITIGATION_DYNAMIC_CODE_POLICY {
+    union {
+        DWORD Flags;
+        struct {
+            DWORD ProhibitDynamicCode : 1;
+            DWORD AllowThreadOptOut : 1;
+            DWORD AllowRemoteDowngrade : 1;
+            DWORD AuditProhibitDynamicCode : 1;
+            DWORD ReservedFlags : 28;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+} PROCESS_MITIGATION_DYNAMIC_CODE_POLICY, *PPROCESS_MITIGATION_DYNAMIC_CODE_POLICY;
+
+typedef enum _PROCESS_MITIGATION_POLICY {
+    ProcessDEPPolicy,
+    ProcessASLRPolicy,
+    ProcessDynamicCodePolicy,
+    ProcessStrictHandleCheckPolicy,
+    ProcessSystemCallDisablePolicy,
+    ProcessMitigationOptionsMask,
+    ProcessExtensionPointDisablePolicy,
+    ProcessControlFlowGuardPolicy,
+    ProcessSignaturePolicy,
+    ProcessFontDisablePolicy,
+    ProcessImageLoadPolicy,
+    ProcessSystemCallFilterPolicy,
+    ProcessPayloadRestrictionPolicy,
+    ProcessChildProcessPolicy,
+    ProcessSideChannelIsolationPolicy,
+    ProcessUserShadowStackPolicy,
+    MaxProcessMitigationPolicy
+} PROCESS_MITIGATION_POLICY, *PPROCESS_MITIGATION_POLICY;
+
+#endif
+
+void ActivateProcessMitigations()
+{
+	// we load the function pointer of SetProcessMitigationPolicy dynamically because we are building with Windows 7 SDK that does not have the definition of this function
+	typedef BOOL (WINAPI *SetProcessMitigationPolicyFunc) (PROCESS_MITIGATION_POLICY MitigationPolicy, PVOID lpBuffer, SIZE_T dwLength);
+	SetProcessMitigationPolicyFunc SetProcessMitigationPolicyPtr = (SetProcessMitigationPolicyFunc) GetProcAddress (GetModuleHandle (L"kernel32.dll"), "SetProcessMitigationPolicy");
+	if (SetProcessMitigationPolicyPtr)
+	{
+		PROCESS_MITIGATION_ASLR_POLICY aslrPolicy = { 0 };
+		PROCESS_MITIGATION_DYNAMIC_CODE_POLICY dynCodePolicy = { 0 };
+		PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY extensionPointDisablePolicy = { 0 };
+
+		aslrPolicy.EnableBottomUpRandomization = TRUE;
+		aslrPolicy.EnableForceRelocateImages = TRUE;
+		aslrPolicy.EnableHighEntropy = TRUE;
+
+		dynCodePolicy.ProhibitDynamicCode = TRUE;
+
+		extensionPointDisablePolicy.DisableExtensionPoints = TRUE;
+
+		SetProcessMitigationPolicyPtr (ProcessASLRPolicy, &aslrPolicy, sizeof (aslrPolicy));
+		SetProcessMitigationPolicyPtr (ProcessDynamicCodePolicy, &dynCodePolicy, sizeof (dynCodePolicy));
+		SetProcessMitigationPolicyPtr (ProcessExtensionPointDisablePolicy, &extensionPointDisablePolicy, sizeof (extensionPointDisablePolicy));
+	}
 }
 
 // Based on sample code from: 
@@ -14524,12 +14416,6 @@ static bool RunAsDesktopUser(
 	SecureZeroMemory(&pi, sizeof(pi));
 	si.cb = sizeof(si);
 
-	// locate CreateProcessWithTokenW in Advapi32.dll
-	if (!CreateProcessWithTokenWPtr)
-	{
-		return false;
-	}
-
 	if (!ImpersonateSelf (SecurityImpersonation))
 	{
 		return false;
@@ -14546,7 +14432,10 @@ static bool RunAsDesktopUser(
 		LookupPrivilegeValueW(NULL, SE_INCREASE_QUOTA_NAME, &tkp.Privileges[0].Luid);
 		tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		SetThreadToken (NULL, NULL);
+		if (!SetThreadToken(NULL, NULL))
+		{
+			goto cleanup;
+		}
 
 		AdjustTokenPrivileges(hThreadToken, FALSE, &tkp, 0, NULL, NULL);
 		dwLastErr = GetLastError();
@@ -14604,7 +14493,7 @@ static bool RunAsDesktopUser(
 	}
 
 	// Start the target process with the new token.
-	ret = CreateProcessWithTokenWPtr(
+	ret = CreateProcessWithTokenW(
 		hPrimaryToken,
 		0,
 		szApp,
@@ -14632,7 +14521,10 @@ cleanup:
 	if (hPrimaryToken) CloseHandle(hPrimaryToken);
 	if (hShellProcess) CloseHandle(hShellProcess);
 	if (hThreadToken) CloseHandle(hThreadToken);
-	RevertToSelf ();
+
+	if (!RevertToSelf())
+	return false;
+
 	if (!retval)
 		SetLastError (dwLastErr);
 	return retval;
@@ -14675,7 +14567,7 @@ HRESULT GetShellViewForDesktop(REFIID riid, void **ppv)
         if (S_OK == psw->FindWindowSW(&vEmpty, &vEmpty, SWC_DESKTOP, (long*)&hwnd, SWFO_NEEDDISPATCH, &pdisp))
         {
             IShellBrowser *psb;
-            hr = IUnknown_QueryServicePtr(pdisp, SID_STopLevelBrowser, IID_PPV_ARGS(&psb));
+            hr = IUnknown_QueryService(pdisp, SID_STopLevelBrowser, IID_PPV_ARGS(&psb));
             if (SUCCEEDED(hr))
             {
                 IShellView *psv;
@@ -14727,7 +14619,7 @@ HRESULT GetShellDispatchFromView(IShellView *psv, REFIID riid, void **ppv)
 HRESULT ShellExecInExplorerProcess(PCWSTR pszFile)
 {
     IShellView *psv;
-	CoInitialize(NULL);
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     HRESULT hr = GetShellViewForDesktop(IID_PPV_ARGS(&psv));
     if (SUCCEEDED(hr))
     {
@@ -14759,7 +14651,7 @@ HRESULT ShellExecInExplorerProcess(PCWSTR pszFile)
 void SafeOpenURL (LPCWSTR szUrl)
 {
 	BOOL bFallback = TRUE;
-	if (IsOSAtLeast (WIN_VISTA) && IsUacSupported() && IsAdmin () && IsElevated() && GetShellWindow())
+	if (IsUacSupported() && IsAdmin () && IsElevated() && GetShellWindow())
 	{
 		WCHAR szRunDllPath[TC_MAX_PATH];
 		WCHAR szUrlDllPath[TC_MAX_PATH];
@@ -14899,68 +14791,48 @@ BitLockerEncryptionStatus GetBitLockerEncryptionStatus(WCHAR driveLetter)
 {    
     HRESULT hr;
     BitLockerEncryptionStatus blStatus = BL_Status_Unknown;
-    wchar_t szDllPath[MAX_PATH] = { 0 };
-    HMODULE hShell32 = NULL;
+	wchar_t szDllPath[MAX_PATH] = { 0 };
+	HMODULE hPropsys = NULL;
 
-    CoInitialize(NULL);
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     if (GetSystemDirectory(szDllPath, MAX_PATH))
-        StringCchCatW(szDllPath, MAX_PATH, L"\\Shell32.dll");
+        StringCchCatW(szDllPath, MAX_PATH, L"\\Propsys.dll");
     else
-        StringCchCopyW(szDllPath, MAX_PATH, L"C:\\Windows\\System32\\Shell32.dll");
+        StringCchCopyW(szDllPath, MAX_PATH, L"C:\\Windows\\System32\\Propsys.dll");
 
-    hShell32 = LoadLibrary(szDllPath);
-    if (hShell32)
+    hPropsys = LoadLibrary(szDllPath);
+    if (hPropsys)
     {
-        SHCreateItemFromParsingNameFn SHCreateItemFromParsingNamePtr = (SHCreateItemFromParsingNameFn)GetProcAddress(hShell32, "SHCreateItemFromParsingName");
-        if (SHCreateItemFromParsingNamePtr)
+        PSGetPropertyKeyFromNameFn PSGetPropertyKeyFromNamePtr = (PSGetPropertyKeyFromNameFn)GetProcAddress(hPropsys, "PSGetPropertyKeyFromName");
+        if (PSGetPropertyKeyFromNamePtr)
         {
-            HMODULE hPropsys = NULL;
-
-            if (GetSystemDirectory(szDllPath, MAX_PATH))
-                StringCchCatW(szDllPath, MAX_PATH, L"\\Propsys.dll");
-            else
-                StringCchCopyW(szDllPath, MAX_PATH, L"C:\\Windows\\System32\\Propsys.dll");
-
-            hPropsys = LoadLibrary(szDllPath);
-            if (hPropsys)
-            {
-                PSGetPropertyKeyFromNameFn PSGetPropertyKeyFromNamePtr = (PSGetPropertyKeyFromNameFn)GetProcAddress(hPropsys, "PSGetPropertyKeyFromName");
-                if (PSGetPropertyKeyFromNamePtr)
-                {
-					WCHAR parsingName[3] = {driveLetter, L':', 0};
-                    IShellItem2* drive = NULL;
-                    hr = SHCreateItemFromParsingNamePtr(parsingName, NULL, IID_PPV_ARGS(&drive));
+			WCHAR parsingName[3] = {driveLetter, L':', 0};
+            IShellItem2* drive = NULL;
+            hr = SHCreateItemFromParsingName(parsingName, NULL, IID_PPV_ARGS(&drive));
+            if (SUCCEEDED(hr)) {
+                PROPERTYKEY pKey;
+                hr = PSGetPropertyKeyFromNamePtr(L"System.Volume.BitLockerProtection", &pKey);
+                if (SUCCEEDED(hr)) {
+                    PROPVARIANT prop;
+                    PropVariantInit(&prop);
+                    hr = drive->GetProperty(pKey, &prop);
                     if (SUCCEEDED(hr)) {
-                        PROPERTYKEY pKey;
-                        hr = PSGetPropertyKeyFromNamePtr(L"System.Volume.BitLockerProtection", &pKey);
-                        if (SUCCEEDED(hr)) {
-                            PROPVARIANT prop;
-                            PropVariantInit(&prop);
-                            hr = drive->GetProperty(pKey, &prop);
-                            if (SUCCEEDED(hr)) {
-                                int status = prop.intVal;
-                                if (status == BL_State_FullyEncrypted || status == BL_State_DecryptionInProgress || status == BL_State_DecryptionSuspended)
-                                    blStatus = BL_Status_Protected;
-                                else
-                                    blStatus = BL_Status_Unprotected;
-                            }
-                        }
+                        int status = prop.intVal;
+                        if (status == BL_State_FullyEncrypted || status == BL_State_DecryptionInProgress || status == BL_State_DecryptionSuspended)
+                            blStatus = BL_Status_Protected;
+                        else
+                            blStatus = BL_Status_Unprotected;
                     }
-                    if (drive)
-                        drive->Release();
                 }
-
-                FreeLibrary(hPropsys);
             }
-        }
-        else
-        {
-            blStatus = BL_Status_Unprotected; // before Vista, there was no Bitlocker
+            if (drive)
+                drive->Release();
         }
 
-        FreeLibrary(hShell32);
+        FreeLibrary(hPropsys);
     }
+
 
     CoUninitialize();
     return blStatus;
@@ -15040,7 +14912,7 @@ ULONG GenericDropTarget::Release(void)
 BOOL GenericDropTarget::Register(HWND hWnd)
 {
 	if(NULL == hWnd)
-		return E_FAIL;
+		return FALSE;
 
 	OleInitialize(NULL);
 
@@ -15261,7 +15133,7 @@ DWORD PasswordEditDropTarget::GotEnter(void)
 	HWND hChild = WindowFromPoint (m_DropPoint);
 	// check that we are on password edit control (we use maximum length to correctly identify password fields since they don't always have ES_PASSWORD style (if the the user checked show password)
 	if (hChild && GetClassName (hChild, szClassName, ARRAYSIZE (szClassName)) && (0 == _tcsicmp (szClassName, _T("EDIT")))
-		&& (dwStyles = GetWindowLong (hChild, GWL_STYLE)) && !(dwStyles & ES_NUMBER)
+		&& (dwStyles = GetWindowLongPtr (hChild, GWL_STYLE)) && !(dwStyles & ES_NUMBER)
 		&& (maxLen = (int) SendMessage (hChild, EM_GETLIMITTEXT, 0, 0)) && (maxLen == MAX_PASSWORD || maxLen == MAX_LEGACY_PASSWORD)
 		)
 	{
@@ -15286,7 +15158,7 @@ void PasswordEditDropTarget::GotDrop(CLIPFORMAT format)
 		int maxLen;
 		HWND hChild = WindowFromPoint (m_DropPoint);
 		if (hChild && GetClassName (hChild, szClassName, ARRAYSIZE (szClassName)) && (0 == _tcsicmp (szClassName, _T("EDIT")))
-			&& (dwStyles = GetWindowLong (hChild, GWL_STYLE)) && !(dwStyles & ES_NUMBER)
+			&& (dwStyles = GetWindowLongPtr (hChild, GWL_STYLE)) && !(dwStyles & ES_NUMBER)
 			&& (maxLen = (int) SendMessage (hChild, EM_GETLIMITTEXT, 0, 0)) && (maxLen == MAX_PASSWORD || maxLen == MAX_LEGACY_PASSWORD)
 			)
 		{
@@ -15369,6 +15241,33 @@ void PasswordEditDropTarget::GotDrop(CLIPFORMAT format)
 	}
 }
 
+
+// check if the PC is connected to the internet using INetworkListManager interface
+BOOL IsInternetConnected()
+{
+    HRESULT hr;
+    BOOL isConnected = FALSE;
+    INetworkListManager* pNetworkListManager = nullptr;
+
+    hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    if (SUCCEEDED(hr))
+    {
+        hr = CoCreateInstance(CLSID_NetworkListManager, NULL, CLSCTX_ALL, IID_PPV_ARGS(&pNetworkListManager));
+        if (SUCCEEDED(hr))
+        {
+            VARIANT_BOOL isConnectedVariant;
+            hr = pNetworkListManager->get_IsConnectedToInternet(&isConnectedVariant);
+            if (SUCCEEDED(hr))
+            {
+                isConnected = isConnectedVariant == VARIANT_TRUE;
+            }
+            pNetworkListManager->Release();
+        }
+        CoUninitialize();
+    }
+
+    return isConnected;
+}
 
 /*
  * Query the status of Hibernate and Fast Startup
@@ -15478,7 +15377,7 @@ bool GetKbList (std::vector<std::wstring>& kbList)
 	kbList.clear();
 
     // Initialize COM.
-    hres =  CoInitialize(NULL); 
+    hres =  CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (FAILED(hres))
     {
         return false;
@@ -15660,5 +15559,87 @@ bool OneOfKBsInstalled (const wchar_t* szKBs[], int count)
 	}
 
 	return bRet;
+}
+
+DWORD SendServiceNotification (DWORD dwNotificationCmd)
+{
+	DWORD dwRet = ERROR_INVALID_PARAMETER;
+	// We only support clearing keys on new device insertion
+	if (VC_DRIVER_CONFIG_CLEAR_KEYS_ON_NEW_DEVICE_INSERTION == dwNotificationCmd)
+	{
+		DWORD dwServiceControlCode = VC_SERVICE_CONTROL_BUILD_DEVICE_LIST;
+		// send this control code to VeraCrypt SystemFavorites service
+		SC_HANDLE hSCManager = OpenSCManager (NULL, NULL, SC_MANAGER_CONNECT);
+		if (hSCManager != NULL)
+		{
+			SC_HANDLE hService = OpenService (hSCManager, TC_SYSTEM_FAVORITES_SERVICE_NAME, SERVICE_ALL_ACCESS);
+			if (hService != NULL)
+			{
+				SERVICE_STATUS ss;
+				if (ControlService (hService, dwServiceControlCode, &ss))
+					dwRet = ERROR_SUCCESS;
+				else
+					dwRet = GetLastError ();
+				CloseServiceHandle (hService);
+			}
+			else
+				dwRet = GetLastError ();
+			CloseServiceHandle (hSCManager);
+		}
+		else
+			dwRet = GetLastError ();
+	}
+
+	return dwRet;
+}
+
+DWORD FastResizeFile (const wchar_t* filePath, __int64 fileSize)
+{
+	DWORD dwRet = ERROR_INVALID_PARAMETER;
+	if (filePath && fileSize > 0)
+	{
+		// we set required privileges to speedup file creation before we create the file so that the file handle inherits the privileges
+		BOOL bPrivilegesSet = IsPrivilegeEnabled (SE_MANAGE_VOLUME_NAME);
+		if (!bPrivilegesSet && !SetPrivilege(SE_MANAGE_VOLUME_NAME, TRUE))
+		{
+			dwRet = GetLastError ();
+		}
+		else
+		{
+			HANDLE dev = CreateFile (filePath, GENERIC_WRITE | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			if (dev != INVALID_HANDLE_VALUE)
+			{
+				LARGE_INTEGER liSize;
+				liSize.QuadPart = fileSize;
+				// Preallocate the file with desired size
+				if (!SetFilePointerEx (dev, liSize, NULL, FILE_BEGIN)
+					|| !SetEndOfFile (dev))
+				{
+					dwRet = GetLastError ();
+				}
+				else
+				{
+					if (!SetFileValidData (dev, fileSize))
+					{
+						dwRet = GetLastError ();
+					}
+					else
+					{
+						dwRet = ERROR_SUCCESS;
+					}
+				}
+
+				FlushFileBuffers (dev);
+				CloseHandle (dev);
+			}
+			else
+				dwRet = GetLastError ();
+			
+			if (!bPrivilegesSet)
+				SetPrivilege(SE_MANAGE_VOLUME_NAME, FALSE);
+		}
+	}
+
+	return dwRet;
 }
 #endif // VC_COMREG

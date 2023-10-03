@@ -34,7 +34,7 @@ namespace VeraCrypt
 		virtual void BackupVolumeHeaders (shared_ptr <VolumePath> volumePath) const;
 		virtual void BeginBusyState () const { wxBeginBusyCursor(); }
 		virtual void BeginInteractiveBusyState (wxWindow *window);
-		virtual void ChangePassword (shared_ptr <VolumePath> volumePath = shared_ptr <VolumePath>(), shared_ptr <VolumePassword> password = shared_ptr <VolumePassword>(), int pim = 0, shared_ptr <Hash> currentHash = shared_ptr <Hash>(), bool truecryptMode = false, shared_ptr <KeyfileList> keyfiles = shared_ptr <KeyfileList>(), shared_ptr <VolumePassword> newPassword = shared_ptr <VolumePassword>(), int newPim = 0, shared_ptr <KeyfileList> newKeyfiles = shared_ptr <KeyfileList>(), shared_ptr <Hash> newHash = shared_ptr <Hash>()) const { ThrowTextModeRequired(); }
+		virtual void ChangePassword (shared_ptr <VolumePath> volumePath = shared_ptr <VolumePath>(), shared_ptr <VolumePassword> password = shared_ptr <VolumePassword>(), int pim = 0, shared_ptr <Hash> currentHash = shared_ptr <Hash>(), shared_ptr <KeyfileList> keyfiles = shared_ptr <KeyfileList>(), shared_ptr <VolumePassword> newPassword = shared_ptr <VolumePassword>(), int newPim = 0, shared_ptr <KeyfileList> newKeyfiles = shared_ptr <KeyfileList>(), shared_ptr <Hash> newHash = shared_ptr <Hash>()) const { ThrowTextModeRequired(); }
 		wxHyperlinkCtrl *CreateHyperlink (wxWindow *parent, const wxString &linkUrl, const wxString &linkText) const;
 		virtual void CreateKeyfile (shared_ptr <FilePath> keyfilePath = shared_ptr <FilePath>()) const;
 		virtual void CreateVolume (shared_ptr <VolumeCreationOptions> options) const { ThrowTextModeRequired(); }
@@ -46,7 +46,7 @@ namespace VeraCrypt
 		virtual void DoShowWarning (const wxString &message) const;
 		virtual void EndBusyState () const { wxEndBusyCursor(); }
 		virtual void EndInteractiveBusyState (wxWindow *window) const;
-		virtual void ExportSecurityTokenKeyfile () const { ThrowTextModeRequired(); }
+		virtual void ExportTokenKeyfile () const { ThrowTextModeRequired(); }
 		virtual wxTopLevelWindow *GetActiveWindow () const;
 		virtual shared_ptr <GetStringFunctor> GetAdminPasswordRequestHandler ();
 		virtual int GetCharHeight (wxWindow *window) const;
@@ -58,12 +58,14 @@ namespace VeraCrypt
 		virtual int GetScrollbarWidth (wxWindow *window, bool noScrollBar = false) const;
 		virtual list <long> GetListCtrlSelectedItems (wxListCtrl *listCtrl) const;
 		virtual wxString GetListCtrlSubItemText (wxListCtrl *listCtrl, long itemIndex, int columnIndex) const;
-		virtual void ImportSecurityTokenKeyfiles () const { ThrowTextModeRequired(); }
+		virtual void ImportTokenKeyfiles () const { ThrowTextModeRequired(); }
 		virtual void InitSecurityTokenLibrary () const;
 		virtual void InsertToListCtrl (wxListCtrl *listCtrl, long itemIndex, const vector <wstring> &itemFields, int imageIndex = -1, void *itemDataPtr = nullptr) const;
 		virtual bool IsInBackgroundMode () const { return BackgroundMode; }
 		virtual bool IsTheOnlyTopLevelWindow (const wxWindow *window) const;
-		virtual void ListSecurityTokenKeyfiles () const;
+        virtual void ListTokenKeyfiles () const;
+        virtual void ListSecurityTokenKeyfiles () const;
+        virtual void ListEMVTokenKeyfiles () const;
 		virtual VolumeInfoList MountAllDeviceHostedVolumes (MountOptions &options) const;
 		virtual shared_ptr <VolumeInfo> MountVolume (MountOptions &options) const;
 		virtual void MoveListCtrlItem (wxListCtrl *listCtrl, long itemIndex, long newItemIndex) const;

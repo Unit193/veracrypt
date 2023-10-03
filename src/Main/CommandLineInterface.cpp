@@ -29,7 +29,6 @@ namespace VeraCrypt
 		ArgPim (-1),
 		ArgSize (0),
 		ArgVolumeType (VolumeType::Unknown),
-		ArgTrueCryptMode (false),
 		ArgDisableFileSizeCheck (false),
 		ArgUseLegacyPassword (false),
 #if defined(TC_LINUX ) || defined (TC_FREEBSD)
@@ -56,7 +55,7 @@ namespace VeraCrypt
 		parser.AddSwitch (L"",	L"display-password",	_("Display password while typing"));
 		parser.AddOption (L"",	L"encryption",			_("Encryption algorithm"));
 		parser.AddSwitch (L"",	L"explore",				_("Open explorer window for mounted volume"));
-		parser.AddSwitch (L"",	L"export-token-keyfile",_("Export keyfile from security token"));
+		parser.AddSwitch (L"",	L"export-token-keyfile",_("Export keyfile from token"));
 		parser.AddOption (L"",	L"filesystem",			_("Filesystem type"));
 		parser.AddSwitch (L"f", L"force",				_("Force mount/dismount/overwrite"));
 #if !defined(TC_WINDOWS) && !defined(TC_MACOSX)
@@ -67,7 +66,9 @@ namespace VeraCrypt
 		parser.AddSwitch (L"",	L"import-token-keyfiles", _("Import keyfiles to security token"));
 		parser.AddOption (L"k", L"keyfiles",			_("Keyfiles"));
 		parser.AddSwitch (L"l", L"list",				_("List mounted volumes"));
-		parser.AddSwitch (L"",	L"list-token-keyfiles",	_("List security token keyfiles"));
+		parser.AddSwitch (L"",	L"list-token-keyfiles",	_("List token keyfiles"));
+		parser.AddSwitch (L"",	L"list-securitytoken-keyfiles",	_("List security token keyfiles"));
+		parser.AddSwitch (L"",	L"list-emvtoken-keyfiles",	_("List EMV token keyfiles"));
 		parser.AddSwitch (L"",	L"load-preferences",	_("Load user preferences"));
 		parser.AddSwitch (L"",	L"mount",				_("Mount volume interactively"));
 		parser.AddOption (L"m", L"mount-options",		_("VeraCrypt volume mount options"));
@@ -90,7 +91,6 @@ namespace VeraCrypt
 		parser.AddSwitch (L"",	L"quick",				_("Enable quick format"));
 		parser.AddOption (L"",	L"size",				_("Size in bytes"));
 		parser.AddOption (L"",	L"slot",				_("Volume slot number"));
-		parser.AddSwitch (L"tc",L"truecrypt",			_("Enable TrueCrypt mode. Should be put first to avoid issues."));
 		parser.AddSwitch (L"",	L"test",				_("Test internal algorithms"));
 		parser.AddSwitch (L"t", L"text",				_("Use text user interface"));
 		parser.AddOption (L"",	L"token-lib",			_("Security token library"));
@@ -219,13 +219,13 @@ namespace VeraCrypt
 		if (parser.Found (L"export-token-keyfile"))
 		{
 			CheckCommandSingle();
-			ArgCommand = CommandId::ExportSecurityTokenKeyfile;
+			ArgCommand = CommandId::ExportTokenKeyfile;
 		}
 
 		if (parser.Found (L"import-token-keyfiles"))
 		{
 			CheckCommandSingle();
-			ArgCommand = CommandId::ImportSecurityTokenKeyfiles;
+			ArgCommand = CommandId::ImportTokenKeyfiles;
 		}
 
 		if (parser.Found (L"list"))
@@ -238,8 +238,18 @@ namespace VeraCrypt
 		if (parser.Found (L"list-token-keyfiles"))
 		{
 			CheckCommandSingle();
-			ArgCommand = CommandId::ListSecurityTokenKeyfiles;
+			ArgCommand = CommandId::ListTokenKeyfiles;
 		}
+        if (parser.Found (L"list-securitytoken-keyfiles"))
+        {
+            CheckCommandSingle();
+            ArgCommand = CommandId::ListSecurityTokenKeyfiles;
+        }
+        if (parser.Found (L"list-emvtoken-keyfiles"))
+        {
+            CheckCommandSingle();
+            ArgCommand = CommandId::ListEMVTokenKeyfiles;
+        }
 
 		if (parser.Found (L"mount"))
 		{
@@ -345,9 +355,8 @@ namespace VeraCrypt
 
 		ArgForce = parser.Found (L"force");
 
-		ArgTrueCryptMode = parser.Found (L"truecrypt");
 		ArgDisableFileSizeCheck = parser.Found (L"no-size-check");
-		ArgUseLegacyPassword = parser.Found (L"legacy-password-maxlength") || ArgTrueCryptMode;		
+		ArgUseLegacyPassword = parser.Found (L"legacy-password-maxlength");		
 #if defined(TC_LINUX ) || defined (TC_FREEBSD)
 		ArgUseDummySudoPassword = parser.Found (L"use-dummy-sudo-password");
 #endif
@@ -437,8 +446,6 @@ namespace VeraCrypt
 
 			if (ArgNewPim < 0 || ArgNewPim > (ArgMountOptions.PartitionInSystemEncryptionScope? MAX_BOOT_PIM_VALUE: MAX_PIM_VALUE))
 				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
-			else if (ArgNewPim > 0 && ArgTrueCryptMode)
-				throw_err (LangString["PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
 		}
 
 		if (parser.Found (L"non-interactive"))
@@ -477,8 +484,6 @@ namespace VeraCrypt
 
 			if (ArgPim < 0 || ArgPim > (ArgMountOptions.PartitionInSystemEncryptionScope? MAX_BOOT_PIM_VALUE: MAX_PIM_VALUE))
 				throw_err (LangString["PARAMETER_INCORRECT"] + L": " + str);
-			else if (ArgPim > 0 && ArgTrueCryptMode)
-				throw_err (LangString["PIM_NOT_SUPPORTED_FOR_TRUECRYPT_MODE"]);
 		}
 
 		if (parser.Found (L"protect-hidden", &str))
@@ -533,7 +538,7 @@ namespace VeraCrypt
 				if (hashName.IsSameAs (str, false) || hashAltName.IsSameAs (str, false))
 				{
 					bHashFound = true;
-					ArgMountOptions.ProtectionKdf = Pkcs5Kdf::GetAlgorithm (*hash, ArgTrueCryptMode);
+					ArgMountOptions.ProtectionKdf = Pkcs5Kdf::GetAlgorithm (*hash);
 				}
 			}
 

@@ -68,108 +68,6 @@ typedef enum
 
 #define WAIT_PERIOD 3
 
-extern HMODULE hRichEditDll;
-extern HMODULE hComctl32Dll;
-extern HMODULE hSetupDll;
-extern HMODULE hShlwapiDll;
-extern HMODULE hProfApiDll;
-extern HMODULE hUsp10Dll;
-extern HMODULE hCryptSpDll;
-extern HMODULE hUXThemeDll;
-extern HMODULE hUserenvDll;
-extern HMODULE hRsaenhDll;
-extern HMODULE himm32dll;
-extern HMODULE hMSCTFdll;
-extern HMODULE hfltlibdll;
-extern HMODULE hframedyndll;
-extern HMODULE hpsapidll;
-extern HMODULE hsecur32dll;
-extern HMODULE hnetapi32dll;
-extern HMODULE hauthzdll;
-extern HMODULE hxmllitedll;
-extern HMODULE hmprdll;
-extern HMODULE hsppdll;
-extern HMODULE vssapidll;
-extern HMODULE hvsstracedll;
-extern HMODULE hcfgmgr32dll;
-extern HMODULE hdevobjdll;
-extern HMODULE hpowrprofdll;
-extern HMODULE hsspiclidll;
-extern HMODULE hcryptbasedll;
-extern HMODULE hdwmapidll;
-extern HMODULE hmsasn1dll;
-extern HMODULE hcrypt32dll;
-extern HMODULE hbcryptdll;
-extern HMODULE hbcryptprimitivesdll;
-extern HMODULE hMsls31;
-extern HMODULE hntmartadll;
-extern HMODULE hwinscarddll;
-extern HMODULE hmsvcrtdll;
-extern HMODULE hWinTrustLib;
-extern HMODULE hAdvapi32Dll;
-
-#define FREE_DLL(h)	if (h) { FreeLibrary (h); h = NULL;}
-
-#ifndef BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE
-#define BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE 0x00000001
-#endif
-
-#ifndef BASE_SEARCH_PATH_PERMANENT
-#define BASE_SEARCH_PATH_PERMANENT 0x00008000
-#endif
-
-#ifndef LOAD_LIBRARY_SEARCH_SYSTEM32
-#define LOAD_LIBRARY_SEARCH_SYSTEM32   0x00000800
-#endif
-
-typedef BOOL (WINAPI *SetDllDirectoryPtr)(LPCWSTR lpPathName);
-typedef BOOL (WINAPI *SetSearchPathModePtr)(DWORD Flags);
-typedef BOOL (WINAPI *SetDefaultDllDirectoriesPtr)(DWORD DirectoryFlags);
-
-typedef void (WINAPI *InitCommonControlsPtr)(void);
-typedef HIMAGELIST  (WINAPI *ImageList_CreatePtr)(int cx, int cy, UINT flags, int cInitial, int cGrow);
-typedef int         (WINAPI *ImageList_AddPtr)(HIMAGELIST himl, HBITMAP hbmImage, HBITMAP hbmMask);
-
-typedef VOID (WINAPI *SetupCloseInfFilePtr)(HINF InfHandle);
-typedef HKEY (WINAPI *SetupDiOpenClassRegKeyPtr)(CONST GUID *ClassGuid,REGSAM samDesired);
-typedef BOOL (WINAPI *SetupInstallFromInfSectionWPtr)(HWND,HINF,PCWSTR,UINT,HKEY,PCWSTR,UINT,PSP_FILE_CALLBACK_W,PVOID,HDEVINFO,PSP_DEVINFO_DATA);
-typedef HINF (WINAPI *SetupOpenInfFileWPtr)(PCWSTR FileName,PCWSTR InfClass,DWORD InfStyle,PUINT ErrorLine);
-
-typedef LSTATUS (STDAPICALLTYPE *SHDeleteKeyWPtr)(HKEY hkey, LPCWSTR pszSubKey);
-
-typedef HRESULT (STDAPICALLTYPE *SHStrDupWPtr)(LPCWSTR psz, LPWSTR *ppwsz);
-
-// ChangeWindowMessageFilter
-typedef BOOL (WINAPI *ChangeWindowMessageFilterPtr) (UINT, DWORD);
-
-typedef BOOL (WINAPI *CreateProcessWithTokenWFn)(
-    __in        HANDLE hToken,
-    __in        DWORD dwLogonFlags,
-    __in_opt    LPCWSTR lpApplicationName,
-    __inout_opt LPWSTR lpCommandLine,
-    __in        DWORD dwCreationFlags,
-    __in_opt    LPVOID lpEnvironment,
-    __in_opt    LPCWSTR lpCurrentDirectory,
-    __in        LPSTARTUPINFOW lpStartupInfo,
-    __out       LPPROCESS_INFORMATION lpProcessInformation
-      );
-
-extern SetDllDirectoryPtr SetDllDirectoryFn;
-extern SetSearchPathModePtr SetSearchPathModeFn;
-extern SetDefaultDllDirectoriesPtr SetDefaultDllDirectoriesFn;
-
-extern ImageList_CreatePtr ImageList_CreateFn;
-extern ImageList_AddPtr ImageList_AddFn;
-
-extern SetupCloseInfFilePtr SetupCloseInfFileFn;
-extern SetupDiOpenClassRegKeyPtr SetupDiOpenClassRegKeyFn;
-extern SetupInstallFromInfSectionWPtr SetupInstallFromInfSectionWFn;
-extern SetupOpenInfFileWPtr SetupOpenInfFileWFn;
-extern SHDeleteKeyWPtr SHDeleteKeyWFn;
-extern SHStrDupWPtr SHStrDupWFn;
-extern ChangeWindowMessageFilterPtr ChangeWindowMessageFilterFn;
-extern CreateProcessWithTokenWFn CreateProcessWithTokenWPtr;
-
 wchar_t InstallationPath[TC_MAX_PATH];
 
 BOOL bUninstall = FALSE;
@@ -328,10 +226,6 @@ void DetermineUpgradeDowngradeStatus (BOOL bCloseDriverHandle, LONG *driverVersi
 		DWORD dwResult;
 		BOOL bResult = DeviceIoControl (hDriver, TC_IOCTL_GET_DRIVER_VERSION, NULL, 0, &driverVersion, sizeof (driverVersion), &dwResult, NULL);
 
-		if (!bResult)
-			bResult = DeviceIoControl (hDriver, TC_IOCTL_LEGACY_GET_DRIVER_VERSION, NULL, 0, &driverVersion, sizeof (driverVersion), &dwResult, NULL);
-
-
 		bUpgrade = (bResult && driverVersion <= VERSION_NUM);
 		bDowngrade = (bResult && driverVersion > VERSION_NUM);
 		bReinstallMode = (bResult && driverVersion == VERSION_NUM);
@@ -360,25 +254,12 @@ BOOL IsSystemRestoreEnabled ()
 	GetRestorePointRegKeyName (szRegPath, sizeof (szRegPath));
 	if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, szRegPath, 0, KEY_READ | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS)
 	{
-		if (IsOSAtLeast (WIN_VISTA))
+		if (	(ERROR_SUCCESS == RegQueryValueEx (hKey, L"RPSessionInterval", NULL, NULL, (LPBYTE) &dwValue, &cbValue))
+			&&	(dwValue == 1)
+			)
 		{
-			if (	(ERROR_SUCCESS == RegQueryValueEx (hKey, L"RPSessionInterval", NULL, NULL, (LPBYTE) &dwValue, &cbValue))
-				&&	(dwValue == 1)
-				)
-			{
-				bEnabled = TRUE;
-			}
+			bEnabled = TRUE;
 		}
-		else
-		{
-			if (	(ERROR_SUCCESS == RegQueryValueEx (hKey, L"DisableSR", NULL, NULL, (LPBYTE) &dwValue, &cbValue))
-				&&	(dwValue == 0)
-				)
-			{
-				bEnabled = TRUE;
-			}
-		}
-
 
 		RegCloseKey (hKey);
 	}
@@ -988,8 +869,6 @@ void HandleDriveNotReadyError_Dll (MSIHANDLE hInstaller)
 	{
 		MSILogAndShow (hInstaller, MSI_WARNING_LEVEL, GetString("SYS_AUTOMOUNT_DISABLED"));
 	}
-	else if (nCurrentOS == WIN_VISTA && CurrentOSServicePack < 1)
-		MSILogAndShow (hInstaller, MSI_WARNING_LEVEL, GetString("SYS_ASSIGN_DRIVE_LETTER"));
 	else
 		MSILogAndShow (hInstaller, MSI_WARNING_LEVEL, GetString("DEVICE_NOT_READY_ERROR"));
 
@@ -1153,11 +1032,6 @@ void handleError_Dll (MSIHANDLE hInstaller, int code, const char* srcPos)
 	case ERR_USER_ABORT:
 	case ERR_DONT_REPORT:
 		// A non-error
-		break;
-
-	case ERR_UNSUPPORTED_TRUECRYPT_FORMAT:
-		StringCbPrintfW (szTmp, sizeof(szTmp), GetString ("UNSUPPORTED_TRUECRYPT_FORMAT"), (code >> 24), (code >> 16) & 0x000000FF);
-		MSILogAndShow (hInstaller, MSI_ERROR_LEVEL, AppendSrcPos (szTmp, srcPos).c_str());
 		break;
 
 	default:
@@ -1505,7 +1379,6 @@ BOOL DoDriverUnload_Dll (MSIHANDLE hInstaller, HWND hwnd)
 
 	if (hDriver != INVALID_HANDLE_VALUE)
 	{
-		MOUNT_LIST_STRUCT driver;
 		LONG driverVersion = VERSION_NUM;
 		int refCount;
 		DWORD dwResult;
@@ -1560,6 +1433,14 @@ BOOL DoDriverUnload_Dll (MSIHANDLE hInstaller, HWND hwnd)
 						goto end;
 					}
 
+					// check if we are upgrading a system encrypted with unsupported algorithms
+					if (bootEnc.IsUsingUnsupportedAlgorithm(driverVersion))
+					{
+						MSILogAndShow(hInstaller, MSI_ERROR_LEVEL, GetString("SYS_ENCRYPTION_UPGRADE_UNSUPPORTED_ALGORITHM"));
+						bOK = FALSE;
+						goto end;
+					}
+
 					SystemEncryptionUpdate = TRUE;
 					PortableMode = FALSE;
 				}
@@ -1583,13 +1464,6 @@ BOOL DoDriverUnload_Dll (MSIHANDLE hInstaller, HWND hwnd)
 
 			// Check mounted volumes
 			bResult = DeviceIoControl (hDriver, TC_IOCTL_IS_ANY_VOLUME_MOUNTED, NULL, 0, &volumesMounted, sizeof (volumesMounted), &dwResult, NULL);
-
-			if (!bResult)
-			{
-				bResult = DeviceIoControl (hDriver, TC_IOCTL_LEGACY_GET_MOUNTED_VOLUMES, NULL, 0, &driver, sizeof (driver), &dwResult, NULL);
-				if (bResult)
-					volumesMounted = driver.ulMountedDrives;
-			}
 
 			if (bResult)
 			{
@@ -1828,7 +1702,7 @@ BOOL DoRegUninstall_Dll (MSIHANDLE hInstaller, BOOL bRemoveDeprecated)
 	}
 
 	// Unregister COM servers
-	if (!bRemoveDeprecated && IsOSAtLeast (WIN_VISTA))
+	if (!bRemoveDeprecated)
 	{
 		if (!UnregisterComServers (InstallationPath))
 			MSILog (hInstaller, MSI_ERROR_LEVEL, GetString("COM_DEREG_FAILED"));
@@ -2115,141 +1989,12 @@ BOOL InitDll (MSIHANDLE hInstaller)
 	MSILog(hInstaller, MSI_INFO_LEVEL, L"Begin InitDll");
 
 	BOOL bOK = TRUE;
-	InitCommonControlsPtr InitCommonControlsFn = NULL;	
-
-	/* remove current directory from dll search path */
-	SetDllDirectoryFn = (SetDllDirectoryPtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetDllDirectoryW");
-	SetSearchPathModeFn = (SetSearchPathModePtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetSearchPathMode");
-	SetDefaultDllDirectoriesFn = (SetDefaultDllDirectoriesPtr) GetProcAddress (GetModuleHandle(L"kernel32.dll"), "SetDefaultDllDirectories");
-	if (SetDllDirectoryFn)
-		SetDllDirectoryFn (L"");
-	if (SetSearchPathModeFn)
-		SetSearchPathModeFn (BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
-	if (SetDefaultDllDirectoriesFn)
-		SetDefaultDllDirectoriesFn (LOAD_LIBRARY_SEARCH_SYSTEM32);
 
 	InitOSVersionInfo();
 	InitGlobalLocks ();
 
-	LoadSystemDll_Dll (hInstaller, L"msvcrt.dll", &hmsvcrtdll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"ntmarta.dll", &hntmartadll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"MPR.DLL", &hmprdll, TRUE, SRC_POS);
-	if (IsOSAtLeast (WIN_7))
-	{
-		LoadSystemDll_Dll (hInstaller, L"ProfApi.DLL", &hProfApiDll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"cryptbase.dll", &hcryptbasedll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"sspicli.dll", &hsspiclidll, TRUE, SRC_POS);
-	}
-	LoadSystemDll_Dll (hInstaller, L"psapi.dll", &hpsapidll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"secur32.dll", &hsecur32dll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"msasn1.dll", &hmsasn1dll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"Usp10.DLL", &hUsp10Dll, TRUE, SRC_POS);
-	if (IsOSAtLeast (WIN_7))
-		LoadSystemDll_Dll (hInstaller, L"dwmapi.dll", &hdwmapidll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"UXTheme.dll", &hUXThemeDll, TRUE, SRC_POS);   
-
-	LoadSystemDll_Dll (hInstaller, L"msls31.dll", &hMsls31, TRUE, SRC_POS);	
-	LoadSystemDll_Dll (hInstaller, L"SETUPAPI.DLL", &hSetupDll, FALSE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"SHLWAPI.DLL", &hShlwapiDll, FALSE, SRC_POS);	
-
-	LoadSystemDll_Dll (hInstaller, L"userenv.dll", &hUserenvDll, TRUE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"rsaenh.dll", &hRsaenhDll, TRUE, SRC_POS);
-
-	if (nCurrentOS < WIN_7)
-	{
-		if (nCurrentOS == WIN_XP)
-		{
-			LoadSystemDll_Dll (hInstaller, L"imm32.dll", &himm32dll, TRUE, SRC_POS);
-			LoadSystemDll_Dll (hInstaller, L"MSCTF.dll", &hMSCTFdll, TRUE, SRC_POS);
-			LoadSystemDll_Dll (hInstaller, L"fltlib.dll", &hfltlibdll, TRUE, SRC_POS);
-			LoadSystemDll_Dll (hInstaller, L"wbem\\framedyn.dll", &hframedyndll, TRUE, SRC_POS);
-		}
-
-		if (IsOSAtLeast (WIN_VISTA))
-		{					
-			LoadSystemDll_Dll (hInstaller, L"netapi32.dll", &hnetapi32dll, TRUE, SRC_POS);
-			LoadSystemDll_Dll (hInstaller, L"authz.dll", &hauthzdll, TRUE, SRC_POS);
-			LoadSystemDll_Dll (hInstaller, L"xmllite.dll", &hxmllitedll, TRUE, SRC_POS);
-		}
-	}
-
-	if (IsOSAtLeast (WIN_VISTA))
-	{					
-		LoadSystemDll_Dll (hInstaller, L"atl.dll", &hsppdll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"vsstrace.dll", &hvsstracedll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"vssapi.dll", &vssapidll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"spp.dll", &hsppdll, TRUE, SRC_POS);
-	}
-
-	LoadSystemDll_Dll (hInstaller, L"crypt32.dll", &hcrypt32dll, TRUE, SRC_POS);
-	
-	if (IsOSAtLeast (WIN_7))
-	{
-		LoadSystemDll_Dll (hInstaller, L"CryptSP.dll", &hCryptSpDll, TRUE, SRC_POS);
-
-		LoadSystemDll_Dll (hInstaller, L"cfgmgr32.dll", &hcfgmgr32dll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"devobj.dll", &hdevobjdll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"powrprof.dll", &hpowrprofdll, TRUE, SRC_POS);
-
-		LoadSystemDll_Dll (hInstaller, L"bcrypt.dll", &hbcryptdll, TRUE, SRC_POS);
-		LoadSystemDll_Dll (hInstaller, L"bcryptprimitives.dll", &hbcryptprimitivesdll, TRUE, SRC_POS);								
-	}	
-
-	LoadSystemDll_Dll (hInstaller, L"COMCTL32.DLL", &hComctl32Dll, FALSE, SRC_POS);
-	
-	// call InitCommonControls function
-	InitCommonControlsFn = (InitCommonControlsPtr) GetProcAddress (hComctl32Dll, "InitCommonControls");
-	ImageList_AddFn = (ImageList_AddPtr) GetProcAddress (hComctl32Dll, "ImageList_Add");
-	ImageList_CreateFn = (ImageList_CreatePtr) GetProcAddress (hComctl32Dll, "ImageList_Create");
-
-	if (InitCommonControlsFn && ImageList_AddFn && ImageList_CreateFn)
-	{
-		InitCommonControlsFn();
-	}
-	else
-	{
-		MSILog(hInstaller, MSI_ERROR_LEVEL, GetString("INIT_DLL"));
-		bOK = FALSE;
-		goto end;
-	}
-
-	LoadSystemDll_Dll (hInstaller, L"Riched20.dll", &hRichEditDll, FALSE, SRC_POS);
-	LoadSystemDll_Dll (hInstaller, L"Advapi32.dll", &hAdvapi32Dll, FALSE, SRC_POS);
-
-	// Get SetupAPI functions pointers
-	SetupCloseInfFileFn = (SetupCloseInfFilePtr) GetProcAddress (hSetupDll, "SetupCloseInfFile");
-	SetupDiOpenClassRegKeyFn = (SetupDiOpenClassRegKeyPtr) GetProcAddress (hSetupDll, "SetupDiOpenClassRegKey");
-	SetupInstallFromInfSectionWFn = (SetupInstallFromInfSectionWPtr) GetProcAddress (hSetupDll, "SetupInstallFromInfSectionW");
-	SetupOpenInfFileWFn = (SetupOpenInfFileWPtr) GetProcAddress (hSetupDll, "SetupOpenInfFileW");
-
-	if (!SetupCloseInfFileFn || !SetupDiOpenClassRegKeyFn || !SetupInstallFromInfSectionWFn || !SetupOpenInfFileWFn)
-	{
-		MSILog(hInstaller, MSI_ERROR_LEVEL, GetString("INIT_DLL"));
-		bOK = FALSE;
-		goto end;
-	}
-
-	// Get SHDeleteKeyW function pointer
-	SHDeleteKeyWFn = (SHDeleteKeyWPtr) GetProcAddress (hShlwapiDll, "SHDeleteKeyW");
-	SHStrDupWFn = (SHStrDupWPtr) GetProcAddress (hShlwapiDll, "SHStrDupW");
-	if (!SHDeleteKeyWFn || !SHStrDupWFn)
-	{
-		MSILog(hInstaller, MSI_ERROR_LEVEL, GetString("INIT_DLL"));
-		bOK = FALSE;
-		goto end;
-	}
-
-	if (IsOSAtLeast (WIN_VISTA))
-	{
-		/* Get ChangeWindowMessageFilter used to enable some messages bypasss UIPI (User Interface Privilege Isolation) */
-		ChangeWindowMessageFilterFn = (ChangeWindowMessageFilterPtr) GetProcAddress (GetModuleHandle (L"user32.dll"), "ChangeWindowMessageFilter");
-	}
-
-	// Get CreateProcessWithTokenW function pointer
-	CreateProcessWithTokenWPtr = (CreateProcessWithTokenWFn) GetProcAddress(hAdvapi32Dll, "CreateProcessWithTokenW");
-
 	SetErrorMode (SetErrorMode (0) | SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
-	CoInitialize (NULL);
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 	// Force language to english to read strings from the default Language.xml embedded in the DLL.
 	SetPreferredLangId ("en");
@@ -2260,7 +2005,6 @@ BOOL InitDll (MSIHANDLE hInstaller)
 	_set_invalid_parameter_handler (InvalidParameterHandler);
 	RemoteSession = GetSystemMetrics (SM_REMOTESESSION) != 0;
 
-end:
 	MSILog(hInstaller, MSI_INFO_LEVEL, L"End InitDll");
 	return bOK;
 }
@@ -2373,46 +2117,6 @@ void VC_CustomAction_Cleanup ()
 	CloseSysEncMutex ();
 
 	FinalizeGlobalLocks ();
-
-	FREE_DLL (hRichEditDll);
-	FREE_DLL (hComctl32Dll);
-	FREE_DLL (hSetupDll);
-	FREE_DLL (hShlwapiDll);
-	FREE_DLL (hProfApiDll);
-	FREE_DLL (hUsp10Dll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hUXThemeDll);
-	FREE_DLL (hUserenvDll);
-	FREE_DLL (hRsaenhDll);
-	FREE_DLL (himm32dll);
-	FREE_DLL (hMSCTFdll);
-	FREE_DLL (hfltlibdll);
-	FREE_DLL (hframedyndll);
-	FREE_DLL (hpsapidll);
-	FREE_DLL (hsecur32dll);
-	FREE_DLL (hnetapi32dll);
-	FREE_DLL (hauthzdll);
-	FREE_DLL (hxmllitedll);
-	FREE_DLL (hmprdll);
-	FREE_DLL (hsppdll);
-	FREE_DLL (vssapidll);
-	FREE_DLL (hvsstracedll);
-	FREE_DLL (hCryptSpDll);
-	FREE_DLL (hcfgmgr32dll);
-	FREE_DLL (hdevobjdll);
-	FREE_DLL (hpowrprofdll);
-	FREE_DLL (hsspiclidll);
-	FREE_DLL (hcryptbasedll);
-	FREE_DLL (hdwmapidll);
-	FREE_DLL (hmsasn1dll);
-	FREE_DLL (hcrypt32dll);
-	FREE_DLL (hbcryptdll);
-	FREE_DLL (hbcryptprimitivesdll);
-	FREE_DLL (hMsls31);
-	FREE_DLL (hntmartadll);
-	FREE_DLL (hwinscarddll);
-	FREE_DLL (hmsvcrtdll);
-	FREE_DLL (hAdvapi32Dll);
 
 	//MSILog(hInstaller, MSI_INFO_LEVEL, L"End VC_CustomAction_Cleanup");
 }
@@ -2919,13 +2623,10 @@ EXTERN_C UINT STDAPICALLTYPE VC_CustomAction_PostInstall(MSIHANDLE hInstaller)
 	//	Last part of DoRegInstall()
 	{
 		//	Register COM servers for UAC
-		if (IsOSAtLeast (WIN_VISTA))
+		if (!RegisterComServers ((wchar_t*)szInstallDir.c_str()))
 		{
-			if (!RegisterComServers ((wchar_t*)szInstallDir.c_str()))
-			{
-				MSILogAndShow (hInstaller, MSI_ERROR_LEVEL, GetString("COM_REG_FAILED"));
-				goto end;
-			}
+			MSILogAndShow (hInstaller, MSI_ERROR_LEVEL, GetString("COM_REG_FAILED"));
+			goto end;
 		}
 	}
 

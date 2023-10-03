@@ -79,11 +79,13 @@ static VC_INLINE void jent_get_nstime(uint64 *out)
 #endif
 		* out = v.QuadPart;
 #else
-	*out = __rdtsc();;
+	*out = __rdtsc();
 #endif
 }
 
 #else
+
+#include <sys/types.h>
 
 #if CRYPTOPP_BOOL_X86 || CRYPTOPP_BOOL_X32 || CRYPTOPP_BOOL_X64
 

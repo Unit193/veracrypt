@@ -71,24 +71,43 @@ else
 	OBJS += ../Crypto/Aescrypt.o
 endif
 
+ifeq "$(GCC_GTEQ_430)" "1"
+OBJSSSE41 += ../Crypto/blake2s_SSE41.osse41
+OBJSSSSE3 += ../Crypto/blake2s_SSSE3.ossse3
+else
+OBJS += ../Crypto/blake2s_SSE41.o
+OBJS += ../Crypto/blake2s_SSSE3.o
+endif
+
 OBJS += ../Crypto/Aeskey.o
 OBJS += ../Crypto/Aestab.o
 OBJS += ../Crypto/cpu.o
-OBJS += ../Crypto/Rmd160.o
+OBJS += ../Crypto/blake2s.o
+OBJS += ../Crypto/blake2s_SSE2.o
 OBJS += ../Crypto/SerpentFast.o
 OBJS += ../Crypto/SerpentFast_simd.o
 OBJS += ../Crypto/Sha2.o
 OBJS += ../Crypto/Twofish.o
 OBJS += ../Crypto/Whirlpool.o
 OBJS += ../Crypto/Camellia.o
-OBJS += ../Crypto/GostCipher.o
 OBJS += ../Crypto/Streebog.o
 OBJS += ../Crypto/kuznyechik.o
 OBJS += ../Crypto/kuznyechik_simd.o
 
 OBJSNOOPT += ../Crypto/jitterentropy-base.o0
 
+OBJS += ../Common/CommandAPDU.o
+OBJS += ../Common/PCSCException.o
+OBJS += ../Common/ResponseAPDU.o
+OBJS += ../Common/SCard.o
+OBJS += ../Common/SCardLoader.o
+OBJS += ../Common/SCardManager.o
+OBJS += ../Common/SCardReader.o
+OBJS += ../Common/Token.o
 OBJS += ../Common/Crc.o
+OBJS += ../Common/TLVParser.o
+OBJS += ../Common/EMVCard.o
+OBJS += ../Common/EMVToken.o
 OBJS += ../Common/Endian.o
 OBJS += ../Common/GfMul.o
 OBJS += ../Common/Pkcs5.o

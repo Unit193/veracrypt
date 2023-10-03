@@ -23,6 +23,7 @@
 #include "Dlgcode.h"
 #include "Language.h"
 #include "SecurityToken.h"
+#include "EMVToken.h"
 #include "Common/resource.h"
 #include "Platform/Finally.h"
 #include "Platform/ForEach.h"
@@ -249,12 +250,12 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 		// Determine whether it's a security token path
 		try
 		{
-			if (SecurityToken::IsKeyfilePathValid (kf->FileName))
+			if (Token::IsKeyfilePathValid (kf->FileName, EMVSupportEnabled? true : false))
 			{
 				// Apply security token keyfile
 				vector <byte> keyfileData;
-				SecurityTokenKeyfilePath secPath (kf->FileName);
-				SecurityToken::GetKeyfileData (SecurityTokenKeyfile (secPath), keyfileData);
+				TokenKeyfilePath secPath (kf->FileName);
+				Token::getTokenKeyfile (secPath)->GetKeyfileData (keyfileData);
 
 				if (keyfileData.empty())
 				{
@@ -483,8 +484,22 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			SetWindowTextW(GetDlgItem(hwndDlg, IDT_KEYFILES_NOTE), GetString ("KEYFILES_NOTE"));
 
 			ToHyperlink (hwndDlg, IDC_LINK_KEYFILES_INFO);
+			ToHyperlink (hwndDlg, IDC_LINK_KEYFILES_EXTENSIONS_WARNING);
 		}
 		return 1;
+
+	case WM_CTLCOLORSTATIC:
+		{
+			if (((HWND)lParam == GetDlgItem(hwndDlg, IDT_KEYFILE_WARNING)) )
+			{
+				// we're about to draw the static
+				// set the text colour in (HDC)wParam
+				SetBkMode((HDC)wParam,TRANSPARENT);
+				SetTextColor((HDC)wParam, RGB(255,0,0));
+				return (BOOL)GetSysColorBrush(COLOR_MENU);
+			}
+		}
+		return 0;
 
 	case WM_COMMAND:
 
@@ -493,11 +508,15 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 			if (kf)
 			{
-				if (SelectMultipleFiles (hwndDlg, "SELECT_KEYFILE", kf->FileName, sizeof(kf->FileName),bHistory))
+				std::vector<std::wstring> filesList;
+				if (SelectMultipleFiles (hwndDlg, "SELECT_KEYFILE", bHistory, filesList))
 				{
 					bool containerFileSkipped = false;
-					do
+					for	(std::vector<std::wstring>::const_iterator it = filesList.begin();
+							it != filesList.end();
+							++it)
 					{
+						StringCbCopyW (kf->FileName, sizeof (kf->FileName), it->c_str());
 						CorrectFileName (kf->FileName);
 						if (_wcsicmp (param->VolumeFileName, kf->FileName) == 0)
 							containerFileSkipped = true;
@@ -507,13 +526,13 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 							LoadKeyList (hwndDlg, param->FirstKeyFile);
 
 							kf = (KeyFile *) malloc (sizeof (KeyFile));
-                            if (!kf)
-                            {
-                                Warning ("ERR_MEM_ALLOC", hwndDlg);
-                                break;
-                            }
+							if (!kf)
+							{
+								Warning ("ERR_MEM_ALLOC", hwndDlg);
+								break;
+							}
 						}
-					} while (SelectMultipleFilesNext (kf->FileName, sizeof(kf->FileName)));
+					}
 
 					if (containerFileSkipped)
 					{
@@ -532,7 +551,7 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
             if (kf)
             {
-			    if (BrowseDirectories (hwndDlg,"SELECT_KEYFILE_PATH", kf->FileName))
+			    if (BrowseDirectories (hwndDlg,"SELECT_KEYFILE_PATH", kf->FileName, NULL))
 			    {
 				    param->FirstKeyFile = KeyFileAdd (param->FirstKeyFile, kf);
 				    LoadKeyList (hwndDlg, param->FirstKeyFile);
@@ -551,10 +570,10 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 		if (lw == IDC_TOKEN_FILES_ADD)
 		{
-			list <SecurityTokenKeyfilePath> selectedTokenKeyfiles;
+			list <TokenKeyfilePath> selectedTokenKeyfiles;
 			if (DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_TOKEN_KEYFILES), hwndDlg, (DLGPROC) SecurityTokenKeyfileDlgProc, (LPARAM) &selectedTokenKeyfiles) == IDOK)
 			{
-				foreach (const SecurityTokenKeyfilePath &keyPath, selectedTokenKeyfiles)
+				foreach (const TokenKeyfilePath &keyPath, selectedTokenKeyfiles)
 				{
 					KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 					if (kf)
@@ -606,6 +625,12 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 		if (lw == IDC_LINK_KEYFILES_INFO)
 		{
 			Applink ("keyfiles");
+			return 1;
+		}
+
+		if (lw == IDC_LINK_KEYFILES_EXTENSIONS_WARNING)
+		{
+			Applink ("keyfilesextensions");
 			return 1;
 		}
 
@@ -710,10 +735,14 @@ BOOL KeyfilesPopupMenu (HWND hwndDlg, POINT popupPosition, KeyFilesDlgParam *par
 			KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 			if (kf)
 			{
-				if (SelectMultipleFiles (hwndDlg, "SELECT_KEYFILE", kf->FileName, sizeof(kf->FileName),bHistory))
+				std::vector<std::wstring> filesList;
+				if (SelectMultipleFiles (hwndDlg, "SELECT_KEYFILE", bHistory, filesList))
 				{
-					do
+					for	(std::vector<std::wstring>::const_iterator it = filesList.begin();
+							it != filesList.end();
+							++it)
 					{
+						StringCbCopyW (kf->FileName, sizeof (kf->FileName), it->c_str());
 						param->FirstKeyFile = KeyFileAdd (param->FirstKeyFile, kf);
 						kf = (KeyFile *) malloc (sizeof (KeyFile));
                         if (!kf)
@@ -721,7 +750,7 @@ BOOL KeyfilesPopupMenu (HWND hwndDlg, POINT popupPosition, KeyFilesDlgParam *par
                             Warning ("ERR_MEM_ALLOC", hwndDlg);
                             break;
                         }
-					} while (SelectMultipleFilesNext (kf->FileName, sizeof(kf->FileName)));
+					}
 
 					param->EnableKeyFiles = TRUE;
 					status = TRUE;
@@ -738,7 +767,7 @@ BOOL KeyfilesPopupMenu (HWND hwndDlg, POINT popupPosition, KeyFilesDlgParam *par
 			KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 			if (kf)
 			{
-				if (BrowseDirectories (hwndDlg,"SELECT_KEYFILE_PATH", kf->FileName))
+				if (BrowseDirectories (hwndDlg,"SELECT_KEYFILE_PATH", kf->FileName, NULL))
 				{
 					param->FirstKeyFile = KeyFileAdd (param->FirstKeyFile, kf);
 					param->EnableKeyFiles = TRUE;
@@ -758,10 +787,10 @@ BOOL KeyfilesPopupMenu (HWND hwndDlg, POINT popupPosition, KeyFilesDlgParam *par
 
 	case IDM_KEYFILES_POPUP_ADD_TOKEN_FILES:
 		{
-			list <SecurityTokenKeyfilePath> selectedTokenKeyfiles;
+			list <TokenKeyfilePath> selectedTokenKeyfiles;
 			if (DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_TOKEN_KEYFILES), hwndDlg, (DLGPROC) SecurityTokenKeyfileDlgProc, (LPARAM) &selectedTokenKeyfiles) == IDOK)
 			{
-				foreach (const SecurityTokenKeyfilePath &keyPath, selectedTokenKeyfiles)
+				foreach (const TokenKeyfilePath &keyPath, selectedTokenKeyfiles)
 				{
 					KeyFile *kf = (KeyFile *) malloc (sizeof (KeyFile));
 					if (kf)
