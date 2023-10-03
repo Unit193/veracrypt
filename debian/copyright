@@ -5,7 +5,7 @@ Comment: TC-3.0 license is distribution encumbered.
 
 Files: *
 Copyright: 2003-2011, TrueCrypt Developers Association
-	   2013-2022, IDRIX
+	   2013-2023, IDRIX
 License: TC-3.0 or Apache-2.0
 Comment:
  Modifications and additions to the original source code are copyright IDRIX
@@ -18,6 +18,13 @@ License: Apache-2.0
 Files: src/Crypto/CamelliaSmall.c
 Copyright: 2006-2015, ARM Limited
 License: Apache-2.0
+
+Files: src/Crypto/chachaRng.*
+Copyright: 1996, David Mazieres <dm@uun.org>
+           2008, Damien Miller <djm@openbsd.org>
+           2013, Markus Friedl <markus@openbsd.org>
+           2014, Theo de Raadt <deraadt@openbsd.org>
+License: ISC
 
 Files: src/Crypto/sha512_avx2_x64.asm
        src/Crypto/sha256_avx1_x64.asm
@@ -69,7 +76,7 @@ Copyright: 1998-2000, Paul Le Roux
 License: E4M
 
 Files:  src/Common/libzip/*
-Copyright: 1999-2020, Dieter Baron and Thomas Klausner
+Copyright: 1999-2021, Dieter Baron and Thomas Klausner
 License: BSD-3-Clause
 
 Files:	src/Common/GfMul.c
@@ -91,8 +98,24 @@ Files:	src/Common/GfMul.c
 Copyright: 1998-2007, Brian Gladman, Worcester, UK
 License: BSD-3-Clause
 
+Files: src/Common/lzma/*
+Copyright: 1999-2023, Igor Pavlov
+License: public-domain-lzma
+ LZMA SDK is written and placed in the public domain by Igor Pavlov.
+ .
+ Some code in LZMA SDK is based on public domain code from another developers:
+   1) PPMd var.H (2001): Dmitry Shkarin
+   2) SHA-256: Wei Dai (Crypto++ library)
+ .
+ Anyone is free to copy, modify, publish, use, compile, sell, or distribute the
+ original LZMA SDK code, either in source code form or as a compiled binary, for
+ any purpose, commercial or non-commercial, and by any means.
+ .
+ LZMA SDK code is compatible with open source licenses, for example, you can
+ include it to GNU GPL or GNU LGPL code.
+
 Files: src/Common/zlib/*
-Copyright: 1995-2013, Jean-loup Gailly and Mark Adler
+Copyright: 1995-2023, Jean-loup Gailly and Mark Adler
 License: zlib
 
 Files: src/Boot/Windows/Decompressor.c
@@ -100,7 +123,7 @@ Copyright: 2002-2004, Mark Adler
 License: zlib
 
 Files: debian/*
-Copyright: 2013-2022, Unit 193 <unit193@unit193.net>
+Copyright: 2013-2023, Unit 193 <unit193@unit193.net>
 License: BSD-3-Clause
 
 
