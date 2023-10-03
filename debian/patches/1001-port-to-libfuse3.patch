@@ -8,29 +8,29 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  src/Main/Main.make              |    2 +-
  3 files changed, 11 insertions(+), 19 deletions(-)
 
---- a/src/Main/Main.make	2021-10-07 03:51:22.964715592 -0400
-+++ b/src/Main/Main.make	2021-10-07 03:51:22.948715727 -0400
-@@ -102,7 +102,7 @@
+--- a/src/Main/Main.make
++++ b/src/Main/Main.make
+@@ -102,7 +102,7 @@ endif
  
  #------ FUSE configuration ------
  
--FUSE_LIBS = $(shell pkg-config fuse --libs)
-+FUSE_LIBS = $(shell pkg-config fuse3 --libs)
+-FUSE_LIBS = $(shell $(PKG_CONFIG) fuse --libs)
++FUSE_LIBS = $(shell $(PKG_CONFIG) fuse3 --libs)
  
  #------ Executable ------
  
---- a/src/Driver/Fuse/Driver.make	2021-10-07 03:51:22.964715592 -0400
-+++ b/src/Driver/Fuse/Driver.make	2021-10-07 03:51:22.948715727 -0400
-@@ -15,6 +15,6 @@
+--- a/src/Driver/Fuse/Driver.make
++++ b/src/Driver/Fuse/Driver.make
+@@ -15,6 +15,6 @@ NAME := Driver
  OBJS :=
  OBJS += FuseService.o
  
--CXXFLAGS += $(shell pkg-config fuse --cflags)
-+CXXFLAGS += $(shell pkg-config fuse3 --cflags)
+-CXXFLAGS += $(shell $(PKG_CONFIG) fuse --cflags)
++CXXFLAGS += $(shell $(PKG_CONFIG) fuse3 --cflags)
  
  include $(BUILD_INC)/Makefile.inc
---- a/src/Driver/Fuse/FuseService.cpp	2021-10-07 03:51:22.964715592 -0400
-+++ b/src/Driver/Fuse/FuseService.cpp	2021-10-07 03:51:22.948715727 -0400
+--- a/src/Driver/Fuse/FuseService.cpp
++++ b/src/Driver/Fuse/FuseService.cpp
 @@ -13,7 +13,7 @@
  #ifdef TC_OPENBSD
  #define FUSE_USE_VERSION  26
@@ -40,7 +40,7 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  #endif
  
  #include <errno.h>
-@@ -56,11 +56,7 @@
+@@ -56,11 +56,7 @@ namespace VeraCrypt
  		return 0;
  	}
  
@@ -53,7 +53,7 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  	{
  		try
  		{
-@@ -104,7 +100,7 @@
+@@ -104,7 +100,7 @@ namespace VeraCrypt
  		}
  	}
  
@@ -62,7 +62,7 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  	{
  		try
  		{
-@@ -261,7 +257,7 @@
+@@ -261,7 +257,7 @@ namespace VeraCrypt
  		return -ENOENT;
  	}
  
@@ -71,7 +71,7 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  	{
  		try
  		{
-@@ -271,10 +267,10 @@
+@@ -271,10 +267,10 @@ namespace VeraCrypt
  			if (strcmp (path, "/") != 0)
  				return -ENOENT;
  
@@ -86,7 +86,7 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  		}
  		catch (...)
  		{
-@@ -450,7 +446,7 @@
+@@ -450,7 +446,7 @@ namespace VeraCrypt
  		}
  
  		ExecFunctor execFunctor (openVolume, slotNumber);
@@ -95,7 +95,7 @@ Forwarded: https://github.com/veracrypt/VeraCrypt/issues/528
  
  		for (int t = 0; true; t++)
  		{
-@@ -592,11 +588,7 @@
+@@ -592,11 +588,7 @@ namespace VeraCrypt
  
  		SignalHandlerPipe->GetWriteFD();
  
