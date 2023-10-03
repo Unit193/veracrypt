@@ -1,0 +1,7 @@
+veracrypt (1.26.7-0vanir1) unstable; urgency=medium
+
+  Starting with this version, TrueCrypt support has been removed.  If you need
+  to mount or convert TrueCrypt volumes, VeraCrypt 1.25.9, cryptsetup(8),
+  tcplay(8), or zulucrypt/zulumount can be utilized to do so.
+
+ -- Unit 193 <unit193@unit193.net>  Mon, 02 Oct 2023 00:46:07 -0400
