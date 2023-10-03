@@ -1,3 +1,14 @@
+veracrypt (1.26.7-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.26.7.
+    - Drop upstream patch, refresh remaining.
+  * d/p/1002-fix-ftbfs-32bit.patch: Nab commit to fix ftbfs on 32bit.
+  * d/control: Build-Depend on libpcsclite-dev.
+  * d/copyright: Update attribution.
+  * d/NEWS: Warn of TrueCrypt support removal.
+
+ -- Unit 193 <unit193@unit193.net>  Tue, 03 Oct 2023 03:12:59 -0400
+
 veracrypt (1.25.9-0vanir2) unstable; urgency=medium
 
   * d/control:
