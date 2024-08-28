@@ -12,6 +12,9 @@
 
 #include "System.h"
 #include "Volume/EncryptionModeXTS.h"
+#ifdef WOLFCRYPT_BACKEND
+#include "Volume/EncryptionModeWolfCryptXTS.h"
+#endif
 #include "Main/GraphicUserInterface.h"
 #include "BenchmarkDialog.h"
 
@@ -42,10 +45,10 @@ namespace VeraCrypt
 		BufferSizeChoice->Select (1);
 		
 		UpdateBenchmarkList ();
-		
-		wxTextValidator validator (wxFILTER_INCLUDE_CHAR_LIST);  // wxFILTER_NUMERIC does not exclude - . , etc.
-		const wxChar *valArr[] = { L"0", L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9" };
-		validator.SetIncludes (wxArrayString (array_capacity (valArr), (const wxChar **) &valArr));
+
+		VolumePimText->SetMinSize (wxSize (Gui->GetCharWidth (VolumePimText) * 15, -1));
+
+		wxTextValidator validator (wxFILTER_DIGITS);
 		VolumePimText->SetValidator (validator);
 
 		Layout();
@@ -209,9 +212,13 @@ namespace VeraCrypt
 
 						Buffer key (ea->GetKeySize());
 						ea->SetKey (key);
-
+                                            #ifdef WOLFCRYPT_BACKEND
+						shared_ptr <EncryptionMode> xts (new EncryptionModeWolfCryptXTS);
+						ea->SetKeyXTS (key);
+                                            #else
 						shared_ptr <EncryptionMode> xts (new EncryptionModeXTS);
-						xts->SetKey (key);
+                                            #endif
+                                                xts->SetKey (key);
 						ea->SetMode (xts);
 
 						wxLongLong startTime = wxGetLocalTimeMillis();
@@ -274,7 +281,7 @@ namespace VeraCrypt
 				const char *tmp_salt = {"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF\x01\x23\x45\x67\x89\xAB\xCD\xEF\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF\x01\x23\x45\x67\x89\xAB\xCD\xEF\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA\xBB\xCC\xDD\xEE\xFF"};
 				unsigned long pim;
 				Pkcs5KdfList prfList = Pkcs5Kdf::GetAvailableAlgorithms ();
-				VolumePassword password ((const byte*) "passphrase-1234567890", 21);
+				VolumePassword password ((const uint8*) "passphrase-1234567890", 21);
 
 				memcpy (&pim, buffer.Ptr (), sizeof (unsigned long));
 				memcpy (salt.Ptr(), tmp_salt, 64);

@@ -1068,6 +1068,17 @@ namespace VeraCrypt
 		dialog.ShowModal();
 	}
 
+	void MainFrame::OnLanguageMenuItemSelected (wxCommandEvent& event)
+	{
+#ifdef TC_MACOSX
+		if (Gui->IsInBackgroundMode())
+			Gui->SetBackgroundMode (false);
+#endif
+		PreferencesDialog dialog (this);
+		dialog.SelectPage (dialog.LanguagesPage);
+		dialog.ShowModal();
+	}
+
 	void MainFrame::OnLegalNoticesMenuItemSelected (wxCommandEvent& event)
 	{
 #ifdef TC_MACOSX
@@ -1426,7 +1437,7 @@ namespace VeraCrypt
 #if defined(TC_UNIX) && !defined(TC_MACOSX)
 			try
 			{
-				byte buf[128];
+				uint8 buf[128];
 				if (read (ShowRequestFifo, buf, sizeof (buf)) > 0 && Gui->IsInBackgroundMode())
 					Gui->SetBackgroundMode (false);
 			}

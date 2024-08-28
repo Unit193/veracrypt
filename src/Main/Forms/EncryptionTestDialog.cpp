@@ -12,6 +12,9 @@
 
 #include "System.h"
 #include "Volume/EncryptionModeXTS.h"
+#ifdef WOLFCRYPT_BACKEND
+#include "Volume/EncryptionModeWolfCryptXTS.h"
+#endif
 #include "Volume/EncryptionTest.h"
 #include "Main/GraphicUserInterface.h"
 #include "EncryptionTestDialog.h"
@@ -94,8 +97,13 @@ namespace VeraCrypt
 					throw StringConversionFailed (SRC_POS);
 				}
 
+                            #ifdef WOLFCRYPT_BACKEND
+				shared_ptr <EncryptionMode> xts (new EncryptionModeWolfCryptXTS);
+				ea->SetKeyXTS (secondaryKey);
+                            #else
 				shared_ptr <EncryptionMode> xts (new EncryptionModeXTS);
-				xts->SetKey (secondaryKey);
+                            #endif
+                                xts->SetKey (secondaryKey);
 				ea->SetMode (xts);
 
 				Buffer sector (ENCRYPTION_DATA_UNIT_SIZE);
@@ -133,7 +141,7 @@ namespace VeraCrypt
 
 	void EncryptionTestDialog::GetTextCtrlData (wxTextCtrl *textCtrl, Buffer &buffer) const
 	{
-		vector <byte> data;
+		vector <uint8> data;
 		string dataStr = StringConverter::ToSingle (wstring (textCtrl->GetValue()));
 
 		for (size_t i = 0; i < dataStr.size() / 2; ++i)
@@ -145,7 +153,7 @@ namespace VeraCrypt
 				throw StringConversionFailed (SRC_POS);
 			}
 
-			data.push_back ((byte) dataByte);
+			data.push_back ((uint8) dataByte);
 		}
 
 		if (data.empty())

@@ -894,7 +894,7 @@ static uint64 HashMultipleBlocks(WHIRLPOOL_CTX * const ctx, const uint64 *input,
 #if BYTE_ORDER == BIG_ENDIAN
 		WhirlpoolTransform(ctx->state, input);
 #else
-		CorrectEndianess(dataBuf, input, 64);
+		CorrectEndianness(dataBuf, input, 64);
 		WhirlpoolTransform(ctx->state, dataBuf);
 #endif
 		input += 8;
@@ -936,7 +936,7 @@ void WHIRLPOOL_add(const unsigned char * input,
 	else
 	{
 		uint64* dataBuf = ctx->data;
-		byte* data = (byte *)dataBuf;		
+		uint8* data = (uint8 *)dataBuf;		
 		num = oldCountLo & 63;
 
 		if (num != 0)	// process left over data
@@ -996,7 +996,7 @@ void WHIRLPOOL_finalize(WHIRLPOOL_CTX * const ctx,
 	unsigned int num = ctx->countLo & 63;
 	uint64* dataBuf = ctx->data;
 	uint64* stateBuf = ctx->state;
-	byte* data = (byte *)dataBuf;
+	uint8* data = (uint8 *)dataBuf;
 
 	data[num++] = 0x80;
 	if (num <= 32)
@@ -1008,7 +1008,7 @@ void WHIRLPOOL_finalize(WHIRLPOOL_CTX * const ctx,
 		memset(data, 0, 32);
 	}
 #if BYTE_ORDER == LITTLE_ENDIAN
-	CorrectEndianess(dataBuf, dataBuf, 32);
+	CorrectEndianness(dataBuf, dataBuf, 32);
 #endif
 
 	dataBuf[4] = 0;
@@ -1018,7 +1018,7 @@ void WHIRLPOOL_finalize(WHIRLPOOL_CTX * const ctx,
 
 	WhirlpoolTransform(stateBuf, dataBuf);
 #if BYTE_ORDER == LITTLE_ENDIAN
-	CorrectEndianess(stateBuf, stateBuf, 64);
+	CorrectEndianness(stateBuf, stateBuf, 64);
 #endif
 	memcpy(result, stateBuf, 64);
 }

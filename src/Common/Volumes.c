@@ -130,19 +130,19 @@
 
 
 
-uint16 GetHeaderField16 (byte *header, int offset)
+uint16 GetHeaderField16 (uint8 *header, int offset)
 {
 	return BE16 (*(uint16 *) (header + offset));
 }
 
 
-uint32 GetHeaderField32 (byte *header, int offset)
+uint32 GetHeaderField32 (uint8 *header, int offset)
 {
 	return BE32 (*(uint32 *) (header + offset));
 }
 
 
-UINT64_STRUCT GetHeaderField64 (byte *header, int offset)
+UINT64_STRUCT GetHeaderField64 (uint8 *header, int offset)
 {
 	UINT64_STRUCT uint64Struct;
 
@@ -369,18 +369,8 @@ KeyReady:	;
 
 			switch (pkcs5_prf)
 			{
-			case BLAKE2S:
-				derive_key_blake2s (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
-					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
-				break;
-
 			case SHA512:
 				derive_key_sha512 (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
-					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
-				break;
-
-			case WHIRLPOOL:
-				derive_key_whirlpool (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
 					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
 				break;
 
@@ -389,11 +379,24 @@ KeyReady:	;
 					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
 				break;
 
-			case STREEBOG:
+                #ifndef WOLFCRYPT_BACKEND
+                        case BLAKE2S:
+				derive_key_blake2s (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
+					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
+				break;
+
+	                case WHIRLPOOL:
+				derive_key_whirlpool (keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
+					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
+				break;
+
+
+                        case STREEBOG:
 				derive_key_streebog(keyInfo->userKey, keyInfo->keyLength, keyInfo->salt,
 					PKCS5_SALT_SIZE, keyInfo->noIterations, dk, GetMaxPkcs5OutSize());
 				break;
-			default:
+                #endif	
+                        default:
 				// Unknown/wrong ID
 				TC_THROW_FATAL_EXCEPTION;
 			}
@@ -594,6 +597,14 @@ KeyReady:	;
 					goto err;
 				}
 
+				// check that first half of keyInfo.master_keydata is different from the second half. If they are the same return error
+				if (memcmp (keyInfo->master_keydata, keyInfo->master_keydata + EAGetKeySize (cryptoInfo->ea), EAGetKeySize (cryptoInfo->ea)) == 0)
+				{
+					cryptoInfo->bVulnerableMasterKey = TRUE;
+					if (retHeaderCryptoInfo)
+						retHeaderCryptoInfo->bVulnerableMasterKey = TRUE;
+				}
+
 				status = ERR_SUCCESS;
 				goto ret;
 			}
@@ -637,7 +648,7 @@ ret:
 }
 
 #if defined(_WIN32) && !defined(_UEFI)
-void ComputeBootloaderFingerprint (byte *bootLoaderBuf, unsigned int bootLoaderSize, byte* fingerprint)
+void ComputeBootloaderFingerprint (uint8 *bootLoaderBuf, unsigned int bootLoaderSize, uint8* fingerprint)
 {
 	// compute Whirlpool+SHA512 fingerprint of bootloader including MBR
 	// we skip user configuration fields:
@@ -650,7 +661,8 @@ void ComputeBootloaderFingerprint (byte *bootLoaderBuf, unsigned int bootLoaderS
 	//
 	// we have: TC_BOOT_SECTOR_USER_MESSAGE_OFFSET = TC_BOOT_SECTOR_OUTER_VOLUME_BAK_HEADER_CRC_OFFSET + TC_BOOT_SECTOR_OUTER_VOLUME_BAK_HEADER_CRC_SIZE
 
-	WHIRLPOOL_CTX whirlpool;
+#ifndef WOLFCRYPT_BACKEND
+        WHIRLPOOL_CTX whirlpool;
 	sha512_ctx sha2;
 
 	WHIRLPOOL_init (&whirlpool);
@@ -667,6 +679,26 @@ void ComputeBootloaderFingerprint (byte *bootLoaderBuf, unsigned int bootLoaderS
 
 	WHIRLPOOL_finalize (&whirlpool, fingerprint);
 	sha512_end (&fingerprint [WHIRLPOOL_DIGESTSIZE], &sha2);
+#else
+	sha512_ctx sha2_512;
+	sha256_ctx sha2_256;
+
+	sha512_begin (&sha2_512);
+	sha256_begin (&sha2_256);
+
+	sha512_hash (bootLoaderBuf, TC_BOOT_SECTOR_PIM_VALUE_OFFSET, &sha2_512);
+	sha256_hash (bootLoaderBuf, TC_BOOT_SECTOR_PIM_VALUE_OFFSET, &sha2_256);
+
+	sha512_hash (bootLoaderBuf + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &sha2_512);
+	sha256_hash (bootLoaderBuf + TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH, (TC_BOOT_SECTOR_USER_CONFIG_OFFSET - (TC_BOOT_SECTOR_USER_MESSAGE_OFFSET + TC_BOOT_SECTOR_USER_MESSAGE_MAX_LENGTH)), &sha2_256);
+
+	sha512_hash (bootLoaderBuf + TC_SECTOR_SIZE_BIOS, (bootLoaderSize - TC_SECTOR_SIZE_BIOS), &sha2_512);
+	sha256_hash (bootLoaderBuf + TC_SECTOR_SIZE_BIOS, (bootLoaderSize - TC_SECTOR_SIZE_BIOS), &sha2_256);
+
+	sha512_end (&fingerprint, &sha2_512);
+	sha256_end (&fingerprint [SHA512_DIGESTSIZE], &sha2_256);
+	sha256_end (&fingerprint [SHA512_DIGESTSIZE + SHA256_DIGESTSIZE], &sha2_256);
+#endif
 }
 #endif
 
@@ -711,11 +743,11 @@ int ReadVolumeHeader (BOOL bBoot, char *header, Password *password, int pim, PCR
 #endif
 	{
 #ifdef TC_WINDOWS_BOOT_SINGLE_CIPHER_MODE
-	#if defined (TC_WINDOWS_BOOT_SERPENT)
+	#if defined (TC_WINDOWS_BOOT_SERPENT) && !defined (WOLFCRYPT_BACKEND)
 		serpent_set_key (dk, cryptoInfo->ks);
-	#elif defined (TC_WINDOWS_BOOT_TWOFISH)
+	#elif defined (TC_WINDOWS_BOOT_TWOFISH) && !defined (WOLFCRYPT_BACKEND)
 		twofish_set_key ((TwofishInstance *) cryptoInfo->ks, (const u4byte *) dk);
-	#elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+	#elif defined (TC_WINDOWS_BOOT_CAMELLIA) && !defined (WOLFCRYPT_BACKEND)
 		camellia_set_key (dk, cryptoInfo->ks);
 	#else
 		status = EAInit (dk, cryptoInfo->ks);
@@ -729,11 +761,11 @@ int ReadVolumeHeader (BOOL bBoot, char *header, Password *password, int pim, PCR
 #endif
 		// Secondary key schedule
 #ifdef TC_WINDOWS_BOOT_SINGLE_CIPHER_MODE
-	#if defined (TC_WINDOWS_BOOT_SERPENT)
+	#if defined (TC_WINDOWS_BOOT_SERPENT) && !defined (WOLFCRYPT_BACKEND)
 		serpent_set_key (dk + 32, cryptoInfo->ks2);
-	#elif defined (TC_WINDOWS_BOOT_TWOFISH)
+	#elif defined (TC_WINDOWS_BOOT_TWOFISH) && !defined (WOLFCRYPT_BACKEND)
 		twofish_set_key ((TwofishInstance *)cryptoInfo->ks2, (const u4byte *) (dk + 32));
-	#elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+	#elif defined (TC_WINDOWS_BOOT_CAMELLIA) && !defined (WOLFCRYPT_BACKEND)
 		camellia_set_key (dk + 32, cryptoInfo->ks2);
 	#else
 		EAInit (dk + 32, cryptoInfo->ks2);
@@ -790,11 +822,11 @@ int ReadVolumeHeader (BOOL bBoot, char *header, Password *password, int pim, PCR
 
 		// Init the encryption algorithm with the decrypted master key
 #ifdef TC_WINDOWS_BOOT_SINGLE_CIPHER_MODE
-	#if defined (TC_WINDOWS_BOOT_SERPENT)
+	#if defined (TC_WINDOWS_BOOT_SERPENT) && !defined (WOLFCRYPT_BACKEND)
 		serpent_set_key (dk, cryptoInfo->ks);
-	#elif defined (TC_WINDOWS_BOOT_TWOFISH)
+	#elif defined (TC_WINDOWS_BOOT_TWOFISH) && !defined (WOLFCRYPT_BACKEND)
 		twofish_set_key ((TwofishInstance *) cryptoInfo->ks, (const u4byte *) dk);
-	#elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+	#elif defined (TC_WINDOWS_BOOT_CAMELLIA) && !defined (WOLFCRYPT_BACKEND)
 		camellia_set_key (dk, cryptoInfo->ks);
 	#else
 		status = EAInit (dk, cryptoInfo->ks);
@@ -809,11 +841,11 @@ int ReadVolumeHeader (BOOL bBoot, char *header, Password *password, int pim, PCR
 
 		// The secondary master key (if cascade, multiple concatenated)
 #ifdef TC_WINDOWS_BOOT_SINGLE_CIPHER_MODE
-	#if defined (TC_WINDOWS_BOOT_SERPENT)
+	#if defined (TC_WINDOWS_BOOT_SERPENT) && !defined (WOLFCRYPT_BACKEND)
 		serpent_set_key (dk + 32, cryptoInfo->ks2);
-	#elif defined (TC_WINDOWS_BOOT_TWOFISH)
+	#elif defined (TC_WINDOWS_BOOT_TWOFISH) && !defined (WOLFCRYPT_BACKEND)
 		twofish_set_key ((TwofishInstance *)cryptoInfo->ks2, (const u4byte *) (dk + 32));
-	#elif defined (TC_WINDOWS_BOOT_CAMELLIA)
+	#elif defined (TC_WINDOWS_BOOT_CAMELLIA) && !defined (WOLFCRYPT_BACKEND)
 		camellia_set_key (dk + 32, cryptoInfo->ks2);
 	#else
 		EAInit (dk + 32, cryptoInfo->ks2);
@@ -976,6 +1008,7 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 				PKCS5_SALT_SIZE, keyInfo.noIterations, dk, GetMaxPkcs5OutSize());
 			break;
 
+        #ifndef WOLFCRYPT_BACKEND
 		case BLAKE2S:
 			derive_key_blake2s (keyInfo.userKey, keyInfo.keyLength, keyInfo.salt,
 				PKCS5_SALT_SIZE, keyInfo.noIterations, dk, GetMaxPkcs5OutSize());
@@ -990,7 +1023,7 @@ int CreateVolumeHeaderInMemory (HWND hwndDlg, BOOL bBoot, char *header, int ea, 
 			derive_key_streebog(keyInfo.userKey, keyInfo.keyLength, keyInfo.salt,
 				PKCS5_SALT_SIZE, keyInfo.noIterations, dk, GetMaxPkcs5OutSize());
 			break;
-
+        #endif
 		default:
 			// Unknown/wrong ID
 			crypto_close (cryptoInfo);
@@ -1189,13 +1222,13 @@ err:
 }
 
 #if !defined(_UEFI)
-BOOL ReadEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, byte *header, DWORD *bytesRead)
+BOOL ReadEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, uint8 *header, DWORD *bytesRead)
 {
 #if TC_VOLUME_HEADER_EFFECTIVE_SIZE > TC_MAX_VOLUME_SECTOR_SIZE
 #error TC_VOLUME_HEADER_EFFECTIVE_SIZE > TC_MAX_VOLUME_SECTOR_SIZE
 #endif
 
-	byte sectorBuffer[TC_MAX_VOLUME_SECTOR_SIZE];
+	uint8 sectorBuffer[TC_MAX_VOLUME_SECTOR_SIZE];
 	DISK_GEOMETRY geometry;
 
 	if (!device)
@@ -1222,13 +1255,13 @@ BOOL ReadEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, byte *header, DW
 }
 
 
-BOOL WriteEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, byte *header)
+BOOL WriteEffectiveVolumeHeader (BOOL device, HANDLE fileHandle, uint8 *header)
 {
 #if TC_VOLUME_HEADER_EFFECTIVE_SIZE > TC_MAX_VOLUME_SECTOR_SIZE
 #error TC_VOLUME_HEADER_EFFECTIVE_SIZE > TC_MAX_VOLUME_SECTOR_SIZE
 #endif
 
-	byte sectorBuffer[TC_MAX_VOLUME_SECTOR_SIZE];
+	uint8 sectorBuffer[TC_MAX_VOLUME_SECTOR_SIZE];
 	DWORD bytesDone;
 	DISK_GEOMETRY geometry;
 
@@ -1297,7 +1330,7 @@ int WriteRandomDataToReservedHeaderAreas (HWND hwndDlg, HANDLE dev, CRYPTO_INFO 
 	char temporaryKey[MASTER_KEYDATA_SIZE];
 	char originalK2[MASTER_KEYDATA_SIZE];
 
-	byte buf[TC_VOLUME_HEADER_GROUP_SIZE];
+	uint8 buf[TC_VOLUME_HEADER_GROUP_SIZE];
 
 	LARGE_INTEGER offset;
 	int nStatus = ERR_SUCCESS;

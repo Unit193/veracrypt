@@ -19,9 +19,11 @@
 
 namespace VeraCrypt
 {
+	class AdminPasswordTextRequestHandler;
 	class TextUserInterface : public UserInterface
 	{
 	public:
+		friend class AdminPasswordTextRequestHandler;
 		TextUserInterface ();
 		virtual ~TextUserInterface ();
 

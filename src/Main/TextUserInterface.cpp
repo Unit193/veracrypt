@@ -30,6 +30,27 @@
 
 namespace VeraCrypt
 {
+	class AdminPasswordTextRequestHandler : public GetStringFunctor
+	{
+		public:
+		AdminPasswordTextRequestHandler (TextUserInterface *userInterface) : UI (userInterface) { }
+		virtual void operator() (string &passwordStr)
+		{
+			UI->ShowString (_("Enter your user password or administrator password: "));
+
+			TextUserInterface::SetTerminalEcho (false);
+			finally_do ({ TextUserInterface::SetTerminalEcho (true); });
+
+			wstring wPassword (UI->ReadInputStreamLine());
+			finally_do_arg (wstring *, &wPassword, { StringConverter::Erase (*finally_arg); });
+
+			UI->ShowString (L"\n");
+
+			StringConverter::ToSingle (wPassword, passwordStr);
+		}
+		TextUserInterface *UI;
+	};
+
 	TextUserInterface::TextUserInterface ()
 	{
 #ifdef TC_UNIX
@@ -100,7 +121,7 @@ namespace VeraCrypt
 		finally_do ({ TextUserInterface::SetTerminalEcho (true); });
 
 		wchar_t passwordBuf[4096];
-		finally_do_arg (BufferPtr, BufferPtr (reinterpret_cast <byte *> (passwordBuf), sizeof (passwordBuf)), { finally_arg.Erase(); });
+		finally_do_arg (BufferPtr, BufferPtr (reinterpret_cast <uint8 *> (passwordBuf), sizeof (passwordBuf)), { finally_arg.Erase(); });
 
 		shared_ptr<VolumePassword> password;
 
@@ -293,6 +314,7 @@ namespace VeraCrypt
 		hiddenVolumeMountOptions.EMVSupportEnabled = true;
 
 		VolumeType::Enum volumeType = VolumeType::Normal;
+		bool masterKeyVulnerable = false;
 
 		// Open both types of volumes
 		while (true)
@@ -366,6 +388,13 @@ namespace VeraCrypt
 				}
 			}
 
+			// check if volume master key is vulnerable
+			if (volume->IsMasterKeyVulnerable())
+			{
+				masterKeyVulnerable = true;
+				ShowWarning ("ERR_XTS_MASTERKEY_VULNERABLE");
+			}
+
 			if (volumeType == VolumeType::Hidden)
 				hiddenVolume = volume;
 			else
@@ -433,6 +462,10 @@ namespace VeraCrypt
 
 		ShowString (L"\n");
 		ShowInfo ("VOL_HEADER_BACKED_UP");
+
+		// display again warning that master key is vulnerable
+		if (masterKeyVulnerable)
+			ShowWarning ("ERR_XTS_MASTERKEY_VULNERABLE");
 	}
 
 	void TextUserInterface::ChangePassword (shared_ptr <VolumePath> volumePath, shared_ptr <VolumePassword> password, int pim, shared_ptr <Hash> currentHash, shared_ptr <KeyfileList> keyfiles, shared_ptr <VolumePassword> newPassword, int newPim, shared_ptr <KeyfileList> newKeyfiles, shared_ptr <Hash> newHash) const
@@ -509,6 +542,12 @@ namespace VeraCrypt
 			}
 
 			break;
+		}
+
+		// display warning if volume master key is vulnerable
+		if (volume->IsMasterKeyVulnerable())
+		{
+			ShowWarning ("ERR_XTS_MASTERKEY_VULNERABLE");
 		}
 
 		// New password
@@ -668,7 +707,7 @@ namespace VeraCrypt
 				{
 					parentDir = wxT(".");
 				}
-				if (wxDirExists(parentDir) && wxGetDiskSpace (parentDir, nullptr, &diskSpace))
+				if (options->Type == VolumeType::Normal && wxDirExists(parentDir) && wxGetDiskSpace (parentDir, nullptr, &diskSpace))
 				{
 					AvailableDiskSpace = (uint64) diskSpace.GetValue ();
 					if (maxVolumeSize > AvailableDiskSpace)
@@ -678,10 +717,13 @@ namespace VeraCrypt
 
 			if (options->Size == (uint64) (-1))
 			{
-				if (AvailableDiskSpace)
+				if (options->Type == VolumeType::Hidden) {
+					throw_err (_("Please do not use maximum size for hidden volume. As we do not mount the outer volume to determine the available space, it is your responsibility to choose a value so that the hidden volume does not overlap the outer volume."));
+				}
+				else if (AvailableDiskSpace)
 				{
 					// caller requesting maximum size
-					// we use maxVolumeSize because it is guaranteed to be less of equal to AvailableDiskSpace
+					// we use maxVolumeSize because it is guaranteed to be less or equal to AvailableDiskSpace for outer volumes
 					options->Size = maxVolumeSize;
 				}
 				else
@@ -702,14 +744,17 @@ namespace VeraCrypt
 					throw MissingArgument (SRC_POS);
 
 				uint64 multiplier = 1024 * 1024;
-				wxString sizeStr = AskString (options->Type == VolumeType::Hidden ? _("\nEnter hidden volume size (sizeK/size[M]/sizeG/sizeT/max): ") : _("\nEnter volume size (sizeK/size[M]/sizeG.sizeT/max): "));
+				wxString sizeStr = AskString (options->Type == VolumeType::Hidden ? _("\nEnter hidden volume size (sizeK/size[M]/sizeG/sizeT): ") : _("\nEnter volume size (sizeK/size[M]/sizeG.sizeT/max): "));
 				if (sizeStr.CmpNoCase(wxT("max")) == 0)
 				{
 					multiplier = 1;
-					if (AvailableDiskSpace)
+					if (options->Type == VolumeType::Hidden) {
+						throw_err (_("Please do not use maximum size for hidden volume. As we do not mount the outer volume to determine the available space, it is your responsibility to choose a value so that the hidden volume does not overlap the outer volume."));
+					}
+					else if (AvailableDiskSpace)
 					{
 						// caller requesting maximum size
-						// we use maxVolumeSize because it is guaranteed to be less of equal to AvailableDiskSpace
+						// we use maxVolumeSize because it is guaranteed to be less or equal to AvailableDiskSpace for outer volumes
 						options->Size = maxVolumeSize;
 					}
 					else
@@ -1071,7 +1116,7 @@ namespace VeraCrypt
 
         shared_ptr<TokenKeyfile> tokenKeyfile = Token::getTokenKeyfile(keyfilePath);
 
-		vector <byte> keyfileData;
+		vector <uint8> keyfileData;
 		tokenKeyfile->GetKeyfileData (keyfileData);
 
 		BufferPtr keyfileDataBuf (&keyfileData.front(), keyfileData.size());
@@ -1089,27 +1134,7 @@ namespace VeraCrypt
 
 	shared_ptr <GetStringFunctor> TextUserInterface::GetAdminPasswordRequestHandler ()
 	{
-		struct AdminPasswordRequestHandler : public GetStringFunctor
-		{
-			AdminPasswordRequestHandler (TextUserInterface *userInterface) : UI (userInterface) { }
-			virtual void operator() (string &passwordStr)
-			{
-				UI->ShowString (_("Enter your user password or administrator password: "));
-
-				TextUserInterface::SetTerminalEcho (false);
-				finally_do ({ TextUserInterface::SetTerminalEcho (true); });
-
-				wstring wPassword (UI->ReadInputStreamLine());
-				finally_do_arg (wstring *, &wPassword, { StringConverter::Erase (*finally_arg); });
-
-				UI->ShowString (L"\n");
-
-				StringConverter::ToSingle (wPassword, passwordStr);
-			}
-			TextUserInterface *UI;
-		};
-
-		return shared_ptr <GetStringFunctor> (new AdminPasswordRequestHandler (this));
+		return shared_ptr <GetStringFunctor> (new AdminPasswordTextRequestHandler (this));
 	}
 
 	void TextUserInterface::ImportTokenKeyfiles () const
@@ -1158,7 +1183,7 @@ namespace VeraCrypt
 
 			if (keyfile.Length() > 0)
 			{
-				vector <byte> keyfileData (keyfile.Length());
+				vector <uint8> keyfileData (keyfile.Length());
 				BufferPtr keyfileDataBuf (&keyfileData.front(), keyfileData.size());
 
 				keyfile.ReadCompleteBuffer (keyfileDataBuf);
@@ -1409,7 +1434,6 @@ namespace VeraCrypt
 			{
 				ShowInfo (e);
 				options.Password.reset();
-				options.Pim = -1;
 			}
 		}
 
@@ -1533,6 +1557,7 @@ namespace VeraCrypt
 		/* force the display of the random enriching interface */
 		RandomNumberGenerator::SetEnrichedByUserStatus (false);
 
+		bool masterKeyVulnerable = false;
 		if (restoreInternalBackup)
 		{
 			// Restore header from the internal backup
@@ -1579,6 +1604,8 @@ namespace VeraCrypt
 			{
 				throw_err (LangString ["VOLUME_HAS_NO_BACKUP_HEADER"]);
 			}
+
+			masterKeyVulnerable = volume->IsMasterKeyVulnerable();
 
 			RandomNumberGenerator::Start();
 			UserEnrichRandomPool();
@@ -1667,6 +1694,7 @@ namespace VeraCrypt
 						if (layout->GetHeader()->Decrypt (headerBuffer, *passwordKey, options.Pim, kdf, layout->GetSupportedKeyDerivationFunctions(), layout->GetSupportedEncryptionAlgorithms(), layout->GetSupportedEncryptionModes()))
 						{
 							decryptedLayout = layout;
+							masterKeyVulnerable = layout->GetHeader()->IsMasterKeyVulnerable();
 							break;
 						}
 					}
@@ -1717,6 +1745,11 @@ namespace VeraCrypt
 
 		ShowString (L"\n");
 		ShowInfo ("VOL_HEADER_RESTORED");
+		// display warning if the volume master key is vulnerable
+		if (masterKeyVulnerable)
+		{
+			ShowWarning ("ERR_XTS_MASTERKEY_VULNERABLE");
+		}
 	}
 
 	void TextUserInterface::SetTerminalEcho (bool enable)
@@ -1779,7 +1812,7 @@ namespace VeraCrypt
 			while (randCharsRequired > 0)
 			{
 				wstring randStr = AskString();
-				RandomNumberGenerator::AddToPool (ConstBufferPtr ((byte *) randStr.c_str(), randStr.size() * sizeof (wchar_t)));
+				RandomNumberGenerator::AddToPool (ConstBufferPtr ((uint8 *) randStr.c_str(), randStr.size() * sizeof (wchar_t)));
 
 				randCharsRequired -= randStr.size();
 

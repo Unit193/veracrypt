@@ -172,9 +172,7 @@ namespace VeraCrypt
 
 	void VolumePasswordPanel::SetPimValidator ()
 	{
-		wxTextValidator validator (wxFILTER_INCLUDE_CHAR_LIST);  // wxFILTER_NUMERIC does not exclude - . , etc.
-		const wxChar *valArr[] = { L"0", L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9" };
-		validator.SetIncludes (wxArrayString (array_capacity (valArr), (const wxChar **) &valArr));
+		wxTextValidator validator (wxFILTER_DIGITS);
 		VolumePimTextCtrl->SetValidator (validator);
 	}
 
@@ -216,7 +214,7 @@ namespace VeraCrypt
 		shared_ptr <VolumePassword> password;
 		wchar_t passwordBuf[VolumePassword::MaxSize + 1];
 		size_t maxPasswordLength = (bLegacyPassword || CmdLine->ArgUseLegacyPassword)? VolumePassword::MaxLegacySize: VolumePassword::MaxSize;
-		finally_do_arg (BufferPtr, BufferPtr (reinterpret_cast <byte *> (passwordBuf), sizeof (passwordBuf)), { finally_arg.Erase(); });
+		finally_do_arg (BufferPtr, BufferPtr (reinterpret_cast <uint8 *> (passwordBuf), sizeof (passwordBuf)), { finally_arg.Erase(); });
 
 #ifdef TC_WINDOWS
 		int len = GetWindowText (static_cast <HWND> (textCtrl->GetHandle()), passwordBuf, VolumePassword::MaxSize + 1);
@@ -467,6 +465,7 @@ namespace VeraCrypt
 			VolumePimStaticText->Show (true);
 			VolumePimTextCtrl->Show (true);
 			VolumePimHelpStaticText->Show (true);
+			VolumePimTextCtrl->SetFocus();
 
 			if (DisplayPasswordCheckBox->IsChecked ())
 				DisplayPassword (true, &VolumePimTextCtrl, 3);

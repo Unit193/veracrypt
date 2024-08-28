@@ -2578,6 +2578,7 @@ static tLanguageEntry g_languagesEntries[] = {
 	{L"ქართული", IDR_LANG_KA, LANG_GEORGIAN, "ka", NULL},
 	{L"한국어", IDR_LANG_KO, LANG_KOREAN, "ko", NULL},
 	{L"Latviešu", IDR_LANG_LV, LANG_LATVIAN, "lv", NULL},
+	{L"Norsk Bokmål", IDR_LANG_NB, LANG_NORWEGIAN, "nb", NULL},
 	{L"Nederlands", IDR_LANG_NL, LANG_DUTCH, "nl", NULL},
 	{L"Norsk Nynorsk", IDR_LANG_NN, LANG_NORWEGIAN, "nn", NULL},
 	{L"Polski", IDR_LANG_PL, LANG_POLISH, "pl", NULL},
@@ -2593,7 +2594,7 @@ static tLanguageEntry g_languagesEntries[] = {
 	{L"Ўзбекча", IDR_LANG_UZ, LANG_UZBEK, "uz", NULL},
 	{L"Tiếng Việt", IDR_LANG_VI, LANG_VIETNAMESE, "vi", NULL},
 	{L"简体中文", IDR_LANG_ZHCN, LANG_CHINESE, "zh-cn", L"zh-CN"},
-	{L"繁體中文", IDR_LANG_ZHHK, LANG_CHINESE, "zh-hk", L"zh-HK"},
+	{L"繁體中文(香港)", IDR_LANG_ZHHK, LANG_CHINESE, "zh-hk", L"zh-HK"},
 	{L"繁體中文", IDR_LANG_ZHTW, LANG_CHINESE, "zh-tw", L"zh-TW"},
 };
 

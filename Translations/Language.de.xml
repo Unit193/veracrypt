@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.7">
+  <localization prog-version= "1.26.14">
     <!-- Sprachen -->
     <language langid="de" name="Deutsch" en-name="German" version="1.1.8" translators="Harry Haller, Alexander Schorg, Simon Frankenberger, David Arndt, H. Sauer, Dulla, Ettore Atalan, Matthias Kolja Miehl, Felix Reichmann" />
     <!-- Schriftarten -->
@@ -62,7 +62,7 @@
     <entry lang="de" key="IDC_PAUSE">&amp;Pause</entry>
     <entry lang="de" key="IDC_PIM_ENABLE">P&amp;IM verwenden</entry>
     <entry lang="de" key="IDC_NEW_PIM_ENABLE">PIM verwenden</entry>
-    <entry lang="de" key="IDC_QUICKFORMAT">Schnell-Formatierung</entry>
+    <entry lang="de" key="IDC_QUICKFORMAT">Schnellformatierung</entry>
     <entry lang="de" key="IDC_SHOW_PASSWORD">Passwort an&amp;zeigen</entry>
     <entry lang="de" key="IDC_SHOW_PASSWORD_SINGLE">&amp;Passwort anzeigen</entry>
     <entry lang="de" key="IDC_SHOW_PIM">PIM &amp;anzeigen</entry>
@@ -635,16 +635,16 @@
     <entry lang="de" key="PASSWORD_HIDDEN_OS_TITLE">Passwort für verstecktes Betriebssystem</entry>
     <entry lang="de" key="PASSWORD_LENGTH_WARNING">WARNUNG: Kurze Passwörter sind leicht durch Ausprobieren sämtlicher Kombinationen zu knacken!\n\nEmpfehlenswerte Passwörter bestehen aus mehr als 20 Zeichen.\n\nMöchten Sie das kurze Passwort wirklich verwenden?</entry>
     <entry lang="de" key="PASSWORD_TITLE">Volume-Passwort</entry>
-    <entry lang="de" key="PASSWORD_WRONG">Falsches Passwort oder kein VeraCrypt-Volume.</entry>
-    <entry lang="de" key="PASSWORD_OR_KEYFILE_WRONG">Falsche Schlüsseldatei(en) und/oder falsches Passwort oder kein VeraCrypt-Volume.</entry>
-    <entry lang="de" key="PASSWORD_OR_MODE_WRONG">Falsche Methode zum Einhängen, falsches Passwort oder es ist kein VeraCrypt-Volume.</entry>
-    <entry lang="de" key="PASSWORD_OR_KEYFILE_OR_MODE_WRONG">Falsche Methode zum Einhängen, falsche Schlüsseldatei(en) und/oder Passwort oder es ist kein VeraCrypt-Volume.</entry>
-    <entry lang="de" key="PASSWORD_WRONG_AUTOMOUNT">Falsches Passwort oder es wurde kein VeraCrypt-Volume gefunden.</entry>
-    <entry lang="de" key="PASSWORD_OR_KEYFILE_WRONG_AUTOMOUNT">Falsche Schlüsseldatei(en) und/oder falsches Passwort oder es wurde kein VeraCrypt-Volume gefunden.</entry>
+    <entry lang="de" key="PASSWORD_WRONG">Der Vorgang ist aufgrund eines oder mehrerer der folgenden Fehler fehlgeschlagen:\n - Falsches Passwort.\n - Falsche Volume-PIM-Nummer.\n - Falscher PRF (Hash).\n - Kein gültiges Volume.\n - Volume verwendet einen alten Algorithmus, der entfernt wurde.\n - TrueCrypt-Format-Volumes werden nicht mehr unterstützt.</entry>
+    <entry lang="de" key="PASSWORD_OR_KEYFILE_WRONG">Der Vorgang ist aufgrund eines oder mehrerer der folgenden Fehler fehlgeschlagen:\n - Falsche Schlüsseldatei(en).\n - Falsches Passwort.\n - Falsche Volume-PIM-Nummer.\n - Falscher PRF (Hash).\n - Kein gültiges Volume.\n - Volume verwendet einen alten Algorithmus, der entfernt wurde.\n - TrueCrypt-Format-Volumes werden nicht mehr unterstützt.</entry>
+    <entry lang="de" key="PASSWORD_OR_MODE_WRONG">Der Vorgang ist aufgrund eines oder mehrerer der folgenden Fehler fehlgeschlagen:\n - Falsche Methode zum Einhängen.\n - Falsches Passwort.\n - Falsche Volume-PIM-Nummer.\n - Falscher PRF (Hash).\n - Kein gültiges Volume.\n - Volume verwendet einen alten Algorithmus, der entfernt wurde.\n - TrueCrypt-Format-Volumes werden nicht mehr unterstützt.</entry>
+    <entry lang="de" key="PASSWORD_OR_KEYFILE_OR_MODE_WRONG">Der Vorgang ist aufgrund eines oder mehrerer der folgenden Fehler fehlgeschlagen:\n - Falsche Methode zum Einhängen.\n - Falsche Schlüsseldatei(en).\n - Falsches Passwort.\n - Falsche Volume-PIM-Nummer.\n - Falscher PRF (Hash).\n - Kein gültiges Volume.\n - Volume verwendet einen alten Algorithmus, der entfernt wurde.\n - TrueCrypt-Format-Volumes werden nicht mehr unterstützt.</entry>
+    <entry lang="de" key="PASSWORD_WRONG_AUTOMOUNT">Automatisches Einhängen fehlgeschlagen aufgrund eines oder mehrerer der folgenden Fehler:\n - Falsches Passwort.\n - Falsche Volume-PIM-Nummer.\n - Falscher PRF (Hash).\n - Kein gültiges Volume gefunden.\n - Volume verwendet einen alten Algorithmus, der entfernt wurde.\n - TrueCrypt-Format-Volumes werden nicht mehr unterstützt.</entry>
+    <entry lang="de" key="PASSWORD_OR_KEYFILE_WRONG_AUTOMOUNT">Automatisches Einhängen fehlgeschlagen aufgrund eines oder mehrerer der folgenden Fehler:\n - Falsche Schlüsseldatei(en).\n - Falsches Passwort.\n - Falsche Volume-PIM-Nummer.\n - Falscher PRF (Hash).\n - Kein gültiges Volume gefunden.\n - Volume verwendet einen alten Algorithmus, der entfernt wurde.\n - TrueCrypt-Format-Volumes werden nicht mehr unterstützt.</entry>
     <entry lang="de" key="PASSWORD_WRONG_CAPSLOCK_ON">\n\nWARNUNG: Die Feststelltaste ist aktiviert. Dies führt möglicherweise zu einer falschen Passworteingabe.</entry>
     <entry lang="de" key="PIM_CHANGE_WARNING">MERKEN! Für Volume-Einhängung</entry>
     <entry lang="de" key="PIM_HIDVOL_HOST_TITLE">PIM des äußeren Volumes</entry>
-    <entry lang="de" key="PIM_HIDVOL_TITLE">PIM des versteckten Volumes</entry>
+    <entry lang="de" key="PIM_HIDVOL_TITLE">PIM des verste  ckten Volumes</entry>
     <entry lang="de" key="PIM_HIDDEN_OS_TITLE">PIM für verstecktes Betriebssystem</entry>
     <entry lang="de" key="PIM_HELP">Der PIM (Persönlicher Iterationsmultiplikator) ist ein Wert, der die Anzahl der Iterationen für die Kopfdatenschlüsselableitung wie folgt steuert:\n      Iterationen = 15000 + (PIM x 1000).\n\nWird der Wert leer gelassen oder auf 0 gesetzt, benutzt VeraCrypt einen Standardwert (485), der hohe Sicherheit gewährleistet.\n\nWenn das Passwort weniger als 20 Zeichen hat, kann der PIM nicht kleiner als 485 sein, um ein minimales Sicherheitslevel zu gewährleisten.\nWenn das Passwort 20 Zeichen oder mehr hat, kann der PIM beliebig gesetzt werden.\nEin PIM-Wert größer als 485 verlangsamt das Einhängen. Ein niedriger PIM-Wert (kleiner als 485) beschleunigt das Einhängen, kann aber die Sicherheit verringern, wenn ein zu schwaches Passwort gewählt wurde.</entry>
     <entry lang="de" key="PIM_SYSENC_HELP">Der PIM (Persönlicher Iterationsmultiplikator) ist ein Wert, der die Anzahl der Iterationen für die Kopfdatenschlüsselableitung wie folgt steuert:\n      Iterationen = PIM x 2048.\n\nWird der Wert leer gelassen oder auf 0 gesetzt, benutzt VeraCrypt einen Standardwert, der hohe Sicherheit gewährleistet.\n\nWenn das Passwort weniger als 20 Zeichen hat, kann der PIM nicht kleiner als 98 sein, um ein minimales Sicherheitslevel zu gewährleisten.\nWenn das Passwort 20 Zeichen oder mehr hat, kann der PIM beliebig gesetzt werden.\nEin PIM-Wert größer als 98 verlangsamt den Bootvorgang. Ein niedriger PIM-Wert (kleiner als 98) beschleunigt den Bootvorgang, kann aber die Sicherheit verringern, wenn ein zu schwaches Passwort gewählt wurde.</entry>
@@ -1609,8 +1609,8 @@
     <entry lang="de" key="EXPANDER_ERROR_MAX_FILE_SIZE_EXCEEDED">Maximale Dateigröße von %I64u MB auf dem Host-Laufwerk überschritten.</entry>
     <entry lang="de" key="EXPANDER_ERROR_QUICKEXPAND_PRIVILEGES">FEHLER: Die für die Aktivierung der Schnellerweiterung erforderlichen Berechtigungen konnten nicht erlangt werden!\nBitte deaktivieren Sie die Option Schnellerweiterung und versuchen Sie es erneut.</entry>
     <entry lang="de" key="EXPANDER_ERROR_MAX_VC_VOLUME_SIZE_EXCEEDED">Maximale VeraCrypt-Volume-Größe von %I64u TB überschritten!\n</entry>
-    <entry lang="de" key="FULL_FORMAT">Volles Format</entry>
-    <entry lang="de" key="FAST_CREATE">Schnelles Erstellen</entry>
+    <entry lang="de" key="FULL_FORMAT">Vollformatierung</entry>
+    <entry lang="de" key="FAST_CREATE">Schnellerstellung</entry>
     <entry lang="de" key="WARN_FAST_CREATE">WARNUNG: Sie sollten Schnelles Erstellen nur in den folgenden Fällen verwenden:\n\n1) Das Gerät enthält keine sensiblen Daten und Sie benötigen keine plausible Bestreitbarkeit.\n2) Das Gerät wurde bereits sicher und vollständig verschlüsselt.\n\nSind Sie sicher, dass Sie Schnelles Erstellen verwenden möchten?</entry>
     <entry lang="de" key="IDC_ENABLE_EMV_SUPPORT">EMV-Unterstützung aktivieren</entry>
     <entry lang="de" key="COMMAND_APDU_INVALID">Der an die Karte gesendete APDU-Befehl ist ungültig.</entry>
@@ -1620,10 +1620,10 @@
     <entry lang="de" key="EMV_SELECT_AID_FAILED">Die AID der Karte im Lesegerät konnte nicht ausgewählt werden.</entry>
     <entry lang="de" key="EMV_ICC_CERT_NOTFOUND">ICC-Zertifikat des öffentlichen Schlüssels wurde auf der Karte nicht gefunden.</entry>
     <entry lang="de" key="EMV_ISSUER_CERT_NOTFOUND">Das Zertifikat des öffentlichen Schlüssels des Ausstellers wurde auf der Karte nicht gefunden.</entry>
-    <entry lang="de" key="EMV_CPLC_NOTFOUND">CLPC wurde auf der EMV-Karte nicht gefunden.</entry>
+    <entry lang="de" key="EMV_CPLC_NOTFOUND">CPLC wurde auf der EMV-Karte nicht gefunden.</entry>
     <entry lang="de" key="EMV_PAN_NOTFOUND">Keine primäre Kontonummer (PAN) auf der EMV-Karte gefunden.</entry>
     <entry lang="de" key="INVALID_EMV_PATH">Der EMV-Pfad ist ungültig.</entry>
-    <entry lang="de" key="EMV_KEYFILE_DATA_NOTFOUND">Es konnte keine Schlüsseldatei aus den Daten der EMV-Karte erstellt werden.\n\nEine der folgenden Angaben fehlt:\n- ICC-Zertifikat des öffentlichen Schlüssels.\n- Zertifikat des öffentlichen Schlüssels des Ausstellers.\n- CPCL-Daten.</entry>
+    <entry lang="de" key="EMV_KEYFILE_DATA_NOTFOUND">Es konnte keine Schlüsseldatei aus den Daten der EMV-Karte erstellt werden.\n\nEine der folgenden Angaben fehlt:\n- ICC-Zertifikat des öffentlichen Schlüssels.\n- Zertifikat des öffentlichen Schlüssels des Ausstellers.\n- CPLC-Daten.</entry>
     <entry lang="de" key="SCARD_W_REMOVED_CARD">Keine Karte im Lesegerät.\n\nVergewissern Sie sich, dass die Karte richtig eingesteckt ist.</entry>
     <entry lang="de" key="FORMAT_EXTERNAL_FAILED">Der Windows-Befehl format.com konnte das Volume nicht als NTFS/exFAT/ReFS formatieren: Fehler 0x%.8X.\n\nZurückfallen auf die Verwendung der Windows FormatEx-API.</entry>
     <entry lang="de" key="FORMATEX_API_FAILED">Windows FormatEx-API konnte das Volume nicht als NTFS/exFAT/ReFS formatieren.\n\nFehlerstatus = %s.</entry>
@@ -1638,6 +1638,12 @@
     <entry lang="de" key="IDC_LINK_KEYFILES_EXTENSIONS_WARNING">Wichtige Informationen zur Verwendung von Dateierweiterungen von Drittanbietern</entry>
     <entry lang="de" key="IDC_DISABLE_MEMORY_PROTECTION">Deaktivieren Sie den Speicherschutz für die Kompatibilität der Eingabehilfen</entry>
     <entry lang="de" key="DISABLE_MEMORY_PROTECTION_WARNING">WARNUNG: Die Deaktivierung des Speicherschutzes verringert die Sicherheit erheblich. Aktivieren Sie diese Option NUR, wenn Sie sich bei der Interaktion mit VeraCrypt auf Eingabehilfen wie Sprachausgabe verlassen.</entry>
+    <entry lang="de" key="LINUX_LANGUAGE">Sprache</entry>
+    <entry lang="de" key="LINUX_SELECT_SYS_DEFAULT_LANG">Wählen Sie die Standardsprache des Systems</entry>
+    <entry lang="de" key="LINUX_RESTART_FOR_LANGUAGE_CHANGE">Damit die Sprachänderung in Kraft treten kann, muss VeraCrypt neu gestartet werden.</entry>
+    <entry lang="de" key="ERR_XTS_MASTERKEY_VULNERABLE">WARNUNG: Der Hauptschlüssel des Volumes ist anfällig für einen Angriff, der die Datensicherheit gefährdet.\n\nBitte erstellen Sie ein neues Volume und übertragen Sie die Daten auf dieses.</entry>
+    <entry lang="de" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">WARNUNG: Der Hauptschlüssel des verschlüsselten Systems ist anfällig für einen Angriff, der die Datensicherheit gefährdet.\nBitte entschlüsseln Sie die Systempartition/das Laufwerk und verschlüsseln Sie es anschließend erneut.</entry>
+    <entry lang="de" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">WARNUNG: Der Hauptschlüssel des Volumes weist eine Sicherheitslücke auf.</entry>
   </localization>
   <!-- XML-Schema -->
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
