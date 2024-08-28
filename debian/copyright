@@ -5,7 +5,7 @@ Comment: TC-3.0 license is distribution encumbered.
 
 Files: *
 Copyright: 2003-2011, TrueCrypt Developers Association
-	   2013-2023, IDRIX
+	   2013-2024, IDRIX
 License: TC-3.0 or Apache-2.0
 Comment:
  Modifications and additions to the original source code are copyright IDRIX
@@ -115,7 +115,7 @@ License: public-domain-lzma
  include it to GNU GPL or GNU LGPL code.
 
 Files: src/Common/zlib/*
-Copyright: 1995-2023, Jean-loup Gailly and Mark Adler
+Copyright: 1995-2024, Jean-loup Gailly and Mark Adler
 License: zlib
 
 Files: src/Boot/Windows/Decompressor.c
@@ -123,7 +123,7 @@ Copyright: 2002-2004, Mark Adler
 License: zlib
 
 Files: debian/*
-Copyright: 2013-2023, Unit 193 <unit193@unit193.net>
+Copyright: 2013-2024, Unit 193 <unit193@unit193.net>
 License: BSD-3-Clause
 
 
