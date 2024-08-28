@@ -347,6 +347,16 @@ namespace VeraCrypt
 #elif defined (TC_FREEBSD) || defined (TC_SOLARIS)
 				else if (str.IsSameAs (L"UFS", false))
 					ArgFilesystem = VolumeCreationOptions::FilesystemType::UFS;
+				else if (str.IsSameAs (L"Ext2", false))
+					ArgFilesystem = VolumeCreationOptions::FilesystemType::Ext2;
+				else if (str.IsSameAs (L"Ext3", false))
+					ArgFilesystem = VolumeCreationOptions::FilesystemType::Ext3;
+				else if (str.IsSameAs (L"Ext4", false))
+					ArgFilesystem = VolumeCreationOptions::FilesystemType::Ext4;
+				else if (str.IsSameAs (L"NTFS", false))
+					ArgFilesystem = VolumeCreationOptions::FilesystemType::NTFS;
+				else if (str.IsSameAs (L"exFAT", false))
+					ArgFilesystem = VolumeCreationOptions::FilesystemType::exFAT;
 #endif
 				else
 					throw_err (LangString["UNKNOWN_OPTION"] + L": " + str);
@@ -824,7 +834,7 @@ namespace VeraCrypt
 			if (wxCONV_FAILED == ulen)
 				throw PasswordUTF8Invalid (SRC_POS);
 			SecureBuffer passwordBuf(ulen);
-			ulen = utf8.FromWChar ((char*) (byte*) passwordBuf, ulen, str, charCount);
+			ulen = utf8.FromWChar ((char*) (uint8*) passwordBuf, ulen, str, charCount);
 			if (wxCONV_FAILED == ulen)
 				throw PasswordUTF8Invalid (SRC_POS);
 			if (ulen > maxUtf8Len)
@@ -835,7 +845,7 @@ namespace VeraCrypt
 					throw PasswordUTF8TooLong (SRC_POS);
 			}
 
-			ConstBufferPtr utf8Buffer ((byte*) passwordBuf, ulen);
+			ConstBufferPtr utf8Buffer ((uint8*) passwordBuf, ulen);
 			return shared_ptr<SecureBuffer>(new SecureBuffer (utf8Buffer));
 		}
 		else

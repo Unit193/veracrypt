@@ -702,7 +702,9 @@ void EnableDisableButtons (HWND hwndDlg)
 
 	case TC_MLIST_ITEM_FREE:
 	default:
+#if !defined(VCEXPANDER)
 		EnableSplitButton(hwndDlg, IDOK);
+#endif
 		SetWindowTextW (hOKButton, GetString ("MOUNT_BUTTON"));
 		// Invalid the button IDOK so that it will be redrawn
 		InvalidateRect (hOKButton, NULL, TRUE);
@@ -1257,6 +1259,20 @@ static BOOL SysEncryptionOrDecryptionRequired (void)
 			)
 		)
 	);
+}
+
+// Returns TRUE if system encryption master key is vulnerable
+static BOOL SysEncryptionMasterKeyVulnerable (void)
+{
+	try
+	{
+		BootEncStatus = BootEncObj->GetStatus();
+		return (BootEncStatus.DriveMounted || BootEncStatus.DriveEncrypted) && BootEncStatus.MasterKeyVulnerable;
+	}
+	catch (Exception &)
+	{
+		return FALSE;
+	}
 }
 
 // Returns TRUE if the system partition/drive is completely encrypted
@@ -7435,10 +7451,12 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 			if (!Quit)	// Do not care about system encryption or in-place encryption if we were launched from the system startup sequence (the wizard was added to it too).
 			{
+				BOOL bActionPerformed = FALSE;
 				if (SysEncryptionOrDecryptionRequired ())
 				{
 					if (!MutexExistsOnSystem (TC_MUTEX_NAME_SYSENC))	// If no instance of the wizard is currently taking care of system encryption
 					{
+						bActionPerformed = TRUE;
 						// We shouldn't block the mutex at this point
 
 						if (SystemEncryptionStatus == SYSENC_STATUS_PRETEST
@@ -7465,7 +7483,17 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				{
 					BOOL bDecrypt = FALSE;
 					if (AskNonSysInPlaceEncryptionResume(hwndDlg, &bDecrypt) == IDYES)
+					{
+						bActionPerformed = TRUE;
 						ResumeInterruptedNonSysInplaceEncProcess (bDecrypt);
+					}
+				}
+
+				if (!bActionPerformed)
+				{
+					// display warning if the master key is vulnerable
+					if (SysEncryptionMasterKeyVulnerable())
+						WarningTopMost ("ERR_SYSENC_XTS_MASTERKEY_VULNERABLE", hwndDlg);
 				}
 			}
 
@@ -8108,6 +8136,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				}
 			}
 		}
+#if !defined(VCEXPANDER)
 		else
 		{
 			LPNMHDR pnmh = (LPNMHDR)lParam;
@@ -8120,6 +8149,7 @@ BOOL CALLBACK MainDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				DestroyMenu(hmenu);
 			}
 		}
+#endif
 		return 0;
 
 	case WM_ERASEBKGND:
@@ -10822,8 +10852,8 @@ int BackupVolumeHeader (HWND hwndDlg, BOOL bRequireConfirmation, const wchar_t *
 	OpenVolumeContext hiddenVolume;
 	Password hiddenVolPassword;
 	int hiddenVolPkcs5 = 0, hiddenVolPim = 0;
-	CRYPTOPP_ALIGN_DATA(16) byte temporaryKey[MASTER_KEYDATA_SIZE];
-	CRYPTOPP_ALIGN_DATA(16) byte originalK2[MASTER_KEYDATA_SIZE];
+	CRYPTOPP_ALIGN_DATA(16) uint8 temporaryKey[MASTER_KEYDATA_SIZE];
+	CRYPTOPP_ALIGN_DATA(16) uint8 originalK2[MASTER_KEYDATA_SIZE];
 	int EffectiveVolumePkcs5 = CmdVolumePkcs5;
 	int EffectiveVolumePim = CmdVolumePim;
 
@@ -10969,7 +10999,7 @@ noHidden:
 
 	// Backup headers
 
-	byte backup[TC_VOLUME_HEADER_GROUP_SIZE];
+	uint8 backup[TC_VOLUME_HEADER_GROUP_SIZE];
 
 	bool legacyVolume = volume.CryptoInfo->LegacyVolume ? true : false;
 	int backupFileSize = legacyVolume ? TC_VOLUME_HEADER_SIZE_LEGACY * 2 : TC_VOLUME_HEADER_GROUP_SIZE;
@@ -11221,7 +11251,7 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 			goto error;
 		}
 
-		if (!WriteEffectiveVolumeHeader (volume.IsDevice, volume.HostFileHandle, (byte *) buffer))
+		if (!WriteEffectiveVolumeHeader (volume.IsDevice, volume.HostFileHandle, (uint8 *) buffer))
 		{
 			nStatus = ERR_OS_ERROR;
 			goto error;
@@ -11447,6 +11477,12 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 			handleError (hwndDlg, nStatus, SRC_POS);
 		}
 
+		// display a warning if the master key is vulnerable
+		if (restoredCryptoInfo->bVulnerableMasterKey)
+		{
+			Warning ("ERR_XTS_MASTERKEY_VULNERABLE", hwndDlg);
+		}
+
 		BOOL hiddenVol = restoredCryptoInfo->hiddenVolume;
 
 		if (legacyBackup)
@@ -11472,7 +11508,7 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 			goto error;
 		}
 
-		if (!WriteEffectiveVolumeHeader (bDevice, dev, (byte *) buffer))
+		if (!WriteEffectiveVolumeHeader (bDevice, dev, (uint8 *) buffer))
 		{
 			nStatus = ERR_OS_ERROR;
 			goto error;
@@ -11491,7 +11527,7 @@ int RestoreVolumeHeader (HWND hwndDlg, const wchar_t *lpszVolume)
 				goto error;
 			}
 
-			if (!WriteEffectiveVolumeHeader (bDevice, dev, (byte *) buffer))
+			if (!WriteEffectiveVolumeHeader (bDevice, dev, (uint8 *) buffer))
 			{
 				nStatus = ERR_OS_ERROR;
 				goto error;
@@ -11714,7 +11750,7 @@ static BOOL CALLBACK PerformanceSettingsDlgProc (HWND hwndDlg, UINT msg, WPARAM 
 
 					if (BootEncStatus.DriveMounted && !bSystemIsGPT)
 					{
-						byte userConfig;
+						uint8 userConfig;
 						string customUserMessage;
 						uint16 bootLoaderVersion;
 
@@ -12117,7 +12153,7 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 {
 	WORD lw = LOWORD (wParam);
 	static std::string platforminfo;
-	static byte currentUserConfig;
+	static uint8 currentUserConfig;
 	static string currentCustomUserMessage;
 
 	switch (msg)
@@ -12137,7 +12173,7 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				LocalizeDialog (hwndDlg, "IDD_SYSENC_SETTINGS");
 				uint32 driverConfig = ReadDriverConfigurationFlags();
 				uint32 serviceConfig = ReadServiceConfigurationFlags();
-				byte userConfig;
+				uint8 userConfig;
 				string customUserMessage;
 				uint16 bootLoaderVersion = 0;
 				BOOL bPasswordCacheEnabled = (driverConfig & TC_DRIVER_CONFIG_CACHE_BOOT_PASSWORD)? TRUE : FALSE;
@@ -12314,7 +12350,7 @@ static BOOL CALLBACK BootLoaderPreferencesDlgProc (HWND hwndDlg, UINT msg, WPARA
 				if (!bSystemIsGPT)
 					GetDlgItemTextA (hwndDlg, IDC_CUSTOM_BOOT_LOADER_MESSAGE, customUserMessage, sizeof (customUserMessage));
 
-				byte userConfig = currentUserConfig;
+				uint8 userConfig = currentUserConfig;
 
 				if (IsDlgButtonChecked (hwndDlg, IDC_DISABLE_BOOT_LOADER_PIM_PROMPT))
 					userConfig |= TC_BOOT_USER_CFG_FLAG_DISABLE_PIM;

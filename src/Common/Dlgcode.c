@@ -2156,20 +2156,20 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 			L"Based on TrueCrypt 7.1a, freely available at http://www.truecrypt.org/ .\r\n\r\n"
 
 			L"Portions of this software:\r\n"
-			L"Copyright \xA9 2013-2023 IDRIX. All rights reserved.\r\n"
+			L"Copyright \xA9 2013-2024 IDRIX. All rights reserved.\r\n"
 			L"Copyright \xA9 2003-2012 TrueCrypt Developers Association. All Rights Reserved.\r\n"
 			L"Copyright \xA9 1998-2000 Paul Le Roux. All Rights Reserved.\r\n"
 			L"Copyright \xA9 1998-2008 Brian Gladman. All Rights Reserved.\r\n"
-			L"Copyright \xA9 1995-2017 Jean-loup Gailly and Mark Adler.\r\n"
+			L"Copyright \xA9 1995-2023 Jean-loup Gailly and Mark Adler.\r\n"
 			L"Copyright \xA9 2016 Disk Cryptography Services for EFI (DCS), Alex Kolotnikov.\r\n"
-			L"Copyright \xA9 1999-2020 Dieter Baron and Thomas Klausner.\r\n"
+			L"Copyright \xA9 1999-2023 Dieter Baron and Thomas Klausner.\r\n"
 			L"Copyright \xA9 2013, Alexey Degtyarev. All rights reserved.\r\n"
 			L"Copyright \xA9 1999-2016 Jack Lloyd. All rights reserved.\r\n"
 			L"Copyright \xA9 2013-2019 Stephan Mueller <smueller@chronox.de>\r\n"
-			L"Copyright \xA9 1999-2021 Igor Pavlov\r\n\r\n"
+			L"Copyright \xA9 1999-2023 Igor Pavlov\r\n\r\n"
 
 			L"This software as a whole:\r\n"
-			L"Copyright \xA9 2013-2023 IDRIX. All rights reserved.\r\n\r\n"
+			L"Copyright \xA9 2013-2024 IDRIX. All rights reserved.\r\n\r\n"
 
 			L"An IDRIX Release");
 
@@ -2884,7 +2884,7 @@ LRESULT CALLBACK CustomDlgProc (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 static BOOL IsReturnAddress (DWORD64 address)
 {
 	static size_t codeEnd = 0;
-	byte *sp = (byte *) address;
+	uint8 *sp = (uint8 *) address;
 
 	if (codeEnd == 0)
 	{
@@ -3018,7 +3018,7 @@ void ExceptionHandlerThread (void *threadArg)
 
 	MEMORY_BASIC_INFORMATION mi;
 	VirtualQuery (sp, &mi, sizeof (mi));
-	PDWORD stackTop = (PDWORD)((byte *) mi.BaseAddress + mi.RegionSize);
+	PDWORD stackTop = (PDWORD)((uint8 *) mi.BaseAddress + mi.RegionSize);
 	int i = 0;
 
 	while (retAddrs.size() < 16 && &sp[i] < stackTop)
@@ -5577,6 +5577,14 @@ void handleError (HWND hwndDlg, int code, const char* srcPos)
 		break;
 #endif
 
+	case ERR_XTS_MASTERKEY_VULNERABLE:
+		MessageBoxW (hwndDlg, AppendSrcPos (GetString ("ERR_XTS_MASTERKEY_VULNERABLE"), srcPos).c_str(), lpszTitle, ICON_HAND);
+		break;
+
+	case ERR_SYSENC_XTS_MASTERKEY_VULNERABLE:
+		MessageBoxW (hwndDlg, AppendSrcPos (GetString ("ERR_SYSENC_XTS_MASTERKEY_VULNERABLE"), srcPos).c_str(), lpszTitle, ICON_HAND);
+		break;
+
 	default:
 		StringCbPrintfW (szTmp, sizeof(szTmp), GetString ("ERR_UNKNOWN"), code);
 		MessageBoxW (hwndDlg, AppendSrcPos (szTmp, srcPos).c_str(), lpszTitle, ICON_HAND);
@@ -5796,24 +5804,24 @@ wstring ArrayToHexWideString (const unsigned char* pbData, int cbData)
 	return result;
 }
 
-bool HexToByte (wchar_t c, byte& b)
+bool HexToByte (wchar_t c, uint8& b)
 {
 	bool bRet = true;
 	if (c >= L'0' && c <= L'9')
-		b = (byte) (c - L'0');
+		b = (uint8) (c - L'0');
 	else if (c >= L'a' && c <= L'z')
-		b = (byte) (c - L'a' + 10);
+		b = (uint8) (c - L'a' + 10);
 	else if (c >= L'A' && c <= L'Z')
-		b = (byte) (c - L'A' + 10);
+		b = (uint8) (c - L'A' + 10);
 	else
 		bRet = false;
 
 	return bRet;
 }
 
-bool HexWideStringToArray (const wchar_t* hexStr, std::vector<byte>& arr)
+bool HexWideStringToArray (const wchar_t* hexStr, std::vector<uint8>& arr)
 {
-	byte b1, b2;
+	uint8 b1, b2;
 	size_t i, len = wcslen (hexStr);
 
 	arr.clear();
@@ -6143,11 +6151,13 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 		*/
 		{
 			BYTE digest [MAX_DIGESTSIZE];
-			WHIRLPOOL_CTX	wctx;
-			blake2s_state   bctx;
+		#ifndef WOLFCRYPT_BACKEND	
+                        WHIRLPOOL_CTX	wctx;
+			STREEBOG_CTX		stctx;
+                        blake2s_state   bctx;
+               #endif
 			sha512_ctx		s2ctx;
 			sha256_ctx		s256ctx;
-			STREEBOG_CTX		stctx;
 
 			int hid, i;
 
@@ -6172,7 +6182,7 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 						sha256_hash (lpTestBuffer, benchmarkBufferSize, &s256ctx);
 						sha256_end ((unsigned char *) digest, &s256ctx);
 						break;
-
+                              #ifndef WOLFCRYPT_BACKEND
 					case BLAKE2S:
 						blake2s_init(&bctx);
 						blake2s_update(&bctx, lpTestBuffer, benchmarkBufferSize);
@@ -6192,7 +6202,8 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 						break;
 
 					}
-				}
+			        #endif	
+                                }
 
 				if (QueryPerformanceCounter (&performanceCountEnd) == 0)
 					goto counter_error;
@@ -6240,7 +6251,7 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 					/* PKCS-5 test with HMAC-SHA-256 used as the PRF */
 					derive_key_sha256 ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
-
+                          #ifndef WOLFCRYPT_BACKEND
 				case BLAKE2S:
 					/* PKCS-5 test with HMAC-BLAKE2s used as the PRF */
 					derive_key_blake2s ("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
@@ -6256,7 +6267,8 @@ static BOOL PerformBenchmark(HWND hBenchDlg, HWND hwndDlg)
 					derive_key_streebog("passphrase-1234567890", 21, tmp_salt, 64, get_pkcs5_iteration_count(thid, benchmarkPim, benchmarkPreBoot), dk, MASTER_KEYDATA_SIZE);
 					break;
 				}
-			}
+	                   #endif	
+                        }
 
 			if (QueryPerformanceCounter (&performanceCountEnd) == 0)
 				goto counter_error;
@@ -8712,7 +8724,7 @@ retry:
 
 	if ((path.length () >= 3) && (_wcsnicmp (path.c_str(), L"ID:", 3) == 0))
 	{
-		std::vector<byte> arr;
+		std::vector<uint8> arr;
 		if (	(path.length() == (3 + 2*VOLUME_ID_SIZE)) 
 			&& HexWideStringToArray (path.c_str() + 3, arr)
 			&& (arr.size() == VOLUME_ID_SIZE)
@@ -8949,6 +8961,12 @@ retry:
 	
 	LastMountedVolumeDirty = mount.FilesystemDirty;
 
+	if (mount.VolumeMasterKeyVulnerable
+		&& !Silent)
+	{
+		Warning ("ERR_XTS_MASTERKEY_VULNERABLE", hwndDlg);
+	}
+
 	if (mount.FilesystemDirty)
 	{
 		wchar_t msg[1024];
@@ -9164,7 +9182,7 @@ BOOL IsMountedVolume (const wchar_t *volname)
 	if ((wcslen (volname) == (3 + 2*VOLUME_ID_SIZE)) && _wcsnicmp (volname, L"ID:", 3) == 0)
 	{
 		/* Volume ID specified. Use it for matching mounted volumes. */
-		std::vector<byte> arr;
+		std::vector<uint8> arr;
 		if (HexWideStringToArray (&volname[3], arr) && (arr.size() == VOLUME_ID_SIZE))
 		{
 			return IsMountedVolumeID (&arr[0]);
@@ -11338,7 +11356,8 @@ BOOL CALLBACK CloseTCWindowsEnum (HWND hwnd, LPARAM lParam)
 	{
 		wchar_t name[1024] = { 0 };
 		GetWindowText (hwnd, name, ARRAYSIZE (name) - 1);
-		if (hwnd != MainDlg && wcsstr (name, L"VeraCrypt"))
+		// check if the window is a VeraCrypt window, excluding current process main dialog and VeraCrypt Setup window
+		if (hwnd != MainDlg && wcsstr (name, L"VeraCrypt") && !wcsstr (name, L"VeraCrypt Setup"))
 		{
 			PostMessage (hwnd, TC_APPMSG_CLOSE_BKG_TASK, 0, 0);
 
@@ -11572,7 +11591,7 @@ int OpenVolume (OpenVolumeContext *context, const wchar_t *volumePath, Password 
 
 		// Read volume header
 		DWORD bytesRead;
-		if (!ReadEffectiveVolumeHeader (context->IsDevice, context->HostFileHandle, (byte *) buffer, &bytesRead))
+		if (!ReadEffectiveVolumeHeader (context->IsDevice, context->HostFileHandle, (uint8 *) buffer, &bytesRead))
 		{
 			status = ERR_OS_ERROR;
 			goto error;
@@ -12157,7 +12176,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 					if (BrowseFiles (hwndDlg, "SELECT_KEYFILE", keyfilePath, bHistory, FALSE))
 					{
 						DWORD keyfileSize;
-						byte *keyfileData = (byte *) LoadFile (keyfilePath, &keyfileSize);
+						uint8 *keyfileData = (uint8 *) LoadFile (keyfilePath, &keyfileSize);
 						if (!keyfileData)
 						{
 							handleWin32Error (hwndDlg, SRC_POS);
@@ -12175,7 +12194,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 
 							if (DialogBoxParamW (hInst, MAKEINTRESOURCEW (IDD_NEW_TOKEN_KEYFILE), hwndDlg, (DLGPROC) NewSecurityTokenKeyfileDlgProc, (LPARAM) &newParams) == IDOK)
 							{
-								vector <byte> keyfileDataVector (keyfileSize);
+								vector <uint8> keyfileDataVector (keyfileSize);
 								memcpy (&keyfileDataVector.front(), keyfileData, keyfileSize);
 
 								try
@@ -12224,7 +12243,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 								WaitCursor();
 								finally_do ({ NormalCursor(); });
 
-								vector <byte> keyfileData;
+								vector <uint8> keyfileData;
 
 								keyfile->GetKeyfileData (keyfileData);
 
@@ -12235,7 +12254,7 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 									return 1;
 								}
 
-								finally_do_arg (vector <byte> *, &keyfileData, { burn (&finally_arg->front(), finally_arg->size()); });
+								finally_do_arg (vector <uint8> *, &keyfileData, { burn (&finally_arg->front(), finally_arg->size()); });
 
 								if (!SaveBufferToFile ((char *) &keyfileData.front(), keyfilePath, (DWORD) keyfileData.size(), FALSE, FALSE))
 									throw SystemException (SRC_POS);
@@ -13018,7 +13037,7 @@ void CheckFilesystem (HWND hwndDlg, int driveNo, BOOL fixErrors)
 	ShellExecuteW (NULL, (!IsAdmin() && IsUacSupported()) ? L"runas" : L"open", cmdPath, param, NULL, SW_SHOW);
 }
 
-BOOL BufferContainsPattern (const byte *buffer, size_t bufferSize, const byte *pattern, size_t patternSize)
+BOOL BufferContainsPattern (const uint8 *buffer, size_t bufferSize, const uint8 *pattern, size_t patternSize)
 {
 	if (bufferSize < patternSize)
 		return FALSE;
@@ -13035,14 +13054,14 @@ BOOL BufferContainsPattern (const byte *buffer, size_t bufferSize, const byte *p
 }
 
 
-BOOL BufferContainsString (const byte *buffer, size_t bufferSize, const char *str)
+BOOL BufferContainsString (const uint8 *buffer, size_t bufferSize, const char *str)
 {
-	return BufferContainsPattern (buffer, bufferSize, (const byte*) str, strlen (str));
+	return BufferContainsPattern (buffer, bufferSize, (const uint8*) str, strlen (str));
 }
 
-BOOL BufferContainsWideString (const byte *buffer, size_t bufferSize, const wchar_t *str)
+BOOL BufferContainsWideString (const uint8 *buffer, size_t bufferSize, const wchar_t *str)
 {
-	return BufferContainsPattern (buffer, bufferSize, (const byte*) str, 2 * wcslen (str));
+	return BufferContainsPattern (buffer, bufferSize, (const uint8*) str, 2 * wcslen (str));
 }
 
 
@@ -13502,7 +13521,7 @@ void RegisterDriverInf (bool registerFilter, const string& filter, const string&
 					"[veracrypt_reg]\r\n"
 					"HKR,,\"" + filterReg + "\",0x0001" + string (registerFilter ? "0008" : "8002") + ",\"" + filter + "\"\r\n";
 
-	infFile.Write ((byte *) infTxt.c_str(), (DWORD) infTxt.size());
+	infFile.Write ((uint8 *) infTxt.c_str(), (DWORD) infTxt.size());
 	infFile.Close();
 
 	HINF hInf = SetupOpenInfFileW (infFileName.c_str(), NULL, INF_STYLE_OLDNT | INF_STYLE_WIN4, NULL);
@@ -13577,7 +13596,7 @@ void AllowMessageInUIPI (UINT msg)
 	ChangeWindowMessageFilter (msg, MSGFLT_ADD);
 }
 
-BOOL IsRepeatedByteArray (byte value, const byte* buffer, size_t bufferSize)
+BOOL IsRepeatedByteArray (uint8 value, const uint8* buffer, size_t bufferSize)
 {
 	if (buffer && bufferSize)
 	{
@@ -13601,7 +13620,7 @@ BOOL TranslateVolumeID (HWND hwndDlg, wchar_t* pathValue, size_t cchPathValue)
 	size_t pathLen = pathValue? wcslen (pathValue) : 0;
 	if ((pathLen >= 3) && (_wcsnicmp (pathValue, L"ID:", 3) == 0))
 	{
-		std::vector<byte> arr;
+		std::vector<uint8> arr;
 		if (	(pathLen == (3 + 2*VOLUME_ID_SIZE))
 			&& HexWideStringToArray (pathValue + 3, arr)
 			&& (arr.size() == VOLUME_ID_SIZE)
@@ -13782,7 +13801,7 @@ static BOOL GenerateRandomString (HWND hwndDlg, LPTSTR szName, DWORD maxCharsCou
 		bRet = RandgetBytesFull (hwndDlg, indexes, maxCharsCount + 1, TRUE, TRUE); 
 		if (bRet)
 		{
-			static LPCTSTR chars = _T("0123456789@#$%^&_-*abcdefghijklmnopqrstuvwxyz");
+			static LPCTSTR chars = _T("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_");
 			DWORD i, charsLen = (DWORD) _tcslen (chars);
 			DWORD effectiveLen = (indexes[0] % (64 - 16)) + 16; // random length between 16 to 64
 			effectiveLen = (effectiveLen > maxCharsCount)? maxCharsCount : effectiveLen;
@@ -13864,7 +13883,9 @@ static unsigned int __stdcall SecureDesktopMonitoringThread( LPVOID lpThreadPara
 					{
 						if (GetUserObjectInformation (currentDesk, UOI_NAME, szName, dwLen, &dwLen))
 						{
-							if (0 != _wcsicmp (szName, szVCDesktopName))
+							if (0 == _wcsicmp(szName, L"Default")) // default input desktop for the interactive window station
+								bPerformSwitch = TRUE;
+							else if (0 != _wcsicmp (szName, szVCDesktopName))
 								bPerformSwitch = TRUE;
 						}
 						free (szName);
@@ -13888,28 +13909,52 @@ static unsigned int __stdcall SecureDesktopThread( LPVOID lpThreadParameter )
 	SecureDesktopThreadParam* pParam = (SecureDesktopThreadParam*) lpThreadParameter;
 	SecureDesktopMonitoringThreadParam monitorParam;
 	BOOL bNewDesktopSet = FALSE;
+	HDESK hSecureDesk;
+	DWORD desktopAccess = DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW | DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP | DESKTOP_WRITEOBJECTS;
 
-	// wait for SwitchDesktop to succeed before using it for current thread
-	while (true)
+	hSecureDesk = CreateDesktop (pParam->szDesktopName, NULL, NULL, 0, desktopAccess, NULL);
+	if (!hSecureDesk)
 	{
-		if (SwitchDesktop (pParam->hDesk))
-		{
-			break;
-		}
-		Sleep (SECUREDESKTOP_MONOTIR_PERIOD);
+		return 0;
 	}
+	
+	StringCbCopy(SecureDesktopName, sizeof (SecureDesktopName), pParam->szDesktopName);
+	pParam->hDesk = hSecureDesk;
 
-	bNewDesktopSet = SetThreadDesktop (pParam->hDesk);
+	bNewDesktopSet = SetThreadDesktop (hSecureDesk);
 
 	if (bNewDesktopSet)
 	{
+		// call ImmDisableIME　from imm32.dll to disable IME since it can create issue with secure desktop
+		// cf: https://keepass.info/help/kb/sec_desk.html#ime
+		HMODULE hImmDll = LoadLibraryEx (L"imm32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+		if (hImmDll)
+		{
+			typedef BOOL (WINAPI *ImmDisableIME_t)(DWORD);
+			ImmDisableIME_t ImmDisableIME = (ImmDisableIME_t) GetProcAddress (hImmDll, "ImmDisableIME");
+			if (ImmDisableIME)
+			{
+				ImmDisableIME (0);
+			}
+		}
+
+		// wait for SwitchDesktop to succeed before using it for current thread
+		while (true)
+		{
+			if (SwitchDesktop (hSecureDesk))
+			{
+				break;
+			}
+			Sleep (SECUREDESKTOP_MONOTIR_PERIOD);
+		}
+
 		// create the thread that will ensure that VeraCrypt secure desktop has always user input
 		// this is done only if the stop event is created successfully
 		HANDLE hStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (hStopEvent)
 		{
 			monitorParam.szVCDesktopName = pParam->szDesktopName;
-			monitorParam.hVcDesktop = pParam->hDesk;
+			monitorParam.hVcDesktop = hSecureDesk;
 			monitorParam.hStopEvent = hStopEvent;
 			hMonitoringThread = (HANDLE) _beginthreadex (NULL, 0, SecureDesktopMonitoringThread, (LPVOID) &monitorParam, 0, &monitoringThreadID);
 		}
@@ -13932,6 +13977,12 @@ static unsigned int __stdcall SecureDesktopThread( LPVOID lpThreadParameter )
 		}
 
 		pParam->bDlgDisplayed = TRUE;
+
+		// free imm32.dll handle
+		if (hImmDll)
+		{
+			FreeLibrary (hImmDll);
+		}
 	}
 	else
 	{
@@ -13986,18 +14037,36 @@ INT_PTR SecureDesktopDialogBoxParam(
 
 	if (bEffectiveUseSecureDesktop && !IsThreadInSecureDesktop(GetCurrentThreadId()))
 	{
+		BOOL bRandomNameGenerated = FALSE;
+		HDESK existedDesk = NULL;
 		EnterCriticalSection (&csSecureDesktop);
 		bSecureDesktopOngoing = TRUE;
 		finally_do ({ bSecureDesktopOngoing = FALSE; LeaveCriticalSection (&csSecureDesktop); });
 
-		if (GenerateRandomString (hWndParent, szDesktopName, 64))
+		// ensure that the randomly generated name is not already used
+		do
+		{
+			if (existedDesk)
+			{
+				CloseDesktop (existedDesk);
+				existedDesk = NULL;
+			}
+			if (GenerateRandomString (hWndParent, szDesktopName, 64))
+			{
+				existedDesk = OpenDesktop (szDesktopName, 0, FALSE, GENERIC_READ);
+				if (!existedDesk)
+				{
+					bRandomNameGenerated = TRUE;
+				}
+			}
+		} while (existedDesk);
+
+		if (bRandomNameGenerated)
 		{
 			map<DWORD, BOOL> ctfmonBeforeList, ctfmonAfterList;
-			DWORD desktopAccess = DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW | DESKTOP_READOBJECTS | DESKTOP_SWITCHDESKTOP | DESKTOP_WRITEOBJECTS;
-			HDESK hSecureDesk;
-			HDESK hOriginalDesk = GetThreadDesktop (GetCurrentThreadId());
+			HDESK hOriginalDesk = NULL;
+			SecureDesktopThreadParam param;
 
-			HDESK hInputDesk = NULL;
 
 			// wait for the input desktop to be available before switching to 
 			// secure desktop. Under Windows 10, the user session can be started
@@ -14005,65 +14074,63 @@ INT_PTR SecureDesktopDialogBoxParam(
 			// case, we wait for the user to be really authenticated before starting 
 			// secure desktop mechanism
 
-			while (!(hInputDesk = OpenInputDesktop (0, TRUE, GENERIC_READ)))
+			while (!(hOriginalDesk = OpenInputDesktop (0, TRUE, GENERIC_ALL)))
 			{
 				Sleep (SECUREDESKTOP_MONOTIR_PERIOD);
 			}
-
-			CloseDesktop (hInputDesk);
 		
 			// get the initial list of ctfmon.exe processes before creating new desktop
 			GetCtfMonProcessIdList (ctfmonBeforeList);
 
-			hSecureDesk = CreateDesktop (szDesktopName, NULL, NULL, 0, desktopAccess, NULL);
-			if (hSecureDesk)
+			param.hDesk = NULL;
+			param.szDesktopName = szDesktopName;
+			param.hInstance = hInstance;
+			param.lpTemplateName = lpTemplateName;
+			param.lpDialogFunc = lpDialogFunc;
+			param.dwInitParam = dwInitParam;
+			param.retValue = 0;
+			param.bDlgDisplayed = FALSE;
+
+			// use _beginthreadex instead of CreateThread because lpDialogFunc may be using the C runtime library
+			HANDLE hThread = (HANDLE) _beginthreadex (NULL, 0, SecureDesktopThread, (LPVOID) &param, 0, NULL);
+			if (hThread)
 			{
-				SecureDesktopThreadParam param;
-	
-				param.hDesk = hSecureDesk;
-				param.szDesktopName = szDesktopName;
-				param.hInstance = hInstance;
-				param.lpTemplateName = lpTemplateName;
-				param.lpDialogFunc = lpDialogFunc;
-				param.dwInitParam = dwInitParam;
-				param.retValue = 0;
-				param.bDlgDisplayed = FALSE;
+				WaitForSingleObject (hThread, INFINITE);
+				CloseHandle (hThread);
 
-				// use _beginthreadex instead of CreateThread because lpDialogFunc may be using the C runtime library
-				HANDLE hThread = (HANDLE) _beginthreadex (NULL, 0, SecureDesktopThread, (LPVOID) &param, 0, NULL);
-				if (hThread)
+				if (param.bDlgDisplayed)
 				{
-					StringCbCopy(SecureDesktopName, sizeof (SecureDesktopName), szDesktopName);
+					// dialog box was indeed displayed in Secure Desktop
+					retValue = param.retValue;
+					bSuccess = TRUE;
 
-					WaitForSingleObject (hThread, INFINITE);
-					CloseHandle (hThread);
-
-					if (param.bDlgDisplayed)
+					// switch back to the original desktop
+					while (!SwitchDesktop (hOriginalDesk))
 					{
-						// dialog box was indeed displayed in Secure Desktop
-						retValue = param.retValue;
-						bSuccess = TRUE;
+						Sleep (SECUREDESKTOP_MONOTIR_PERIOD);
 					}
 
-					// switch back to original desktop
-					SwitchDesktop (hOriginalDesk);
+					SetThreadDesktop (hOriginalDesk);
 				}
 
-				CloseDesktop (hSecureDesk);
-
-				// get the new list of ctfmon.exe processes in order to find the ID of the
-				// ctfmon.exe instance that corresponds to the desktop we create so that
-				// we can kill it, otherwise it would remain running
-				GetCtfMonProcessIdList (ctfmonAfterList);
-
-				for (map<DWORD, BOOL>::iterator It = ctfmonAfterList.begin(); 
-					It != ctfmonAfterList.end(); It++)
+				if (param.hDesk)
 				{
-					if (ctfmonBeforeList[It->first] != TRUE)
-					{
-						// Kill process
-						KillProcess (It->first);
-					}
+					CloseDesktop (param.hDesk);
+				}
+			}
+
+			// get the new list of ctfmon.exe processes in order to find the ID of the
+			// ctfmon.exe instance that corresponds to the desktop we create so that
+			// we can kill it, otherwise it would remain running
+			GetCtfMonProcessIdList (ctfmonAfterList);
+
+			for (map<DWORD, BOOL>::iterator It = ctfmonAfterList.begin(); 
+				It != ctfmonAfterList.end(); It++)
+			{
+				if (ctfmonBeforeList[It->first] != TRUE)
+				{
+					// Kill process
+					KillProcess (It->first);
 				}
 			}
 
@@ -14207,9 +14274,11 @@ BOOL BufferHasPattern (const unsigned char* buffer, size_t bufferLen, const void
 	return bRet;
 }
 
-/* Implementation borrowed from KeePassXC source code (https://github.com/keepassxreboot/keepassxc/blob/release/2.4.0/src/core/Bootstrap.cpp#L150) 
+/* Implementation borrowed from KeePassXC source code (https://github.com/keepassxreboot/keepassxc/blob/2.7.8/src/core/Bootstrap.cpp#L121) 
  *
  * Reduce current user acess rights for this process to the minimum in order to forbid non-admin users from reading the process memory.
+ * Restrict access to changing DACL's after the process is started. This prevents the creator of veracrypt process from simply adding 
+ * the permission to read memory back to the DACL list.
  */
 BOOL ActivateMemoryProtection()
 {
@@ -14219,6 +14288,8 @@ BOOL ActivateMemoryProtection()
     HANDLE hToken = NULL;
     PTOKEN_USER pTokenUser = NULL;
     DWORD cbBufferSize = 0;
+    PSID pOwnerRightsSid = NULL;
+    DWORD pOwnerRightsSidSize = SECURITY_MAX_SID_SIZE;
 
     // Access control list
     PACL pACL = NULL;
@@ -14259,8 +14330,19 @@ BOOL ActivateMemoryProtection()
         goto Cleanup;
     }
 
+    // Retrieve CreaterOwnerRights SID
+    pOwnerRightsSid = (PSID) HeapAlloc(GetProcessHeap(), 0, pOwnerRightsSidSize);
+    if (pOwnerRightsSid == NULL) {
+        goto Cleanup;
+    }
+
+    if (!CreateWellKnownSid(WinCreatorOwnerRightsSid, NULL, pOwnerRightsSid, &pOwnerRightsSidSize)) {
+        goto Cleanup;
+    }
+
     // Calculate the amount of memory that must be allocated for the DACL
-    cbACL = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + GetLengthSid(pTokenUser->User.Sid);
+    cbACL = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + GetLengthSid(pTokenUser->User.Sid) 
+        + sizeof(ACCESS_ALLOWED_ACE) + GetLengthSid(pOwnerRightsSid);
 
     // Create and initialize an ACL
     pACL = (PACL) HeapAlloc(GetProcessHeap(), 0, cbACL);
@@ -14282,6 +14364,17 @@ BOOL ActivateMemoryProtection()
         goto Cleanup;
     }
 
+    // Explicitly set "Process Owner" rights to Read Only. The default is Full Control.
+    if (!AddAccessAllowedAce(
+            pACL,
+            ACL_REVISION,
+            READ_CONTROL,
+            pOwnerRightsSid
+            )) {
+        goto Cleanup;
+    }
+
+
     // Set discretionary access control list
     bSuccess = (ERROR_SUCCESS == SetSecurityInfo(GetCurrentProcess(), // object handle
                                     SE_KERNEL_OBJECT, // type of object
@@ -14299,6 +14392,9 @@ Cleanup:
 
     if (pACL != NULL) {
         HeapFree(GetProcessHeap(), 0, pACL);
+    }
+    if (pOwnerRightsSid != NULL) {
+        HeapFree(GetProcessHeap(), 0, pOwnerRightsSid);
     }
     if (pTokenUser != NULL) {
         HeapFree(GetProcessHeap(), 0, pTokenUser);
@@ -14696,7 +14792,7 @@ void GetAppRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed)
 {
 	LARGE_INTEGER iSeed;
 	SYSTEMTIME sysTime;
-	byte digest[WHIRLPOOL_DIGESTSIZE];
+	uint8 digest[WHIRLPOOL_DIGESTSIZE];
 	WHIRLPOOL_CTX tctx;
 	size_t count;
 

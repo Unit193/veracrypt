@@ -59,7 +59,7 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.26.7"
+#define VERSION_STRING					"1.26.14"
 
 #ifdef VC_EFI_CUSTOM_MODE
 #define VERSION_STRING_SUFFIX			"-CustomEFI"
@@ -73,9 +73,9 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define VERSION_NUM						0x0126
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"October 1, 2023"
-#define TC_RELEASE_DATE_YEAR			2023
-#define TC_RELEASE_DATE_MONTH			 10
+#define TC_STR_RELEASE_DATE			L"August 25, 2024"
+#define TC_RELEASE_DATE_YEAR			2024
+#define TC_RELEASE_DATE_MONTH			 8
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -95,7 +95,6 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 typedef __int8 int8;
 typedef __int16 int16;
 typedef __int32 int32;
-typedef unsigned __int8 byte;
 typedef unsigned __int8 uint8;
 typedef unsigned __int16 uint16;
 typedef unsigned __int32 uint32;
@@ -122,7 +121,6 @@ typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
-typedef uint8_t byte;
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
@@ -351,7 +349,13 @@ extern BOOLEAN VC_KeAreAllApcsDisabled (VOID);
 #ifdef _M_ARM64
 #	define  _WIN32_WINNT 0x0A00
 #else
-#	define	_WIN32_WINNT 0x0601	/* Does not apply to the driver */
+// for Visual Studio 2015 and later, set minimum Windows version to Windows 8
+// for old versions of Visual Studio, set minimum Windows version to Windows 7
+#if _MSC_VER >= 1900
+#	define	_WIN32_WINNT 0x0602
+#else
+#   define	_WIN32_WINNT 0x0601
+#endif
 #endif
 #endif
 
@@ -496,7 +500,9 @@ enum
 	ERR_NONSYS_INPLACE_ENC_INCOMPLETE		= 32,
 	ERR_USER_ABORT							= 33,
 	ERR_RAND_INIT_FAILED					= 34,
-	ERR_CAPI_INIT_FAILED					= 35
+	ERR_CAPI_INIT_FAILED					= 35,
+	ERR_XTS_MASTERKEY_VULNERABLE			= 36,
+	ERR_SYSENC_XTS_MASTERKEY_VULNERABLE			= 37
 };
 
 #endif 	// #ifndef TCDEFS_H

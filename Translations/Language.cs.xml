@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.7">
+  <localization prog-version= "1.26.14">
     <language langid="cs" name="Čeština" en-name="Czech" version="1.3.0" translators="Vítek Moser, Lagardere" />
     <font lang="cs" class="normal" size="11" face="default" />
     <font lang="cs" class="bold" size="13" face="Arial" />
@@ -1617,10 +1617,10 @@
     <entry lang="cs" key="EMV_SELECT_AID_FAILED">AID karty ve čtečce nebylo možné vybrat.</entry>
     <entry lang="cs" key="EMV_ICC_CERT_NOTFOUND">Certifikát veřejného klíče ICC nebyl na kartě nalezen.</entry>
     <entry lang="cs" key="EMV_ISSUER_CERT_NOTFOUND">Certifikát veřejného klíče vydavatele nebyl na kartě nalezen.</entry>
-    <entry lang="cs" key="EMV_CPLC_NOTFOUND">CLPC nebyl na kartě EMV nalezen.</entry>
+    <entry lang="cs" key="EMV_CPLC_NOTFOUND">CPLC nebyl na kartě EMV nalezen.</entry>
     <entry lang="cs" key="EMV_PAN_NOTFOUND">Na kartě EMV nebylo nalezeno žádné číslo primárního účtu (PAN).</entry>
     <entry lang="cs" key="INVALID_EMV_PATH">Cesta k EMV je neplatná.</entry>
-    <entry lang="cs" key="EMV_KEYFILE_DATA_NOTFOUND">Není možné sestavit soubor klíče z dat karty EMV.\n\nNení k dispozici jeden z následujících údajů:\n- Certifikát veřejného klíče ICC.\n- Certifikát veřejného klíče vydavatele.\n- Data CPCL.</entry>
+    <entry lang="cs" key="EMV_KEYFILE_DATA_NOTFOUND">Není možné sestavit soubor klíče z dat karty EMV.\n\nNení k dispozici jeden z následujících údajů:\n- Certifikát veřejného klíče ICC.\n- Certifikát veřejného klíče vydavatele.\n- Data CPLC.</entry>
     <entry lang="cs" key="SCARD_W_REMOVED_CARD">Ve čtečce není žádná karta.\n\nZkontrolujte, zda je karta správně zasunuta.</entry>
     <entry lang="cs" key="FORMAT_EXTERNAL_FAILED">Příkaz Windows format.com selhal při formátování svazku jako NTFS/exFAT/ReFS: Chyba 0x%.8X.\n\nPřechod zpět pro použití Windows FormatEx API.</entry>
     <entry lang="cs" key="FORMATEX_API_FAILED">Windows FormatEx API se nepodařilo naformátovat svazek jako NTFS/exFAT/ReFS.\n\nStav selhání = %s.</entry>
@@ -1635,6 +1635,12 @@
     <entry lang="en" key="IDC_LINK_KEYFILES_EXTENSIONS_WARNING">Important information on using third-party file extensions</entry>
     <entry lang="en" key="IDC_DISABLE_MEMORY_PROTECTION">Disable memory protection for Accessibility tools compatibility</entry>
     <entry lang="en" key="DISABLE_MEMORY_PROTECTION_WARNING">WARNING: Disabling memory protection significantly reduces security. Enable this option ONLY if you rely on Accessibility tools, like Screen Readers, to interact with VeraCrypt's UI.</entry>
+    <entry lang="cs" key="LINUX_LANGUAGE">Jazyk</entry>
+    <entry lang="en" key="LINUX_SELECT_SYS_DEFAULT_LANG">Select system's default language</entry>
+    <entry lang="en" key="LINUX_RESTART_FOR_LANGUAGE_CHANGE">For the language change to come into effect, VeraCrypt needs to be restarted.</entry>
+    <entry lang="en" key="ERR_XTS_MASTERKEY_VULNERABLE">WARNING: The volume's master key is vulnerable to an attack that compromises data security.\n\nPlease create a new volume and transfer the data to it.</entry>
+    <entry lang="en" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">WARNING: The encrypted system's master key is vulnerable to an attack that compromises data security.\nPlease decrypt the system partition/drive and then re-encrypt it.</entry>
+    <entry lang="en" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">WARNING: The volume's master key has a security vulnerability.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -57,7 +57,7 @@ namespace VeraCrypt
 				// Wait for sync code
 				while (true)
 				{
-					byte b;
+					uint8 b;
 					throw_sys_if (read (STDIN_FILENO, &b, 1) != 1);
 					if (b != 0x00)
 						continue;
@@ -309,7 +309,7 @@ namespace VeraCrypt
 					std::vector<char> buffer(128, 0);
 					std::string result;
 					
-					FILE* pipe = popen("sudo -n uptime 2>&1 | grep 'load average' | wc -l", "r");	//	We redirect stderr to stdout (2>&1) to be able to catch the result of the command
+					FILE* pipe = popen("sudo -n uptime 2>&1 | grep 'load average' | wc -l | tr -d '[:blank:]'", "r");	//	We redirect stderr to stdout (2>&1) to be able to catch the result of the command
 					if (pipe)
 					{
 						while (!feof(pipe))
@@ -543,7 +543,7 @@ namespace VeraCrypt
 
 			try
 			{
-				shared_ptr <Stream> stream (new MemoryStream (ConstBufferPtr ((byte *) &errOutput[0], errOutput.size())));
+				shared_ptr <Stream> stream (new MemoryStream (ConstBufferPtr ((uint8 *) &errOutput[0], errOutput.size())));
 				deserializedObject.reset (Serializable::DeserializeNew (stream));
 				deserializedException = dynamic_cast <Exception*> (deserializedObject.get());
 			}
@@ -575,7 +575,7 @@ namespace VeraCrypt
 		ServiceOutputStream = shared_ptr <Stream> (new FileStream (outPipe->GetReadFD()));
 
 		// Send sync code
-		byte sync[] = { 0, 0x11, 0x22 };
+		uint8 sync[] = { 0, 0x11, 0x22 };
 		ServiceInputStream->Write (ConstBufferPtr (sync, array_capacity (sync)));
 
 		AdminInputPipe = move_ptr(inPipe);

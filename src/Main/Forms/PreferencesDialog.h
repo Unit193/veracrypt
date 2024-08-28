@@ -40,9 +40,11 @@ namespace VeraCrypt
 		void OnNoHardwareCryptoCheckBoxClick (wxCommandEvent& event);
 		void OnNoKernelCryptoCheckBoxClick (wxCommandEvent& event);
 		void OnOKButtonClick (wxCommandEvent& event);
+		void OnPageChanged (wxBookCtrlEvent& event);
 		void OnPreserveTimestampsCheckBoxClick (wxCommandEvent& event);
 		void OnRemoveHotkeyButtonClick (wxCommandEvent& event);
 		void OnSelectPkcs11ModuleButtonClick (wxCommandEvent& event);
+		void OnSysDefaultLangButtonClick (wxCommandEvent& event);
 		void OnTimer ();
 		void UpdateHotkeyButtons();
 
@@ -58,6 +60,7 @@ namespace VeraCrypt
 		UserPreferences Preferences;
 		bool RestoreValidatorBell;
 		HotkeyList UnregisteredHotkeys;
+		map<wxString, wstring> langEntries;
 	};
 }
 
