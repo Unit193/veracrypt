@@ -1,3 +1,14 @@
+veracrypt (1.26.14-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.26.14.
+    - Drop upstream patch, refresh remaining.
+  * d/control: Replace pkg-config with pkgconf.
+  * d/copyright: Bump years.
+  * d/veracrypt.install: Move systemd's system-sleep script under /usr.
+  * Update Standards-Version to 4.7.0.
+
+ -- Unit 193 <unit193@unit193.net>  Tue, 27 Aug 2024 20:52:17 -0400
+
 veracrypt (1.26.7-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.26.7.
