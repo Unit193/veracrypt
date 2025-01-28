@@ -1,3 +1,10 @@
+veracrypt (1.26.18-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.26.18.
+  * d/copyright: Update years.
+
+ -- Unit 193 <unit193@unit193.net>  Tue, 28 Jan 2025 07:29:45 -0500
+
 veracrypt (1.26.14-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.26.14.
