@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="fi" name="Suomi" en-name="Finnish" version="0.4.0" translators="Matti Ruhanen, Jertzukka" />
     <font lang="fi" class="normal" size="11" face="default" />
     <font lang="fi" class="bold" size="13" face="Arial" />
@@ -1641,6 +1641,9 @@
     <entry lang="fi" key="ERR_XTS_MASTERKEY_VULNERABLE">VAROITUS: Taltion pääavain on haavoittuva hyökkäykselle joka vaarantaa tietojen turvallisuuden.\n\nLuo uusi taltio ja siirrä tiedot sille.</entry>
     <entry lang="fi" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">VAROITUS: Salatun järjestelmän pääavain on haavoittuva hyökkäykselle joka vaarantaa tietojen turvallisuuden.\nPura järjestelmäosion tai -levyn salaus ja salaa se uudelleen.</entry>
     <entry lang="fi" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">VAROITUS: Taltion pääavaimessa on tietoturvahaavoittuvuus.</entry>
+    <entry lang="fi" key="MOUNTPOINT_BLOCKED">VIRHE: Taltion liitoskohta on estetty, koska se korvaa suojatun järjestelmäkansion.\n\nValitse toinen liitoskohta.</entry>
+    <entry lang="fi" key="MOUNTPOINT_NOTALLOWED">VIRHE: Taltion liitoskohta ei ole sallittu, koska se korvaa PATH-ympäristömuuttujaan kuuluvan sijainnin.\n\nValitse toinen liitoskohta.</entry>
+    <entry lang="fi" key="INSECURE_MODE">[EPÄTURVALLINEN TILA]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

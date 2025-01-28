@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -496,8 +496,8 @@ namespace VeraCrypt
 		EX2MSG (PasswordOrKeyboardLayoutIncorrect,	LangString["PASSWORD_OR_KEYFILE_WRONG"] + LangString["LINUX_EX2MSG_PASSWORDORKEYBOARDLAYOUTINCORRECT"]);
 		EX2MSG (PasswordOrMountOptionsIncorrect,	LangString["PASSWORD_OR_KEYFILE_OR_MODE_WRONG"] + LangString["LINUX_EX2MSG_PASSWORDORMOUNTOPTIONSINCORRECT"]);
 		EX2MSG (PasswordTooLong,					StringFormatter (LangString["LINUX_EX2MSG_PASSWORDTOOLONG"], (int) VolumePassword::MaxSize));
-		EX2MSG (PasswordUTF8TooLong,				LangString["PASSWORD_UTF8_TOO_LONG"]);
-		EX2MSG (PasswordLegacyUTF8TooLong,			LangString["LEGACY_PASSWORD_UTF8_TOO_LONG"]);
+		EX2MSG (PasswordUTF8TooLong,				StringFormatter (LangString["PASSWORD_UTF8_TOO_LONG"], (int) VolumePassword::MaxSize));
+		EX2MSG (PasswordLegacyUTF8TooLong,			StringFormatter (LangString["LEGACY_PASSWORD_UTF8_TOO_LONG"], (int) VolumePassword::MaxLegacySize));
 		EX2MSG (PasswordUTF8Invalid,				LangString["PASSWORD_UTF8_INVALID"]);
 		EX2MSG (PartitionDeviceRequired,			LangString["LINUX_EX2MSG_PARTITIONDEVICEREQUIRED"]);
 		EX2MSG (ProtectionPasswordIncorrect,		LangString["LINUX_EX2MSG_PROTECTIONPASSWORDINCORRECT"]);
@@ -541,6 +541,9 @@ namespace VeraCrypt
 		EX2MSG (HigherFuseVersionRequired,			LangString["LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED"]);
 #endif
 
+		EX2MSG (MountPointBlocked,					LangString["MOUNTPOINT_BLOCKED"]);
+		EX2MSG (MountPointNotAllowed,				LangString["MOUNTPOINT_NOTALLOWED"]);
+
 #undef EX2MSG
 		return L"";
 	}
@@ -553,6 +556,9 @@ namespace VeraCrypt
 #ifdef CRYPTOPP_CPUID_AVAILABLE
 		DetectX86Features ();
 #endif
+#if CRYPTOPP_BOOL_ARMV8
+		DetectArmFeatures();
+#endif
 		LangString.Init();
 		Core->Init();
 
@@ -560,6 +566,7 @@ namespace VeraCrypt
 		SetPreferences (CmdLine->Preferences);
 
 		Core->SetApplicationExecutablePath (Application::GetExecutablePath());
+		Core->SetUserEnvPATH (getenv ("PATH"));
 
 		if (!Preferences.NonInteractive)
 		{
@@ -570,8 +577,10 @@ namespace VeraCrypt
 			Core->SetAdminPasswordCallback (shared_ptr <GetStringFunctor> (new AdminPasswordRequestHandler));
 		}
 
-#if defined(TC_LINUX ) || defined (TC_FREEBSD)
 		Core->ForceUseDummySudoPassword (CmdLine->ArgUseDummySudoPassword);
+
+#if defined(TC_UNIX)
+		Core->SetAllowInsecureMount (CmdLine->ArgAllowInsecureMount);
 #endif
 
 		Core->WarningEvent.Connect (EventConnector <UserInterface> (this, &UserInterface::OnWarning));
@@ -873,6 +882,33 @@ namespace VeraCrypt
 		ShowWarning (e.mException);
 	}
 
+#if !defined(TC_WINDOWS) && !defined(TC_MACOSX)
+// Define file manager structures with their required parameters
+struct FileManager {
+	const char* name;
+	const char* const* baseArgs;
+	size_t baseArgsCount;
+};
+
+// Array of supported file managers with their parameters
+static const char* const gioArgs[] = {"open"};
+static const char* const kioclient5Args[] = {"exec"};
+static const char* const kfmclientArgs[] = {"openURL"};
+static const char* const exoOpenArgs[] = {"--launch", "FileManager"};
+
+const FileManager fileManagers[] = {
+	{"gio", gioArgs, 1},
+	{"kioclient5", kioclient5Args, 1},
+	{"kfmclient", kfmclientArgs, 1},
+	{"exo-open", exoOpenArgs, 2},
+	{"nautilus", NULL, 0},
+	{"dolphin", NULL, 0},
+	{"caja", NULL, 0},
+	{"thunar", NULL, 0},
+	{"pcmanfm", NULL, 0}
+};
+#endif
+
 	void UserInterface::OpenExplorerWindow (const DirectoryPath &path)
 	{
 		if (path.IsEmpty())
@@ -892,65 +928,54 @@ namespace VeraCrypt
 		args.push_back (string (path));
 		try
 		{
-			Process::Execute ("open", args);
+			Process::Execute ("/usr/bin/open", args);
 		}
 		catch (exception &e) { ShowError (e); }
 
 #else
-		// MIME handler for directory seems to be unavailable through wxWidgets
-		wxString desktop = GetTraits()->GetDesktopEnvironment();
-		bool xdgOpenPresent = wxFileName::IsFileExecutable (wxT("/usr/bin/xdg-open")) || wxFileName::IsFileExecutable (wxT("/usr/local/bin/xdg-open"));
-		bool nautilusPresent = wxFileName::IsFileExecutable (wxT("/usr/bin/nautilus")) || wxFileName::IsFileExecutable (wxT("/usr/local/bin/nautilus"));
-
-		if (desktop == L"GNOME" || (desktop.empty() && !xdgOpenPresent && nautilusPresent))
+		string directoryPath = string(path);
+		// Primary attempt: Use xdg-open
+		string errorMsg;
+		string binPath = Process::FindSystemBinary("xdg-open", errorMsg);
+		if (!binPath.empty())
 		{
-			// args.push_back ("--no-default-window"); // This option causes nautilus not to launch under FreeBSD 11
-			args.push_back ("--no-desktop");
-			args.push_back (string (path));
 			try
 			{
-				Process::Execute ("nautilus", args, 2000);
+				args.push_back(directoryPath);
+				Process::Execute(binPath, args, 2000);
+				return;
 			}
 			catch (TimeOut&) { }
-			catch (exception &e) { ShowError (e); }
+			catch (exception&) {}
 		}
-		else if (desktop == L"KDE")
-		{
-			try
-			{
-				args.push_back (string (path));
-				Process::Execute ("dolphin", args, 2000);
-			}
-			catch (TimeOut&) { }
-			catch (exception&)
-			{
+
+		// Fallback attempts: Try known file managers
+		const size_t numFileManagers = sizeof(fileManagers) / sizeof(fileManagers[0]);
+		for (size_t i = 0; i < numFileManagers; ++i) {
+			const FileManager& fm = fileManagers[i];
+			string fmPath = Process::FindSystemBinary(fm.name, errorMsg);
+			if (!fmPath.empty()) {
 				args.clear();
-				args.push_back ("openURL");
-				args.push_back (string (path));
-				try
-				{
-					Process::Execute ("kfmclient", args, 2000);
+				
+				// Add base arguments first
+				for (size_t j = 0; j < fm.baseArgsCount; ++j) {
+					args.push_back(fm.baseArgs[j]);
+				}
+				
+				// Add path argument
+				args.push_back(directoryPath);
+
+				try {
+					Process::Execute(fmPath, args, 2000);
+					return; // Success
 				}
 				catch (TimeOut&) { }
-				catch (exception &e) { ShowError (e); }
+				catch (exception &) {}
 			}
 		}
-		else if (xdgOpenPresent)
-		{
-			// Fallback on the standard xdg-open command
-			// which is not always available by default
-			args.push_back (string (path));
-			try
-			{
-				Process::Execute ("xdg-open", args, 2000);
-			}
-			catch (TimeOut&) { }
-			catch (exception &e) { ShowError (e); }
-		}
-		else
-		{
-			ShowWarning (wxT("Unable to find a file manager to open the mounted volume"));
-		}
+
+		ShowWarning(wxT("Unable to find a file manager to open the mounted volume.\n"
+					"Please install xdg-utils or set a default file manager."));
 #endif
 	}
 
@@ -1632,6 +1657,13 @@ namespace VeraCrypt
 		return sResult;
 	}
 
+#ifdef TC_UNIX
+	bool UserInterface::InsecureMountAllowed () const
+	{
+		return CmdLine->ArgAllowInsecureMount;
+	}
+#endif
+
 	#define VC_CONVERT_EXCEPTION(NAME) if (dynamic_cast<NAME*> (ex)) throw (NAME&) *ex;
 
 	void UserInterface::ThrowException (Exception* ex)
@@ -1719,6 +1751,9 @@ namespace VeraCrypt
 		VC_CONVERT_EXCEPTION (InvalidEMVPath);
 		VC_CONVERT_EXCEPTION (EMVKeyfileDataNotFound);
 		VC_CONVERT_EXCEPTION (EMVPANNotFound);
+
+		VC_CONVERT_EXCEPTION (MountPointBlocked);
+		VC_CONVERT_EXCEPTION (MountPointNotAllowed);
 
 		throw *ex;
 	}

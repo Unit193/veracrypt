@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="it" name="Italiano" en-name="Italian" version="1.0.1" translators="Maurizio Ballo, Consiglio Gaetano" />
     <font lang="it" class="normal" size="11" face="default" />
     <font lang="it" class="bold" size="13" face="Arial" />
@@ -1641,6 +1641,9 @@
     <entry lang="it" key="ERR_XTS_MASTERKEY_VULNERABLE">ATTENZIONE: La chiave master del volume è vulnerabile a un attacco che compromette la sicurezza dei dati.\n\nSi prega di creare un nuovo volume e trasferire i dati in esso.</entry>
     <entry lang="it" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">ATTENZIONE: La chiave master del sistema crittografato è vulnerabile a un attacco che compromette la sicurezza dei dati.\nSi prega di decrittografare la partizione/unità di sistema e poi ricrittografarla.</entry>
     <entry lang="it" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">ATTENZIONE: La chiave master del volume ha una vulnerabilità di sicurezza.</entry>
+    <entry lang="it" key="MOUNTPOINT_BLOCKED">ERRORE: Il punto di montaggio del volume è bloccato perché sovrascrive una directory di sistema protetta.\n\nSi prega di scegliere un punto di montaggio diverso.</entry>
+    <entry lang="it" key="MOUNTPOINT_NOTALLOWED">ERRORE: Il punto di montaggio del volume non è consentito perché sovrascrive una directory che fa parte della variabile d'ambiente PATH.\n\nSi prega di scegliere un punto di montaggio diverso.</entry>
+    <entry lang="it" key="INSECURE_MODE">[MODALITÀ NON SICURA]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

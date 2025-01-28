@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -220,7 +220,7 @@ namespace VeraCrypt
 				throw;
 			}
 
-			foreach(const CK_OBJECT_HANDLE & dataHandle, GetObjects(slotId, CKO_DATA))
+			for(const CK_OBJECT_HANDLE & dataHandle: GetObjects(slotId, CKO_DATA))
 			{
 				SecurityTokenKeyfile keyfile;
 				keyfile.Handle = dataHandle;
@@ -348,7 +348,7 @@ namespace VeraCrypt
 		while (true)
 		{
 			CK_OBJECT_HANDLE object;
-			CK_RV status = Pkcs11Functions->C_FindObjects(Sessions[slotId].Handle, &object, 1, &objectCount);
+			status = Pkcs11Functions->C_FindObjects(Sessions[slotId].Handle, &object, 1, &objectCount);
 			if (status != CKR_OK)
 				throw Pkcs11Exception(status);
 

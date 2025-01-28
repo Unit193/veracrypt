@@ -39,6 +39,70 @@
 <strong>Note to users who created volumes with 1.17 version of VeraCrypt or earlier: </strong><br/>
 <span style="color:#ff0000;">To avoid hinting whether your volumes contain a hidden volume or not, or if you depend on plausible deniability when using hidden volumes/OS, then you must recreate both the outer and hidden volumes including system encryption and hidden OS, discarding existing volumes created prior to 1.18a version of VeraCrypt.</span></li>
 </p>
+
+<p><strong style="text-align:left">1.26.18</strong> (January 20<sup>th</sup>, 2025):</p>
+<ul>
+<li><strong>All OSes:</strong>
+<ul>
+<li>Added support for SHA-256 x86 intrinsic to enhance the performance of PBKDF2-HMAC-SHA256.</li>
+<li>Added support for AES hardware on ARM64 platforms (e.g. Windows ARM64, macOS on Apple Silicon Mx).</li>
+<li>Updated translations</li>
+</ul>
+</li>
+<li><strong>Windows:</strong>
+	<ul>
+	<li>Dropped support for Windows 32-bit.</li>
+	<li>Set Windows 10 October 2018 Update (version 1809) as the minimum supported version.</li>
+	<li>Reduce driver deadlock occurences under low-memory scenarios caused by re-entrant IRP completions.</li>
+	<li>Fixed failed EFI detection on some PCs where the BootOrder variable is not defined (proposed by @kriegste, GH #360).</li>
+	<li>Fixed "Access Denied" error when updating VeraCrypt using EXE setup following a Windows upgrade.</li>
+	<li>Fixed various issues affecting the EFI system encryption configuration editor.</li>
+	<li>Fixed regression in Traveler Disk creation (GH #886)</li>
+	<li>Replaced the deprecated CryptGenRandom with BCryptGenRandom for generating secure random bytes.</li>
+	<li>Use modern API to gather system entropy for random generation instead of obsolete ones.</li>
+	<li> Update LZMA SDK to version 24.09</li>
+	<li>Update libzip to version 1.11.2</li>
+	</ul>
+</li>
+<li><strong>Linux:</strong>
+	<ul>
+	<li>CVE-2024-54187: Added absolute paths when executing system binaries to prevent path hijacking (collaboration with SivertPL @__tfr)</li>
+	<li>CVE-2025-23021: Prevent mounting volumes on system directories and PATH (reported by SivertPL @__tfr)</li>
+	<li>Fixed an assertion issue with the wxWidgets library included in Ubuntu.</li>
+	<li>Improved directory-opening logic by prioritizing xdg-open and adding fallback mechanisms.</li>
+	<li>Ensure that volume exists before starting the mount operation.</li>
+	<li>Fix "Password too long" error message not expanded to include max length (GH #1456)</li>
+	<li>Simplify sudo session detection logic.</li>
+	</ul>
+</li>
+<li><strong>macOS:</strong>
+	<ul>
+	<li>CVE-2024-54187: Added absolute paths when executing system binaries to prevent path hijacking (collaboration with SivertPL @__tfr)</li>
+	<li>CVE-2025-23021: Prevent mounting volumes on system directories and PATH (reported by SivertPL @__tfr)</li>
+	<li>Disabled screen capture by default. Added the --allow-screencapture CLI switch to enable it if needed.</li>
+	<li>Ensure that volume exists before starting the mount operation.</li>
+	<li>Implement sudo session detection logic</li>
+	</ul>
+</li>
+</ul>
+
+<p><strong style="text-align:left">1.26.15</strong> (September 2<sup>nd</sup>, 2024):</p>
+<ul>
+<li><strong>Windows:</strong>
+<ul>
+	<li>Fix MSI install/uninstall issues:
+		<ul>
+			<li>Fixed error 1603 returned by MSI silent install when REBOOT=ReallySuppress is specified and a reboot is required.</li>
+			<li>Fixed missing documentation and language files from the MSI package.</li>
+			<li>Fixed MSI not installing new documentation and language files when upgrading from an EXE-based installation.</li>
+			<li>Fixed installation folder not being removed after MSI uninstall in some cases.</li>
+		</ul>
+	</li>
+	<li>Fix regression during UEFI system decryption that caused the bootloader to persist.</li>
+</ul>
+</li>
+</ul>
+
 <p><strong style="text-align:left">1.26.14</strong> (August 25<sup>th</sup>, 2024):</p>
 <ul>
 <li><strong>All OSes:</strong>

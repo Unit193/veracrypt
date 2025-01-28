@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -19,6 +19,9 @@
 #include "Crypto\jitterentropy.h"
 #include "Crypto\rdrand.h"
 #include <Strsafe.h>
+#include <bcrypt.h>
+#include <pdh.h>
+#include <pdhmsg.h>
 
 static unsigned __int8 buffer[RNG_POOL_SIZE];
 static unsigned char *pRandPool = NULL;
@@ -42,11 +45,7 @@ static HANDLE PeriodicFastPollThreadHandle = NULL;
 /* Macro to add four bytes to the pool */
 #define RandaddInt32(x) RandAddInt((unsigned __int32)x);
 
-#ifdef _WIN64
 #define RandaddIntPtr(x) RandAddInt64((unsigned __int64)x);
-#else
-#define RandaddIntPtr(x) RandAddInt((unsigned __int32)x);
-#endif
 
 void RandAddInt (unsigned __int32 x)
 {
@@ -85,20 +84,51 @@ DWORD ProcessedMouseEventsCounter = 0;
 CRITICAL_SECTION critRandProt;	/* The critical section */
 BOOL volatile bThreadTerminate = FALSE;	/* This variable is shared among thread's so its made volatile */
 
-/* Network library handle for the SlowPoll function */
-HANDLE hNetAPI32 = NULL;
-
 // CryptoAPI
-BOOL CryptoAPIAvailable = FALSE;
 DWORD CryptoAPILastError = ERROR_SUCCESS;
-HCRYPTPROV hCryptProv;
 
+typedef DWORD (WINAPI *RtlNtStatusToDosError_t)(NTSTATUS);
+RtlNtStatusToDosError_t pRtlNtStatusToDosError = NULL;
+
+static HMODULE hPdhLib = NULL;
+
+typedef PDH_STATUS (WINAPI *PfnPdhOpenQueryW)(LPCWSTR, DWORD_PTR, PDH_HQUERY *);
+typedef PDH_STATUS (WINAPI *PfnPdhAddCounterW)(PDH_HQUERY, LPCWSTR, DWORD_PTR, PDH_HCOUNTER *);
+typedef PDH_STATUS (WINAPI *PfnPdhCollectQueryData)(PDH_HQUERY);
+typedef PDH_STATUS (WINAPI *PfnPdhGetFormattedCounterValue)(PDH_HCOUNTER, DWORD, LPDWORD, PPDH_FMT_COUNTERVALUE);
+typedef PDH_STATUS (WINAPI *PfnPdhCloseQuery)(PDH_HQUERY);
+
+static PfnPdhOpenQueryW pfnPdhOpenQuery = NULL;
+static PfnPdhAddCounterW pfnPdhAddCounter = NULL;
+static PfnPdhCollectQueryData pfnPdhCollectQueryData = NULL;
+static PfnPdhGetFormattedCounterValue pfnPdhGetFormattedCounterValue = NULL;
+static PfnPdhCloseQuery pfnPdhCloseQuery = NULL;
+
+static BOOL LoadPdhDll()
+{
+	if (!hPdhLib)
+	{
+		hPdhLib = LoadLibraryExW(L"pdh.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+		if (!hPdhLib)
+			return FALSE;
+
+		pfnPdhOpenQuery = (PfnPdhOpenQueryW) GetProcAddress(hPdhLib, "PdhOpenQueryW");
+		pfnPdhAddCounter = (PfnPdhAddCounterW) GetProcAddress(hPdhLib, "PdhAddCounterW");
+		pfnPdhCollectQueryData = (PfnPdhCollectQueryData) GetProcAddress(hPdhLib, "PdhCollectQueryData");
+		pfnPdhGetFormattedCounterValue = (PfnPdhGetFormattedCounterValue) GetProcAddress(hPdhLib, "PdhGetFormattedCounterValue");
+		pfnPdhCloseQuery = (PfnPdhCloseQuery) GetProcAddress(hPdhLib, "PdhCloseQuery");
+	}
+
+	return (pfnPdhOpenQuery && pfnPdhAddCounter && pfnPdhCollectQueryData &&
+	        pfnPdhGetFormattedCounterValue && pfnPdhCloseQuery);
+}
 
 /* Init the random number generator, setup the hooks, and start the thread */
 int RandinitWithCheck ( int* pAlreadyInitialized)
 {
 	BOOL bIgnoreHookError = FALSE;
 	DWORD dwLastError = ERROR_SUCCESS;
+	HMODULE ntdll;
 	if (GetMaxPkcs5OutSize() > RNG_POOL_SIZE)
 		TC_THROW_FATAL_EXCEPTION;
 
@@ -143,14 +173,14 @@ int RandinitWithCheck ( int* pAlreadyInitialized)
 		goto error;
 	}
 
-	if (!CryptAcquireContext (&hCryptProv, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
-	{
-		CryptoAPIAvailable = FALSE;
-		CryptoAPILastError = GetLastError ();
+	ntdll = GetModuleHandleW(L"ntdll.dll");
+	if (!ntdll) {
+		// If ntdll.dll is not found, return a fallback error code
+		CryptoAPILastError = ERROR_MOD_NOT_FOUND;
 		goto error;
 	}
 	else
-		CryptoAPIAvailable = TRUE;
+		pRtlNtStatusToDosError = (RtlNtStatusToDosError_t)GetProcAddress(ntdll, "RtlNtStatusToDosError");
 
 	if (!(PeriodicFastPollThreadHandle = (HANDLE) _beginthreadex (NULL, 0, PeriodicFastPollThreadProc, NULL, 0, NULL)))
 		goto error;
@@ -193,18 +223,6 @@ void RandStop (BOOL freePool)
 	if (PeriodicFastPollThreadHandle)
 		WaitForSingleObject (PeriodicFastPollThreadHandle, INFINITE);
 
-	if (hNetAPI32 != 0)
-	{
-		FreeLibrary (hNetAPI32);
-		hNetAPI32 = NULL;
-	}
-
-	if (CryptoAPIAvailable)
-	{
-		CryptReleaseContext (hCryptProv, 0);
-		CryptoAPIAvailable = FALSE;
-		CryptoAPILastError = ERROR_SUCCESS;
-	}
 
 	hMouse = NULL;
 	hKeyboard = NULL;
@@ -262,7 +280,7 @@ BOOL Randmix ()
 	if (bRandmixEnabled)
 	{
 		unsigned char hashOutputBuffer [MAX_DIGESTSIZE];
-        #ifndef WOLFCRYPT_BACKEND		
+        #ifndef WOLFCRYPT_BACKEND
                 WHIRLPOOL_CTX	wctx;
                 blake2s_state   bctx;
 		STREEBOG_CTX	stctx;
@@ -281,11 +299,11 @@ BOOL Randmix ()
 			digestSize = SHA256_DIGESTSIZE;
 			break;
 
-        #ifndef WOLFCRYPT_BACKEND	
+        #ifndef WOLFCRYPT_BACKEND
                case BLAKE2S:
 			digestSize = BLAKE2S_DIGESTSIZE;
 			break;
-	
+
 		case WHIRLPOOL:
 			digestSize = WHIRLPOOL_DIGESTSIZE;
 			break;
@@ -648,153 +666,202 @@ static unsigned __stdcall PeriodicFastPollThreadProc (void *dummy)
 	}
 }
 
-/* Type definitions for function pointers to call NetAPI32 functions */
 
-typedef
-  DWORD (WINAPI * NETSTATISTICSGET) (LPWSTR szServer, LPWSTR szService,
-				     DWORD dwLevel, DWORD dwOptions,
-				     LPBYTE * lpBuffer);
-typedef
-  DWORD (WINAPI * NETAPIBUFFERSIZE) (LPVOID lpBuffer, LPDWORD cbBuffer);
-typedef
-  DWORD (WINAPI * NETAPIBUFFERFREE) (LPVOID lpBuffer);
+/* -------------------------------------------------------------------------------------
+   GetDiskStatistics: This function uses the Windows Performance Data Helper (PDH) API
+   to collect disk statistics. The function collects the number of disk reads and writes
+   per second for all physical disks. The function also collects high-resolution
+   timestamps before and after the PDH query. The function then adds the collected data
+   to the random pool.
+   The code waits a short random interval between the two PDH samples to ensures that
+   the performance counters have time to accumulate measurable changes and produce more
+   varied data.
+   -------------------------------------------------------------------------------------
 
-NETSTATISTICSGET pNetStatisticsGet = NULL;
-NETAPIBUFFERSIZE pNetApiBufferSize = NULL;
-NETAPIBUFFERFREE pNetApiBufferFree = NULL;
+*/
+void GetDiskStatistics()
+{
+    if (!LoadPdhDll())
+        return;
+    PDH_STATUS status;
+    PDH_HQUERY query = NULL;
+    PDH_HCOUNTER counterReads = NULL, counterWrites = NULL;
+    PDH_FMT_COUNTERVALUE counterValue;
+    DWORD dwType;
+    LONGLONG llReads = 0, llWrites = 0;
+    DWORDLONG tstampBefore = 0, tstampAfter = 0;
+    LARGE_INTEGER perfCounterBefore, perfCounterAfter;
 
+    // High-resolution timestamps
+    if (!QueryPerformanceCounter(&perfCounterBefore))
+		return;
+    tstampBefore = GetTickCount64();
+
+    // Open PDH query
+    status = pfnPdhOpenQuery(NULL, 0, &query);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // Add counters for disk reads and writes (all physical disks).
+    status = pfnPdhAddCounter(query, L"\\PhysicalDisk(*)\\Disk Reads/sec", 0, &counterReads);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    status = pfnPdhAddCounter(query, L"\\PhysicalDisk(*)\\Disk Writes/sec", 0, &counterWrites);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // First sample
+    status = pfnPdhCollectQueryData(query);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // Wait a short random interval
+    Sleep(10 + (GetCurrentProcessId() % 40));
+
+    // Second sample
+    status = pfnPdhCollectQueryData(query);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // Format counters in PDH_FMT_LARGE
+    status = pfnPdhGetFormattedCounterValue(counterReads, PDH_FMT_LARGE, &dwType, &counterValue);
+    if (status == ERROR_SUCCESS)
+        llReads = counterValue.largeValue;
+
+    status = pfnPdhGetFormattedCounterValue(counterWrites, PDH_FMT_LARGE, &dwType, &counterValue);
+    if (status == ERROR_SUCCESS)
+        llWrites = counterValue.largeValue;
+
+    // Another high-resolution timestamp
+    if (!QueryPerformanceCounter(&perfCounterAfter))
+		goto error;
+    tstampAfter = GetTickCount64();
+
+    // Close PDH query
+    pfnPdhCloseQuery(query);
+    query = NULL;
+
+    // Collect results into the random pool
+    RandaddBuf(&llReads, sizeof(llReads));
+    RandaddBuf(&llWrites, sizeof(llWrites));
+    RandaddBuf(&tstampBefore, sizeof(tstampBefore));
+    RandaddBuf(&tstampAfter, sizeof(tstampAfter));
+    RandaddBuf(&perfCounterBefore.QuadPart, sizeof(perfCounterBefore.QuadPart));
+    RandaddBuf(&perfCounterAfter.QuadPart, sizeof(perfCounterAfter.QuadPart));
+
+error:
+    if (query)
+        pfnPdhCloseQuery(query);
+}
+
+
+/* -------------------------------------------------------------------------------------
+   GetNetworkStatistics: This function uses the Windows Performance Data Helper (PDH) API
+   to collect network statistics. The function collects the number of bytes sent and
+   received per second for all network interfaces. The function also collects
+   high-resolution timestamps before and after the PDH query. The function then adds the
+   collected data to the random pool.
+   The code waits a short random interval between the two PDH samples to ensures that
+   the performance counters have time to accumulate measurable changes and produce more
+   varied data.
+*/
+void GetNetworkStatistics()
+{
+    if (!LoadPdhDll())
+        return;
+    PDH_STATUS status;
+    PDH_HQUERY query = NULL;
+    PDH_HCOUNTER counterBytesSent = NULL, counterBytesReceived = NULL;
+    PDH_FMT_COUNTERVALUE counterValue;
+    DWORD dwType;
+    LONGLONG llBytesSent = 0, llBytesReceived = 0;
+    DWORDLONG tstampBefore = 0, tstampAfter = 0;
+    LARGE_INTEGER perfCounterBefore, perfCounterAfter;
+
+    // High-resolution timestamps
+    if (!QueryPerformanceCounter(&perfCounterBefore))
+		return;
+    tstampBefore = GetTickCount64();
+
+    // Open PDH query
+    status = pfnPdhOpenQuery(NULL, 0, &query);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // Add counters for network bytes sent and received
+    status = pfnPdhAddCounter(query, L"\\Network Interface(*)\\Bytes Sent/sec", 0, &counterBytesSent);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    status = pfnPdhAddCounter(query, L"\\Network Interface(*)\\Bytes Received/sec", 0, &counterBytesReceived);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // First sample
+    status = pfnPdhCollectQueryData(query);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // Wait short, dynamic interval
+    Sleep(10 + (GetCurrentProcessId() % 40));
+
+    // Second sample
+    status = pfnPdhCollectQueryData(query);
+    if (status != ERROR_SUCCESS)
+        goto error;
+
+    // Format counters
+    status = pfnPdhGetFormattedCounterValue(counterBytesSent, PDH_FMT_LARGE, &dwType, &counterValue);
+    if (status == ERROR_SUCCESS)
+        llBytesSent = counterValue.largeValue;
+
+    status = pfnPdhGetFormattedCounterValue(counterBytesReceived, PDH_FMT_LARGE, &dwType, &counterValue);
+    if (status == ERROR_SUCCESS)
+        llBytesReceived = counterValue.largeValue;
+
+    if (!QueryPerformanceCounter(&perfCounterAfter))
+		goto error;
+    tstampAfter = GetTickCount64();
+
+    // Close PDH query
+    pfnPdhCloseQuery(query);
+    query = NULL;
+
+    // Collect results into our random pool
+    RandaddBuf(&llBytesSent, sizeof(llBytesSent));
+    RandaddBuf(&llBytesReceived, sizeof(llBytesReceived));
+    RandaddBuf(&tstampBefore, sizeof(tstampBefore));
+    RandaddBuf(&tstampAfter, sizeof(tstampAfter));
+    RandaddBuf(&perfCounterBefore.QuadPart, sizeof(perfCounterBefore.QuadPart));
+    RandaddBuf(&perfCounterAfter.QuadPart, sizeof(perfCounterAfter.QuadPart));
+
+error:
+    if (query)
+        pfnPdhCloseQuery(query);
+}
 
 /* This is the slowpoll function which gathers up network/hard drive
    performance data for the random pool */
 BOOL SlowPoll (void)
 {
-	static int isWorkstation = -1;
-	static int cbPerfData = 0x10000;
-	HANDLE hDevice;
-	LPBYTE lpBuffer;
-	DWORD dwSize, status;
-	LPWSTR lpszLanW, lpszLanS;
-	int nDrive;
+	NTSTATUS bStatus = 0;
 
-	/* Find out whether this is an NT server or workstation if necessary */
-	if (isWorkstation == -1)
-	{
-		HKEY hKey;
+	// Gather disk stats via PDH
+    GetDiskStatistics();
+  
+    // Gather network stats via PDH
+    GetNetworkStatistics();
 
-		if (RegOpenKeyEx (HKEY_LOCAL_MACHINE,
-		       L"SYSTEM\\CurrentControlSet\\Control\\ProductOptions",
-				  0, KEY_READ, &hKey) == ERROR_SUCCESS)
-		{
-			wchar_t szValue[32];
-			dwSize = sizeof (szValue);
-
-			isWorkstation = TRUE;
-			status = RegQueryValueEx (hKey, L"ProductType", 0, NULL,
-						  (LPBYTE) szValue, &dwSize);
-
-			if (status == ERROR_SUCCESS && _wcsicmp (szValue, L"WinNT"))
-				/* Note: There are (at least) three cases for
-				   ProductType: WinNT = NT Workstation,
-				   ServerNT = NT Server, LanmanNT = NT Server
-				   acting as a Domain Controller */
-				isWorkstation = FALSE;
-
-			RegCloseKey (hKey);
-		}
-	}
-	/* Initialize the NetAPI32 function pointers if necessary */
-	if (hNetAPI32 == NULL)
-	{
-		/* Obtain a handle to the module containing the Lan Manager
-		   functions */
-		wchar_t dllPath[MAX_PATH];
-		if (GetSystemDirectory (dllPath, MAX_PATH))
-		{
-			StringCchCatW(dllPath, ARRAYSIZE(dllPath), L"\\NETAPI32.DLL");
-		}
-		else
-			StringCchCopyW(dllPath, ARRAYSIZE(dllPath), L"C:\\Windows\\System32\\NETAPI32.DLL");
-
-		hNetAPI32 = LoadLibrary (dllPath);
-		if (hNetAPI32 != NULL)
-		{
-			/* Now get pointers to the functions */
-			pNetStatisticsGet = (NETSTATISTICSGET) GetProcAddress (hNetAPI32,
-							"NetStatisticsGet");
-			pNetApiBufferSize = (NETAPIBUFFERSIZE) GetProcAddress (hNetAPI32,
-							"NetApiBufferSize");
-			pNetApiBufferFree = (NETAPIBUFFERFREE) GetProcAddress (hNetAPI32,
-							"NetApiBufferFree");
-
-			/* Make sure we got valid pointers for every NetAPI32
-			   function */
-			if (pNetStatisticsGet == NULL ||
-			    pNetApiBufferSize == NULL ||
-			    pNetApiBufferFree == NULL)
-			{
-				/* Free the library reference and reset the
-				   static handle */
-				FreeLibrary (hNetAPI32);
-				hNetAPI32 = NULL;
-			}
-		}
-	}
-
-	/* Get network statistics.  Note: Both NT Workstation and NT Server
-	   by default will be running both the workstation and server
-	   services.  The heuristic below is probably useful though on the
-	   assumption that the majority of the network traffic will be via
-	   the appropriate service */
-	lpszLanW = (LPWSTR) WIDE ("LanmanWorkstation");
-	lpszLanS = (LPWSTR) WIDE ("LanmanServer");
-	if (hNetAPI32 &&
-	    pNetStatisticsGet (NULL,
-			       isWorkstation ? lpszLanW : lpszLanS,
-			       0, 0, &lpBuffer) == 0)
-	{
-		pNetApiBufferSize (lpBuffer, &dwSize);
-		RandaddBuf ((unsigned char *) lpBuffer, dwSize);
-		pNetApiBufferFree (lpBuffer);
-	}
-
-	/* Get disk I/O statistics for all the hard drives */
-	for (nDrive = 0;; nDrive++)
-	{
-		DISK_PERFORMANCE diskPerformance;
-		wchar_t szDevice[24];
-
-		/* Check whether we can access this device */
-		StringCchPrintfW (szDevice, ARRAYSIZE(szDevice), L"\\\\.\\PhysicalDrive%d", nDrive);
-		hDevice = CreateFile (szDevice, 0, FILE_SHARE_READ | FILE_SHARE_WRITE,
-				      NULL, OPEN_EXISTING, 0, NULL);
-		if (hDevice == INVALID_HANDLE_VALUE)
-			break;
-
-
-		/* Note: This only works if you have turned on the disk
-		   performance counters with 'diskperf -y'.  These counters
-		   are off by default */
-		if (DeviceIoControl (hDevice, IOCTL_DISK_PERFORMANCE, NULL, 0,
-				&diskPerformance, sizeof (DISK_PERFORMANCE),
-				     &dwSize, NULL))
-		{
-			RandaddBuf ((unsigned char *) &diskPerformance, dwSize);
-		}
-		CloseHandle (hDevice);
-	}
-
-	// CryptoAPI: We always have a valid CryptoAPI context when we arrive here but
-	//            we keep the check for clarity purpose
-	if ( !CryptoAPIAvailable )
-		return FALSE;
-	if (CryptGenRandom (hCryptProv, sizeof (buffer), buffer))
+	bStatus = BCryptGenRandom(NULL, buffer, sizeof(buffer), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+	if (NT_SUCCESS(bStatus))
 	{
 		RandaddBuf (buffer, sizeof (buffer));
 	}
 	else
 	{
-		/* return error in case CryptGenRandom fails */
-		CryptoAPILastError = GetLastError ();
+		/* return error in case BCryptGenRandom fails */
+		CryptoAPILastError = pRtlNtStatusToDosError (bStatus);
 		return FALSE;
 	}
 
@@ -811,16 +878,20 @@ BOOL SlowPoll (void)
 		}
 	}
 
+#ifndef _M_ARM64
 	// use RDSEED or RDRAND from CPU as source of entropy if present
-	if (	IsCpuRngEnabled() && 
+	if (	IsCpuRngEnabled() &&
 		(	(HasRDSEED() && RDSEED_getBytes (buffer, sizeof (buffer)))
 		||	(HasRDRAND() && RDRAND_getBytes (buffer, sizeof (buffer)))
 		))
 	{
 		RandaddBuf (buffer, sizeof (buffer));
 	}
+#endif
 
 	burn(buffer, sizeof (buffer));
+
+	/* Mix the pool */
 	Randmix();
 
 	return TRUE;
@@ -838,6 +909,7 @@ BOOL FastPoll (void)
 	MEMORYSTATUSEX memoryStatus;
 	HANDLE handle;
 	POINT point;
+	NTSTATUS bStatus = 0;
 
 	/* Get various basic pieces of system information */
 	RandaddIntPtr (GetActiveWindow ());	/* Handle of active window */
@@ -928,29 +1000,29 @@ BOOL FastPoll (void)
 		RandaddBuf ((unsigned char *) &dwTicks, sizeof (dwTicks));
 	}
 
-	// CryptoAPI: We always have a valid CryptoAPI context when we arrive here but
-	//            we keep the check for clarity purpose
-	if ( !CryptoAPIAvailable )
-		return FALSE;
-	if (CryptGenRandom (hCryptProv, sizeof (buffer), buffer))
+
+	bStatus = BCryptGenRandom(NULL, buffer, sizeof(buffer), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+	if (NT_SUCCESS(bStatus))
 	{
 		RandaddBuf (buffer, sizeof (buffer));
 	}
 	else
 	{
-		/* return error in case CryptGenRandom fails */
-		CryptoAPILastError = GetLastError ();
+		/* return error in case BCryptGenRandom fails */
+		CryptoAPILastError = pRtlNtStatusToDosError (bStatus);
 		return FALSE;
 	}
 
+#ifndef _M_ARM64
 	// use RDSEED or RDRAND from CPU as source of entropy if enabled
-	if (	IsCpuRngEnabled() && 
+	if (	IsCpuRngEnabled() &&
 		(	(HasRDSEED() && RDSEED_getBytes (buffer, sizeof (buffer)))
 		||	(HasRDRAND() && RDRAND_getBytes (buffer, sizeof (buffer)))
 		))
 	{
 		RandaddBuf (buffer, sizeof (buffer));
 	}
+#endif
 
 	burn (buffer, sizeof(buffer));
 

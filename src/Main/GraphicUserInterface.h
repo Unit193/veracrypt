@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -86,6 +86,7 @@ namespace VeraCrypt
 		virtual void SetListCtrlColumnWidths (wxListCtrl *listCtrl, list <int> columnWidthPermilles, bool hasVerticalScrollbar = true) const;
 		virtual void SetListCtrlHeight (wxListCtrl *listCtrl, size_t rowCount) const;
 		virtual void SetListCtrlWidth (wxListCtrl *listCtrl, size_t charCount, bool hasVerticalScrollbar = true) const;
+		virtual void SetContentProtection(bool enable) const;
 		virtual void ShowErrorTopMost (char *langStringId) const { ShowErrorTopMost (LangString[langStringId]); }
 		virtual void ShowErrorTopMost (const wxString &message) const;
 		virtual void ShowInfoTopMost (char *langStringId) const { ShowInfoTopMost (LangString[langStringId]); }

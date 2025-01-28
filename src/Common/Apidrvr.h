@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -396,6 +396,7 @@ typedef struct
 	int EncryptionIoRequestCount;
 	int EncryptionItemCount;
 	int EncryptionFragmentSize;
+	int EncryptionMaxWorkItems;
 } EncryptionQueueParameters;
 
 #pragma pack (pop)
@@ -418,6 +419,7 @@ typedef struct
 #define VC_ENCRYPTION_IO_REQUEST_COUNT DRIVER_STR("VeraCryptEncryptionIoRequestCount")
 #define VC_ENCRYPTION_ITEM_COUNT DRIVER_STR("VeraCryptEncryptionItemCount")
 #define VC_ENCRYPTION_FRAGMENT_SIZE DRIVER_STR("VeraCryptEncryptionFragmentSize")
+#define VC_ENCRYPTION_MAX_WORK_ITEMS DRIVER_STR("VeraCryptEncryptionMaxWorkItems")
 
 #define VC_ERASE_KEYS_SHUTDOWN DRIVER_STR("VeraCryptEraseKeysShutdown")
 

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -342,7 +342,7 @@ static BOOL LoadLanguageData (int resourceid, BOOL bForceSetPreferredLanguage, B
 			xml = (char *) res;
 			while (xml = XmlFindElement (xml, xmlElements[i]))
 			{
-				void *key;
+				void *pkey;
 				void *text;
 
 				XmlGetAttributeText (xml, "lang", attr, sizeof (attr));
@@ -351,8 +351,8 @@ static BOOL LoadLanguageData (int resourceid, BOOL bForceSetPreferredLanguage, B
 				{
 					if (XmlGetAttributeText (xml, "key", attr, sizeof (attr)))
 					{
-						key = AddPoolData (attr, strlen (attr) + 1);
-						if (key == NULL) return FALSE;
+						pkey = AddPoolData (attr, strlen (attr) + 1);
+						if (pkey == NULL) return FALSE;
 
 						XmlGetNodeText (xml, attr, sizeof (attr));
 
@@ -371,7 +371,7 @@ static BOOL LoadLanguageData (int resourceid, BOOL bForceSetPreferredLanguage, B
 									case 'n': *out++ = 13; *out++ = 10; break;
 									default:
 										if (!bForceSilent)
-											MessageBoxA (0, key, "VeraCrypt: Unknown '\\' escape sequence in string", MB_ICONERROR);
+											MessageBoxA (0, pkey, "VeraCrypt: Unknown '\\' escape sequence in string", MB_ICONERROR);
 										return FALSE;
 									}
 								}
@@ -386,7 +386,7 @@ static BOOL LoadLanguageData (int resourceid, BOOL bForceSetPreferredLanguage, B
 						if (len == 0)
 						{
 							if (!bForceSilent)
-								MessageBoxA (0, key, "VeraCrypt: Error while decoding UTF-8 string", MB_ICONERROR);
+								MessageBoxA (0, pkey, "VeraCrypt: Error while decoding UTF-8 string", MB_ICONERROR);
 							return FALSE;
 						}
 
@@ -394,7 +394,7 @@ static BOOL LoadLanguageData (int resourceid, BOOL bForceSetPreferredLanguage, B
 						text = AddPoolData ((void *) wattr, len * 2);
 						if (text == NULL) return FALSE;
 
-						AddDictionaryEntry ((char *) key, 0, text);
+						AddDictionaryEntry ((char *)pkey, 0, text);
 					}
 				}
 

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -61,15 +61,6 @@ NTSTATUS DumpFilterEntry (PFILTER_EXTENSION filterExtension, PFILTER_INITIALIZAT
 		goto err;
 	}
 
-	// KeSaveFloatingPointState() may generate a bug check during crash dump
-#if !defined (_WIN64)
-	if (filterExtension->DumpType == DumpTypeCrashdump)
-	{
-		dumpConfig.HwEncryptionEnabled = FALSE;
-		// disable also CPU extended features used in optimizations
-		DisableCPUExtendedFeatures ();
-	}
-#endif
 
 	EnableHwEncryption (dumpConfig.HwEncryptionEnabled);
 
@@ -129,11 +120,7 @@ NTSTATUS DumpFilterEntry (PFILTER_EXTENSION filterExtension, PFILTER_INITIALIZAT
 
 	WriteFilterBufferSize = ((SIZE_T)filterInitData->MaxPagesPerWrite) * PAGE_SIZE;
 
-#ifdef _WIN64
 	highestAcceptableWriteBufferAddr.QuadPart = 0x7FFffffFFFFLL;
-#else
-	highestAcceptableWriteBufferAddr.QuadPart = 0xffffFFFFLL;
-#endif
 
 	WriteFilterBuffer = MmAllocateContiguousMemory (WriteFilterBufferSize, highestAcceptableWriteBufferAddr);
 	if (!WriteFilterBuffer)
@@ -158,6 +145,7 @@ err:
 
 static NTSTATUS DumpFilterStart (PFILTER_EXTENSION filterExtension)
 {
+	UNREFERENCED_PARAMETER(filterExtension);
 	Dump ("DumpFilterStart type=%d\n", filterExtension->DumpType);
 
 	if (BootDriveFilterExtension->MagicNumber != TC_BOOT_DRIVE_FILTER_EXTENSION_MAGIC_NUMBER)
@@ -175,6 +163,7 @@ static NTSTATUS DumpFilterWrite (PFILTER_EXTENSION filterExtension, PLARGE_INTEG
 	uint32 intersectLength;
 	PVOID writeBuffer;
 	CSHORT origMdlFlags;
+	UNREFERENCED_PARAMETER(filterExtension);
 
 	if (BootDriveFilterExtension->MagicNumber != TC_BOOT_DRIVE_FILTER_EXTENSION_MAGIC_NUMBER)
 		TC_BUG_CHECK (STATUS_CRC_ERROR);
@@ -194,7 +183,7 @@ static NTSTATUS DumpFilterWrite (PFILTER_EXTENSION filterExtension, PLARGE_INTEG
 	if ((offset & (ENCRYPTION_DATA_UNIT_SIZE - 1)) != 0)
 		TC_BUG_CHECK (STATUS_INVALID_PARAMETER);
 
-	writeBuffer = MmGetSystemAddressForMdlSafe (writeMdl, (HighPagePriority | ExDefaultMdlProtection));
+	writeBuffer = MmGetSystemAddressForMdlSafe (writeMdl, (HighPagePriority | MdlMappingNoExecute));
 	if (!writeBuffer)
 		TC_BUG_CHECK (STATUS_INSUFFICIENT_RESOURCES);
 
@@ -242,6 +231,7 @@ static NTSTATUS DumpFilterWrite (PFILTER_EXTENSION filterExtension, PLARGE_INTEG
 
 static NTSTATUS DumpFilterFinish (PFILTER_EXTENSION filterExtension)
 {
+	UNREFERENCED_PARAMETER(filterExtension);
 	Dump ("DumpFilterFinish type=%d\n", filterExtension->DumpType);
 
 	return STATUS_SUCCESS;
@@ -250,6 +240,7 @@ static NTSTATUS DumpFilterFinish (PFILTER_EXTENSION filterExtension)
 
 static NTSTATUS DumpFilterUnload (PFILTER_EXTENSION filterExtension)
 {
+	UNREFERENCED_PARAMETER(filterExtension);
 	Dump ("DumpFilterUnload type=%d\n", filterExtension->DumpType);
 
 	if (WriteFilterBuffer)

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -270,7 +270,7 @@ BOOL KeyFilesApply (HWND hwndDlg, Password *password, KeyFile *firstKeyFile, con
 				unsigned __int32 writePos = 0;
 				size_t totalRead = 0;
 
-				for (size_t i = 0; i < keyfileData.size(); i++)
+				for (i = 0; i < keyfileData.size(); i++)
 				{
 					crc = UPDC32 (keyfileData[i], crc);
 
@@ -496,7 +496,7 @@ BOOL CALLBACK KeyFilesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 				// set the text colour in (HDC)wParam
 				SetBkMode((HDC)wParam,TRANSPARENT);
 				SetTextColor((HDC)wParam, RGB(255,0,0));
-				return (BOOL)GetSysColorBrush(COLOR_MENU);
+				return (BOOL)(INT_PTR)GetSysColorBrush(COLOR_MENU);
 			}
 		}
 		return 0;

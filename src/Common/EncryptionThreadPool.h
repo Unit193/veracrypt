@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -32,7 +32,7 @@ typedef enum
 size_t GetCpuCount (WORD* pGroupCount);
 #endif
 
-void EncryptionThreadPoolBeginKeyDerivation (TC_EVENT *completionEvent, TC_EVENT *noOutstandingWorkItemEvent, LONG *completionFlag, LONG *outstandingWorkItemCount, int pkcs5Prf, char *password, int passwordLength, char *salt, int iterationCount, char *derivedKey);
+void EncryptionThreadPoolBeginKeyDerivation (TC_EVENT *completionEvent, TC_EVENT *noOutstandingWorkItemEvent, LONG *completionFlag, LONG *outstandingWorkItemCount, int pkcs5Prf, unsigned char *password, int passwordLength, unsigned char *salt, int iterationCount, unsigned char *derivedKey);
 void EncryptionThreadPoolBeginReadVolumeHeaderFinalization (TC_EVENT *keyDerivationCompletedEvent, TC_EVENT *noOutstandingWorkItemEvent, LONG* outstandingWorkItemCount, void* keyInfoBuffer, int keyInfoBufferSize, void* keyDerivationWorkItems, int keyDerivationWorkItemsSize);
 void EncryptionThreadPoolDoWork (EncryptionThreadPoolWorkType type, uint8 *data, const UINT64_STRUCT *startUnitNo, uint32 unitCount, PCRYPTO_INFO cryptoInfo);
 BOOL EncryptionThreadPoolStart (size_t encryptionFreeCpuCount);
