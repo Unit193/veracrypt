@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -84,6 +84,7 @@ namespace VeraCrypt
 		InitTaskBarIcon();
 		InitEvents();
 		InitMessageFilter();
+		InitWindowPrivacy();
 
 		if (!GetPreferences().SecurityTokenModule.IsEmpty() && !SecurityToken::IsInitialized())
 		{
@@ -468,6 +469,12 @@ namespace VeraCrypt
 		MainFrameWndProc = (WNDPROC) GetWindowLongPtr (mainFrameHwnd, GWL_WNDPROC);
 		SetWindowLongPtr (mainFrameHwnd, GWL_WNDPROC, (LONG_PTR) MainFrameWndProcFilter);
 #endif
+	}
+
+
+	void MainFrame::InitWindowPrivacy ()
+	{
+		Gui->SetContentProtection(!CmdLine->ArgAllowScreencapture);
 	}
 
 	void MainFrame::InitPreferences ()

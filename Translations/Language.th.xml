@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="th" name="ภาษาไทย" en-name="Thai" version="0.0.0" translators=""/>
     <font lang="th" class="normal" size="11" face="default" />
     <font lang="th" class="bold" size="13" face="Arial" />
@@ -1642,6 +1642,9 @@
     <entry lang="th" key="ERR_XTS_MASTERKEY_VULNERABLE">คำเตือน: คีย์หลักของปริมาณมีช่องโหว่ที่ทำให้ความปลอดภัยข้อมูลถูกสอบการโจมตี.\n\nกรุณาสร้างปริมาณใหม่และย้ายข้อมูลไปยังมัน.</entry>
     <entry lang="th" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">คำเตือน: คีย์หลักของระบบที่เข้ารหัสมีช่องโหว่ที่สอบการโจมตีที่ทำให้ความปลอดภัยข้อมูลถูกสอบการโจมตี.\nกรุณาถอดรหัสพาร์ติชัน/ไดรฟ์ระบบแล้วเข้ารหัสใหม่อีกครั้ง.</entry>
     <entry lang="th" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">คำเตือน: คีย์หลักของปริมาณมีช่องโหว่ด้านความปลอดภัย.</entry>
+    <entry lang="th" key="MOUNTPOINT_BLOCKED">ข้อผิดพลาด: จุดเชื่อมต่อโวลุ่มถูกบล็อกเนื่องจากไปทับซ้อนกับไดเรกทอรีระบบที่ได้รับการป้องกัน\n\nกรุณาเลือกจุดเชื่อมต่ออื่น</entry>
+    <entry lang="th" key="MOUNTPOINT_NOTALLOWED">ข้อผิดพลาด: จุดเชื่อมต่อโวลุ่มไม่ได้รับอนุญาตเนื่องจากไปทับซ้อนกับไดเรกทอรีที่เป็นส่วนหนึ่งของตัวแปร PATH\n\nกรุณาเลือกจุดเชื่อมต่ออื่น</entry>
+    <entry lang="th" key="INSECURE_MODE">[โหมดไม่ปลอดภัย]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

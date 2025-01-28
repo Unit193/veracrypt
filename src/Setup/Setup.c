@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -765,6 +765,9 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 	BOOL bOK = TRUE;
 	int i, x, fileNo;
 	wchar_t curFileName [TC_MAX_PATH] = {0};
+#ifndef PORTABLE
+	PRIVILEGE_STATE originalPrivileges = { 0 };
+#endif
 
 	if (!bUninstall && !bDevm)
 	{
@@ -783,9 +786,13 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 	if (szDestDir[x - 1] != L'\\')
 		StringCbCatW (szDestDir, MAX_PATH, L"\\");
 
+#ifndef PORTABLE
+	EnableRequiredSetupPrivileges(&originalPrivileges);
+#endif
+
 	for (i = 0; i < sizeof (szFiles) / sizeof (szFiles[0]); i++)
 	{
-		BOOL bResult, driver64 = FALSE, zipFile = FALSE;
+		BOOL bResult, zipFile = FALSE;
 		wchar_t szDir[TC_MAX_PATH];
 
 		if (wcsstr (szFiles[i], L"VeraCrypt Setup") != 0)
@@ -801,9 +808,6 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 			StringCbCopyW (szDir, sizeof(szDir), szDestDir);
 		else if (*szFiles[i] == L'D')
 		{
-			if (Is64BitOs ())
-				driver64 = TRUE;
-
 			if (!GetSystemDirectory (szDir, ARRAYSIZE (szDir)))
 				StringCbCopyW(szDir, sizeof(szDir), L"C:\\Windows\\System32");
 
@@ -814,7 +818,10 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 			StringCbCatW (szDir, sizeof(szDir), L"Drivers\\");
 		}
 		else if (*szFiles[i] == L'W')
-			GetWindowsDirectory (szDir, ARRAYSIZE (szDir));
+		{
+			if (!GetWindowsDirectory(szDir, ARRAYSIZE(szDir)))
+				StringCbCopyW(szDir, sizeof(szDir), L"C:\\Windows");
+		}
 
 		if (*szFiles[i] == L'I')
 			continue;
@@ -854,17 +861,15 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 				StringCchCopyNW (curFileName, ARRAYSIZE(curFileName), szFiles[i] + 1, wcslen (szFiles[i]) - 1);
 				curFileName [wcslen (szFiles[i]) - 1] = 0;
 
-				if (Is64BitOs ()
-					&& ((wcscmp (szFiles[i], L"Dveracrypt.sys") == 0) || (wcscmp (szFiles[i], L"Averacrypt.sys") == 0)))
+				if ((wcscmp (szFiles[i], L"Dveracrypt.sys") == 0) || (wcscmp (szFiles[i], L"Averacrypt.sys") == 0))
 				{
 					if (IsARM())
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"veracrypt-arm64.sys", sizeof(L"veracrypt-arm64.sys"));
 					else
-						StringCbCopyNW (curFileName, sizeof(curFileName), FILENAME_64BIT_DRIVER, sizeof (FILENAME_64BIT_DRIVER));
+						StringCbCopyNW (curFileName, sizeof(curFileName), L"veracrypt-x64.sys", sizeof(L"veracrypt-x64.sys"));
 				}
 
-				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"Averacrypt.cat") == 0)
+				if (wcscmp (szFiles[i], L"Averacrypt.cat") == 0)
 				{
 					if (IsARM())
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"veracrypt-arm64.cat", sizeof(L"veracrypt-arm64.cat"));
@@ -872,8 +877,7 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"veracrypt-x64.cat", sizeof (L"veracrypt-x64.cat"));
 				}
 
-				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"AVeraCrypt.exe") == 0)
+				if (wcscmp (szFiles[i], L"AVeraCrypt.exe") == 0)
 				{
 					if (IsARM())
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCrypt-arm64.exe", sizeof(L"VeraCrypt-arm64.exe"));
@@ -881,8 +885,7 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCrypt-x64.exe", sizeof (L"VeraCrypt-x64.exe"));
 				}
 
-				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"AVeraCryptExpander.exe") == 0)
+				if (wcscmp (szFiles[i], L"AVeraCryptExpander.exe") == 0)
 				{
 					if (IsARM())
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCryptExpander-arm64.exe", sizeof(L"VeraCryptExpander-arm64.exe"));
@@ -890,8 +893,7 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCryptExpander-x64.exe", sizeof (L"VeraCryptExpander-x64.exe"));
 				}
 
-				if (Is64BitOs ()
-					&& wcscmp (szFiles[i], L"AVeraCrypt Format.exe") == 0)
+				if (wcscmp (szFiles[i], L"AVeraCrypt Format.exe") == 0)
 				{
 					if (IsARM())
 						StringCbCopyNW (curFileName, sizeof(curFileName), L"VeraCrypt Format-arm64.exe", sizeof(L"VeraCrypt Format-arm64.exe"));
@@ -914,7 +916,7 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 							min (wcslen (curFileName), (size_t) Decompressed_Files[fileNo].fileNameLength)) == 0)
 						{
 							// Dump filter driver cannot be installed to SysWOW64 directory
-							if (driver64 && !EnableWow64FsRedirection (FALSE))
+							if (!EnableWow64FsRedirection (FALSE))
 							{
 								handleWin32Error (hwndDlg, SRC_POS);
 								bResult = FALSE;
@@ -939,19 +941,16 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 									TRUE);
 							}
 
-							if (driver64)
+
+							if (!EnableWow64FsRedirection (TRUE))
 							{
-								if (!EnableWow64FsRedirection (TRUE))
-								{
-									handleWin32Error (hwndDlg, SRC_POS);
-									bResult = FALSE;
-									goto err;
-								}
-
-								if (!bResult)
-									goto err;
-
+								handleWin32Error (hwndDlg, SRC_POS);
+								bResult = FALSE;
+								goto err;
 							}
+
+							if (!bResult)
+								goto err;
 
 							break;
 						}
@@ -959,26 +958,23 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 				}
 				else
 				{
-					if (driver64)
-						EnableWow64FsRedirection (FALSE);
+					EnableWow64FsRedirection (FALSE);
 
 					bResult = TCCopyFile (curFileName, szTmp);
 
-					if (driver64)
-						EnableWow64FsRedirection (TRUE);
+					EnableWow64FsRedirection (TRUE);
 				}
 
 				if (bResult && wcscmp (szFiles[i], L"AVeraCrypt.exe") == 0)
 				{
-					if (Is64BitOs ())
-						EnableWow64FsRedirection (FALSE);
+					EnableWow64FsRedirection (FALSE);
 
 					wstring servicePath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", false);
 					wstring serviceLegacyPath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", true);
 					wstring favoritesFile = GetServiceConfigPath (TC_APPD_FILENAME_SYSTEM_FAVORITE_VOLUMES, false);
 					wstring favoritesLegacyFile = GetServiceConfigPath (TC_APPD_FILENAME_SYSTEM_FAVORITE_VOLUMES, true);
 
-					if (bResult && Is64BitOs ()
+					if (bResult
 						&& FileExists (favoritesLegacyFile.c_str())
 						&& !FileExists (favoritesFile.c_str()))
 					{
@@ -1027,41 +1023,35 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 						catch (...) {}
 					}
 
-					if (Is64BitOs ())
+					// delete files from legacy path
+					if (FileExists (favoritesLegacyFile.c_str()))
 					{
-						// delete files from legacy path
-						if (FileExists (favoritesLegacyFile.c_str()))
-						{
-							RemoveMessage (hwndDlg, (wchar_t *) favoritesLegacyFile.c_str());
-							ForceDeleteFile (favoritesLegacyFile.c_str());
-						}
-
-						if (FileExists (serviceLegacyPath.c_str()))
-						{
-							RemoveMessage (hwndDlg, (wchar_t *) serviceLegacyPath.c_str());
-							ForceDeleteFile (serviceLegacyPath.c_str());
-						}
-
-						EnableWow64FsRedirection (TRUE);
+						RemoveMessage (hwndDlg, (wchar_t *) favoritesLegacyFile.c_str());
+						ForceDeleteFile (favoritesLegacyFile.c_str());
 					}
+
+					if (FileExists (serviceLegacyPath.c_str()))
+					{
+						RemoveMessage (hwndDlg, (wchar_t *) serviceLegacyPath.c_str());
+						ForceDeleteFile (serviceLegacyPath.c_str());
+					}
+
+					EnableWow64FsRedirection (TRUE);
 				}
 			}
 		}
 		else
 		{
-			if (driver64)
-				EnableWow64FsRedirection (FALSE);
+			EnableWow64FsRedirection (FALSE);
 			if (zipFile)
 				bResult = StatRemoveDirectory (szTmp);
 			else
 				bResult = StatDeleteFile (szTmp, TRUE);
-			if (driver64)
-				EnableWow64FsRedirection (TRUE);
+			EnableWow64FsRedirection (TRUE);
 
 			if (bResult && wcscmp (szFiles[i], L"AVeraCrypt.exe") == 0)
 			{
-				if (Is64BitOs ())
-					EnableWow64FsRedirection (FALSE);
+				EnableWow64FsRedirection (FALSE);
 
 				wstring servicePath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", false);
 				wstring serviceLegacyPath = GetServiceConfigPath (_T(TC_APP_NAME) L".exe", true);
@@ -1081,22 +1071,19 @@ BOOL DoFilesInstall (HWND hwndDlg, wchar_t *szDestDir)
 					ForceDeleteFile (servicePath.c_str());
 				}
 
-				if (Is64BitOs ())
+				if (FileExists (favoritesLegacyFile.c_str()))
 				{
-					if (FileExists (favoritesLegacyFile.c_str()))
-					{
-						RemoveMessage (hwndDlg, (wchar_t *) favoritesLegacyFile.c_str());
-						ForceDeleteFile (favoritesLegacyFile.c_str());
-					}
-
-					if (FileExists (serviceLegacyPath.c_str()))
-					{
-						RemoveMessage (hwndDlg, (wchar_t *) serviceLegacyPath.c_str());
-						ForceDeleteFile (serviceLegacyPath.c_str());
-					}
-
-					EnableWow64FsRedirection (TRUE);
+					RemoveMessage (hwndDlg, (wchar_t *) favoritesLegacyFile.c_str());
+					ForceDeleteFile (favoritesLegacyFile.c_str());
 				}
+
+				if (FileExists (serviceLegacyPath.c_str()))
+				{
+					RemoveMessage (hwndDlg, (wchar_t *) serviceLegacyPath.c_str());
+					ForceDeleteFile (serviceLegacyPath.c_str());
+				}
+
+				EnableWow64FsRedirection (TRUE);
 			}
 		}
 
@@ -1134,10 +1121,19 @@ err:
 
 			if (lpMsgBuf) LocalFree (lpMsgBuf);
 
-			if (!Silent && MessageBoxW (hwndDlg, szTmp2, lpszTitle, MB_YESNO | MB_ICONHAND) != IDYES)
+			if (!Silent && MessageBoxW(hwndDlg, szTmp2, lpszTitle, MB_YESNO | MB_ICONHAND) != IDYES)
+			{
+#ifndef PORTABLE
+				RestorePrivilegeState(&originalPrivileges);
+#endif
 				return FALSE;
+			}
 		}
 	}
+
+#ifndef PORTABLE
+	RestorePrivilegeState(&originalPrivileges);
+#endif
 	
 	if (bUninstall == FALSE)
 	{
@@ -1646,7 +1642,6 @@ BOOL DoDriverUnload (HWND hwndDlg)
 
 	if (hDriver != INVALID_HANDLE_VALUE)
 	{
-		MOUNT_LIST_STRUCT driver;
 		LONG driverVersion = VERSION_NUM;
 		int refCount;
 		DWORD dwResult;
@@ -1895,7 +1890,7 @@ error:
 	return bOK;
 }
 
-BOOL DoShortcutsInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bProgGroup, BOOL bDesktopIcon)
+BOOL DoShortcutsInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bProgGroup, BOOL bUseDesktopIcon)
 {
 	wchar_t szLinkDir[TC_MAX_PATH], szDir[TC_MAX_PATH];
 	wchar_t szTmp[TC_MAX_PATH], szTmp2[TC_MAX_PATH];
@@ -1903,7 +1898,7 @@ BOOL DoShortcutsInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bProgGroup, BOOL
 	HRESULT hOle;
 	int x;
 
-	if (bProgGroup == FALSE && bDesktopIcon == FALSE)
+	if (bProgGroup == FALSE && bUseDesktopIcon == FALSE)
 		return TRUE;
 
 	hOle = OleInitialize (NULL);
@@ -1982,7 +1977,7 @@ BOOL DoShortcutsInstall (HWND hwndDlg, wchar_t *szDestDir, BOOL bProgGroup, BOOL
 		StatDeleteFile (szTmp2, FALSE);
 	}
 
-	if (bDesktopIcon)
+	if (bUseDesktopIcon)
 	{
 		StringCbCopyW (szDir, sizeof(szDir), szDestDir);
 		x = wcslen (szDestDir);
@@ -2016,6 +2011,37 @@ error:
 	return bOK;
 }
 
+void RemoveLegacyFiles (wchar_t *szDestDir)
+{
+	const wchar_t* 	oldFileNames[] = {
+		L"docs\\html\\en\\BCH_Logo_48x30.png",
+		L"docs\\html\\en\\LinuxPrepAndBuild.sh",
+		L"docs\\html\\en\\LinuxPrepAndBuild.zip",
+		L"docs\\html\\en\\RIPEMD-160.html",
+		L"docs\\html\\en\\ru\\BCH_Logo_48x30.png",
+		L"Languages\\Language.ru - Copy.xml",
+	};
+	wchar_t szDir[TC_MAX_PATH];
+	wchar_t oldPath[TC_MAX_PATH];
+	BOOL bSlash;
+	size_t x, i;
+
+	StringCbCopyW (szDir, sizeof(szDir), szDestDir);
+	x = wcslen (szDestDir);
+	if (szDestDir[x - 1] == L'\\')
+		bSlash = TRUE;
+	else
+		bSlash = FALSE;
+
+	if (bSlash == FALSE)
+		StringCbCatW (szDir, sizeof(szDir), L"\\");
+
+	for (i = 0; i < ARRAYSIZE(oldFileNames); i++)
+	{
+		StringCbPrintfW (oldPath, sizeof(oldPath), L"%s%s", szDestDir, oldFileNames[i]);
+		StatDeleteFile (oldPath, FALSE);
+	}
+}
 
 void OutcomePrompt (HWND hwndDlg, BOOL bOK)
 {
@@ -2199,7 +2225,6 @@ void DoInstall (void *arg)
 	HWND hwndDlg = (HWND) arg;
 	BOOL bOK = TRUE;
 	wchar_t path[MAX_PATH];
-
 	BootEncryption bootEnc (hwndDlg);
 
 	// Refresh the main GUI (wizard thread)
@@ -2341,6 +2366,12 @@ void DoInstall (void *arg)
 	{
 		WriteMemoryProtectionConfig(bDisableMemoryProtection? FALSE : TRUE);
 		bRestartRequired = TRUE; // Restart is required to apply the new memory protection settings
+	}
+
+	if (bOK && bUpgrade)
+	{
+		// delete legacy files
+		RemoveLegacyFiles (InstallationPath);
 	}
 
 	if (bOK)

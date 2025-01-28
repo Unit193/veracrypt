@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="nb" name="Norsk Bokmål" en-name="Norwegian (Bokmål)" version="0.1.0" translators="Marius Kjærstad" />
     <font lang="nb" class="normal" size="11" face="default" />
     <font lang="nb" class="bold" size="13" face="Arial " />
@@ -1641,6 +1641,9 @@
     <entry lang="nb" key="ERR_XTS_MASTERKEY_VULNERABLE">ADVARSEL: Volumets hovednøkkel er sårbar for et angrep som kompromitterer datasikkerheten.\n\nVennligst opprett et nytt volum og overfør dataene til det.</entry>
     <entry lang="nb" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">ADVARSEL: Hovednøkkelen til det krypterte systemet er sårbar for et angrep som kompromitterer datasikkerheten.\nVennligst dekrypter systempartisjonen/-stasjonen og krypter den på nytt.</entry>
     <entry lang="nb" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">ADVARSEL: Volumets hovednøkkel har en sikkerhetssårbarhet.</entry>
+    <entry lang="nb" key="MOUNTPOINT_BLOCKED">FEIL: Volumets monteringspunkt er blokkert fordi det overstyrer en beskyttet systemkatalog.\n\nVennligst velg et annet monteringspunkt.</entry>
+    <entry lang="nb" key="MOUNTPOINT_NOTALLOWED">FEIL: Volumets monteringspunkt er ikke tillatt fordi det overstyrer en katalog som er en del av PATH-miljøvariabelen.\n\nVennligst velg et annet monteringspunkt.</entry>
+    <entry lang="nb" key="INSECURE_MODE">[USIKKER MODUS]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="pl" name="Polski" en-name="Polish" version="1.0.0" translators="Mirek Druchowicz, Janusz Zamecki, Sobiesław Antolak, Begina Felicysym" />
     <font lang="pl" class="normal" size="11" face="default" />
     <font lang="pl" class="bold" size="13" face="Arial" />
@@ -1641,6 +1641,9 @@
     <entry lang="pl" key="ERR_XTS_MASTERKEY_VULNERABLE">OSTRZEŻENIE: Klucz główny wolumenu jest podatny na atak, który zagraża bezpieczeństwu danych.\n\nUtwórz nowy wolumen i przenieś do niego dane.</entry>
     <entry lang="pl" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">OSTRZEŻENIE: Klucz główny zaszyfrowanego systemu jest podatny na atak, który zagraża bezpieczeństwu danych.\nOdszyfruj partycję/napęd systemowy, a następnie ponownie go zaszyfruj.</entry>
     <entry lang="pl" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">OSTRZEŻENIE: Klucz główny wolumenu ma lukę w zabezpieczeniach.</entry>
+    <entry lang="pl" key="MOUNTPOINT_BLOCKED">BŁĄD: Punkt podłączania wolumenu jest zablokowany, ponieważ nadpisuje chroniony katalog systemowy.\n\nWybierz inny punkt podłączania.</entry>
+    <entry lang="pl" key="MOUNTPOINT_NOTALLOWED">BŁĄD: Punkt podłączania wolumenu nie jest dozwolony, ponieważ nadpisuje katalog, który jest częścią zmiennej środowiskowej PATH.\n\nWybierz inny punkt podłączania.</entry>
+    <entry lang="pl" key="INSECURE_MODE">[TRYB NIEBEZPIECZNY]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

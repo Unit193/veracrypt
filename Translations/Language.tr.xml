@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8' standalone='no'?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
-    <language langid="tr" name="Türkçe" en-name="Turkish" version="1.26.14" translators="FabSec; By Fabriel, Ali İskender Turan, Zeynel Abidin Öztürk, Mehmet Keçeci, Kaya Zeren" />
+  <localization prog-version= "1.26.18">
+    <language langid="tr" name="Türkçe" en-name="Turkish" version="1.26.18" translators="FabSec; By Fabriel, Ali İskender Turan, Zeynel Abidin Öztürk, Mehmet Keçeci, Kaya Zeren" />
     <font lang="tr" class="normal" size="11" face="default" />
     <font lang="tr" class="bold" size="13" face="Arial" />
     <font lang="tr" class="fixed" size="12" face="Lucida Console" />
@@ -1641,6 +1641,9 @@
     <entry lang="tr" key="ERR_XTS_MASTERKEY_VULNERABLE">UYARI: Birimin ana anahtarı, veri güvenliğini tehlikeye atan bir saldırıya karşı savunmasızdır.\n\nLütfen yeni bir birim oluşturun ve verileri ona aktarın.</entry>
     <entry lang="tr" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">UYARI: Şifrelenmiş sistemin ana anahtarı, veri güvenliğini tehlikeye atan bir saldırıya karşı savunmasızdır.\nLütfen sistem bölümünü/sürücüsünü şifresini çözün ve ardından tekrar şifreleyin.</entry>
     <entry lang="tr" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">UYARI: Birimin ana anahtarı bir güvenlik açığına sahiptir.</entry>
+    <entry lang="tr" key="MOUNTPOINT_BLOCKED">HATA: Birim bağlama noktası, korunan bir sistem dizinini geçersiz kıldığı için engellendi.\n\nLütfen farklı bir bağlama noktası seçin.</entry>
+    <entry lang="tr" key="MOUNTPOINT_NOTALLOWED">HATA: Birim bağlama noktası, PATH ortam değişkeninin bir parçası olan bir dizini geçersiz kıldığı için izin verilmiyor.\n\nLütfen farklı bir bağlama noktası seçin.</entry>
+    <entry lang="tr" key="INSECURE_MODE">[GÜVENSİZ MOD]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

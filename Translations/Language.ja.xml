@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="ja" name="日本語" en-name="Japanese" version="1.1.0" translators="OGOSHI Masayuki, Transifex contributors" />
     <font lang="ja" class="normal" size="12" face="MS UI Gothic" />
     <font lang="ja" class="bold" size="16" face="MS UI Gothic" />
@@ -1641,6 +1641,9 @@
     <entry lang="ja" key="ERR_XTS_MASTERKEY_VULNERABLE">警告: ボリュームのマスターキーがデータセキュリティを損なう攻撃に対して脆弱です。\n\n新しいボリュームを作成し、データを転送してください。</entry>
     <entry lang="ja" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">警告: 暗号化されたシステムのマスターキーは、データセキュリティを損なう攻撃に対して脆弱です。\nシステムパーティション/ドライブの暗号化を解除してから、再度暗号化してください。</entry>
     <entry lang="ja" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">警告: ボリュームのマスターキーにセキュリティの脆弱性があります。</entry>
+    <entry lang="ja" key="MOUNTPOINT_BLOCKED">エラー: ボリュームのマウントポイントは、保護されたシステムディレクトリと競合するためブロックされました。\n\n別のマウントポイントを選択してください。</entry>
+    <entry lang="ja" key="MOUNTPOINT_NOTALLOWED">エラー: ボリュームのマウントポイントは、PATH環境変数に含まれるディレクトリを上書きするため使用できません。\n\n別のマウントポイントを選択してください。</entry>
+    <entry lang="ja" key="INSECURE_MODE">[非セキュアモード]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

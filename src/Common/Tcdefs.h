@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -59,7 +59,7 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.26.14"
+#define VERSION_STRING					"1.26.18"
 
 #ifdef VC_EFI_CUSTOM_MODE
 #define VERSION_STRING_SUFFIX			"-CustomEFI"
@@ -73,9 +73,9 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define VERSION_NUM						0x0126
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"August 25, 2024"
-#define TC_RELEASE_DATE_YEAR			2024
-#define TC_RELEASE_DATE_MONTH			 8
+#define TC_STR_RELEASE_DATE			L"January 20, 2025"
+#define TC_RELEASE_DATE_YEAR			2025
+#define TC_RELEASE_DATE_MONTH			 1
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -106,6 +106,12 @@ typedef unsigned __int64	TC_LARGEST_COMPILER_UINT;
 typedef __int64 int64;
 typedef unsigned __int64 uint64;
 #define LL(x) x##ui64
+#endif
+
+#if _MSC_VER > 1900
+#define VC_CDECL	__cdecl // this is needed because Windows driver on VS2019 uses stdcall for build
+#else
+#define VC_CDECL
 #endif
 
 #pragma warning( disable : 4201 )  // disable: 4201 nonstandard extension used : nameless struct/union
@@ -150,6 +156,8 @@ typedef uint64 TC_LARGEST_COMPILER_UINT;
 #define FALSE 0
 #define TRUE 1
 #endif
+
+#define VC_CDECL
 
 #endif // !_MSC_VER
 
@@ -232,6 +240,9 @@ void ThrowFatalException(int line);
     || (defined(__GNUC__ ) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3))) \
     || (__has_builtin(__builtin_trap))
 #   define TC_THROW_FATAL_EXCEPTION __builtin_trap()
+#elif defined(_MSC_VER)
+#include <intrin.h>
+#	define TC_THROW_FATAL_EXCEPTION	__fastfail(FAST_FAIL_FATAL_APP_EXIT)
 #else
 #	define TC_THROW_FATAL_EXCEPTION	*(char *) 0 = 0
 #endif
@@ -247,20 +258,10 @@ void ThrowFatalException(int line);
 #include <ntddk.h>		/* Standard header file for nt drivers */
 #include <ntdddisk.h>		/* Standard I/O control codes  */
 
-/* defines needed for using enhanced protection of NX pool under Windows 8 and later */
-#define NonPagedPoolNx  512
-#define MdlMappingNoExecute     0x40000000
 
-/* variables used in the implementation of enhanced protection of NX pool under Windows 8 and later */
-extern POOL_TYPE ExDefaultNonPagedPoolType;
-extern ULONG ExDefaultMdlProtection;
-#ifdef _WIN64
 extern ULONG AllocTag;
-#else
-#define AllocTag 'MMCV'
-#endif
 
-#define TCalloc(size) ((void *) ExAllocatePoolWithTag( ExDefaultNonPagedPoolType, size, AllocTag ))
+#define TCalloc(size) ((void *) ExAllocatePoolUninitialized( NonPagedPoolNx , size, AllocTag ))
 #define TCfree(memblock) ExFreePoolWithTag( memblock, AllocTag )
 
 #define DEVICE_DRIVER
@@ -284,53 +285,6 @@ typedef unsigned char  BOOLEAN;
 #ifndef FALSE
 #define FALSE !TRUE
 #endif
-
-typedef NTSTATUS (NTAPI *KeSaveExtendedProcessorStateFn) (
-    __in ULONG64 Mask,
-    PXSTATE_SAVE XStateSave
-    );
-
-
-typedef VOID (NTAPI *KeRestoreExtendedProcessorStateFn) (
-	PXSTATE_SAVE XStateSave
-	);
-
-typedef NTSTATUS (NTAPI *ExGetFirmwareEnvironmentVariableFn) (
-  PUNICODE_STRING VariableName,
-  LPGUID          VendorGuid,
-  PVOID           Value,
-  PULONG          ValueLength,
-  PULONG          Attributes
-);
-
-typedef ULONG64 (NTAPI *KeQueryInterruptTimePreciseFn)(
-  PULONG64 QpcTimeStamp
-);
-
-typedef BOOLEAN (NTAPI *KeAreAllApcsDisabledFn) ();
-
-typedef void (NTAPI *KeSetSystemGroupAffinityThreadFn)(
-  PGROUP_AFFINITY Affinity,
-  PGROUP_AFFINITY PreviousAffinity
-);
-
-typedef USHORT (NTAPI *KeQueryActiveGroupCountFn)();
-
-typedef ULONG (NTAPI *KeQueryActiveProcessorCountExFn)(
-  USHORT GroupNumber
-);
-
-extern NTSTATUS NTAPI KeSaveExtendedProcessorStateVC (
-    __in ULONG64 Mask,
-    PXSTATE_SAVE XStateSave
-    );
-
-
-extern VOID NTAPI KeRestoreExtendedProcessorStateVC (
-	PXSTATE_SAVE XStateSave
-	);
-
-extern BOOLEAN VC_KeAreAllApcsDisabled (VOID);
 
 
 #else				/* !TC_WINDOWS_DRIVER */

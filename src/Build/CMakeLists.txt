@@ -11,8 +11,8 @@ elseif ( NOT DEFINED NOGUI )
 endif()
 
 # - Set version of the package
-set( FULL_VERSION 		"1.26.14" )
-set( VERSION 			"1.26.14" )
+set( FULL_VERSION 		"1.26.18" )
+set( VERSION 			"1.26.18" )
 set( RELEASE 			"1" )
 
 # - Set PROJECT_NAME and CONFLICT_PACKAGE values
@@ -111,6 +111,15 @@ if ( UNIX )
 		file(READ "/etc/centos-release" CENTOS_RELEASE)
 		string(REGEX MATCH "release ([0-9 /\\.]+)" _ ${CENTOS_RELEASE})
         set(PLATFORM_VERSION ${CMAKE_MATCH_1})
+        
+	# Get fedora release version
+	elseif(EXISTS "/etc/fedora-release")	
+	
+		set ( PLATFORM "Fedora" )
+		
+		file(READ "/etc/fedora-release" FEDORA_RELEASE)
+		string(REGEX MATCH "release ([0-9 /\\.]+)" _ ${FEDORA_RELEASE})
+		set(PLATFORM_VERSION ${CMAKE_MATCH_1})
 	
 	# Only if distribution uses systemd and if all previous files didn't exist
 	# i.e OpenSUSE
@@ -128,6 +137,8 @@ if ( UNIX )
 			set ( PLATFORM "Debian" )
 		elseif ( FULL_PLATFORM MATCHES "^.*CentOS.*$" )
 			set ( PLATFORM "CentOS" )
+		elseif ( FULL_PLATFORM MATCHES "^.*Fedora.*$" )
+			set ( PLATFORM "Fedora" )
 		endif ( )
 		
 		# Get ditribution release version
@@ -164,7 +175,7 @@ if ( PLATFORM STREQUAL "Debian" OR PLATFORM STREQUAL "Ubuntu" )
 		execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
 	endif( )
 	
-elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) )
+elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) OR ( PLATFORM STREQUAL "Fedora" ))
 
 	execute_process(COMMAND arch OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
 	
@@ -241,7 +252,19 @@ if ( ( PLATFORM STREQUAL "Debian" ) OR ( PLATFORM STREQUAL "Ubuntu" ) )
 	set( CPACK_GENERATOR 					"DEB" )																				# mandatory
 	set( CPACK_DEBIAN_PACKAGE_NAME 			${CPACK_PACKAGE_NAME}  )															# mandatory
 	set( CPACK_DEBIAN_FILE_NAME 			${CPACK_PACKAGE_FILE_NAME}.deb )													# mandatory
-	set( CPACK_DEBIAN_PACKAGE_VERSION 		${CPACK_PACKAGE_VERSION} )															# mandatory
+	# -- Use a distro-specific version string to avoid repository conflicts --
+	# e.g. 1.26.17-1~deb11, 1.26.17-1~deb12, 1.26.17-1~ubuntu20.04, etc.
+	if (PLATFORM STREQUAL "Ubuntu")
+		# For something like "24.04", it becomes 1.26.17-1~ubuntu24.04
+		set(CPACK_DEBIAN_PACKAGE_VERSION 
+			"${VERSION}-${RELEASE}~ubuntu${PLATFORM_VERSION}")
+	else() # Debian
+		# Usually just take the major number from e.g. "11.7" => "11"
+		string(REGEX MATCH "^[0-9]+" PLATFORM_VERSION_MAJOR "${PLATFORM_VERSION}")
+		set(CPACK_DEBIAN_PACKAGE_VERSION 
+			"${VERSION}-${RELEASE}~deb${PLATFORM_VERSION_MAJOR}")
+	endif()
+
 	set( CPACK_DEBIAN_PACKAGE_RELEASE 		${CPACK_PACKAGE_RELEASE} )
 	set( CPACK_DEBIAN_PACKAGE_ARCHITECTURE 	${ARCHITECTURE} )																	# mandatory
 	
@@ -295,7 +318,7 @@ if ( ( PLATFORM STREQUAL "Debian" ) OR ( PLATFORM STREQUAL "Ubuntu" ) )
 	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA 	${DEBIAN_PREINST};${DEBIAN_POSTINST};${DEBIAN_PRERM};${DEBIAN_POSTRM})
 	set(CPACK_DEBIAN_PACKAGE_CONFLICTS 		"${CONFLICT_PACKAGE}")
 	
-elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) )
+elseif ( ( PLATFORM STREQUAL "CentOS" ) OR ( PLATFORM STREQUAL "openSUSE" ) OR ( PLATFORM STREQUAL "Fedora" ))
 	
 	# RPM control script(s)
 	file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Packaging/rpm-control)

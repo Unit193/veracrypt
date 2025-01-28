@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -26,6 +26,7 @@
 #define TC_ENC_IO_QUEUE_PREALLOCATED_IO_REQUEST_COUNT 16
 #define TC_ENC_IO_QUEUE_PREALLOCATED_IO_REQUEST_MAX_COUNT 8192
 
+#define VC_MAX_WORK_ITEMS 1024 
 
 typedef struct EncryptedIoQueueBufferStruct
 {
@@ -37,6 +38,15 @@ typedef struct EncryptedIoQueueBufferStruct
 
 } EncryptedIoQueueBuffer;
 
+typedef struct _COMPLETE_IRP_WORK_ITEM
+{
+	PIO_WORKITEM WorkItem;
+	PIRP Irp;
+	NTSTATUS Status;
+	ULONG_PTR Information;
+	void* Item;
+	LIST_ENTRY ListEntry; // For managing free work items
+} COMPLETE_IRP_WORK_ITEM, * PCOMPLETE_IRP_WORK_ITEM;
 
 typedef struct
 {
@@ -97,9 +107,9 @@ typedef struct
 	uint8 *ReadAheadBuffer;
 	LARGE_INTEGER MaxReadAheadOffset;
 
-	LONG OutstandingIoCount;
+	volatile LONG OutstandingIoCount;
 	KEVENT NoOutstandingIoEvent;
-	LONG IoThreadPendingRequestCount;
+	volatile LONG IoThreadPendingRequestCount;
 
 	KEVENT PoolBufferFreeEvent;
 
@@ -125,6 +135,16 @@ typedef struct
 	volatile BOOL ThreadBlockReadWrite;
 
 	int FragmentSize;
+
+	// Pre-allocated work items
+	PCOMPLETE_IRP_WORK_ITEM WorkItemPool;
+	ULONG MaxWorkItems;
+	LIST_ENTRY FreeWorkItemsList;
+	KSEMAPHORE WorkItemSemaphore;
+	KSPIN_LOCK WorkItemLock;
+
+	volatile LONG ActiveWorkItems;
+	KEVENT NoActiveWorkItemsEvent;
 }  EncryptedIoQueue;
 
 

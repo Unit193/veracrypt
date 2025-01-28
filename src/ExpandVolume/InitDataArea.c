@@ -9,7 +9,7 @@
  or Copyright (c) 2012-2013 Josef Schneider <josef@netpage.dk>
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 IDRIX
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -56,9 +56,7 @@ int FormatNoFs (HWND hwndDlg, unsigned __int64 startSector, __int64 num_sectors,
 
 	LARGE_INTEGER startOffset;
 	LARGE_INTEGER newOffset;
-#ifdef _WIN64
 	CRYPTO_INFO tmpCI;
-#endif
 
 	// Seek to start sector
 	startOffset.QuadPart = startSector * FormatSectorSize;
@@ -77,7 +75,6 @@ int FormatNoFs (HWND hwndDlg, unsigned __int64 startSector, __int64 num_sectors,
 
 	memset (sector, 0, sizeof (sector));
 
-#ifdef _WIN64
 	if (IsRamEncryptionEnabled ())
 	{
 		VirtualLock (&tmpCI, sizeof (tmpCI));
@@ -85,7 +82,6 @@ int FormatNoFs (HWND hwndDlg, unsigned __int64 startSector, __int64 num_sectors,
 		VcUnprotectKeys (&tmpCI, VcGetEncryptionID (cryptoInfo));
 		cryptoInfo = &tmpCI;
 	}
-#endif
 
 	// Remember the original secondary key (XTS mode) before generating a temporary one
 	memcpy (originalK2, cryptoInfo->k2, sizeof (cryptoInfo->k2));
@@ -116,10 +112,8 @@ int FormatNoFs (HWND hwndDlg, unsigned __int64 startSector, __int64 num_sectors,
 			goto fail;
 		}
 
-#ifdef _WIN64
 		if (IsRamEncryptionEnabled ())
 			VcProtectKeys (cryptoInfo, VcGetEncryptionID (cryptoInfo));
-#endif
 
 		while (num_sectors--)
 		{
@@ -154,13 +148,11 @@ int FormatNoFs (HWND hwndDlg, unsigned __int64 startSector, __int64 num_sectors,
 	VirtualUnlock (temporaryKey, sizeof (temporaryKey));
 	VirtualUnlock (originalK2, sizeof (originalK2));
 	TCfree (write_buf);
-#ifdef _WIN64
 	if (IsRamEncryptionEnabled ())
 	{
 		burn (&tmpCI, sizeof (CRYPTO_INFO));
 		VirtualUnlock (&tmpCI, sizeof (tmpCI));
 	}
-#endif
 
 	return 0;
 
@@ -172,13 +164,11 @@ fail:
 	VirtualUnlock (temporaryKey, sizeof (temporaryKey));
 	VirtualUnlock (originalK2, sizeof (originalK2));
 	TCfree (write_buf);
-#ifdef _WIN64
 	if (IsRamEncryptionEnabled ())
 	{
 		burn (&tmpCI, sizeof (CRYPTO_INFO));
 		VirtualUnlock (&tmpCI, sizeof (tmpCI));
 	}
-#endif
 
 	SetLastError (err);
 	return (retVal ? retVal : ERR_OS_ERROR);

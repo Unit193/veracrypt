@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="ar" name="العربية" en-name="Arabic" version="0.2.0" translators="Ahmad Gharbeia, Khaled Hosny, Ali Khojah" />
     <font lang="ar" class="normal" size="11" face="default" />
     <font lang="ar" class="bold" size="13" face="Arial" />
@@ -1641,6 +1641,9 @@
     <entry lang="ar" key="ERR_XTS_MASTERKEY_VULNERABLE">تحذير: مفتاح رئيسي للحجم عرضة لهجوم يهدد أمن البيانات.\n\nيرجى إنشاء حجم جديد ونقل البيانات إليه.</entry>
     <entry lang="ar" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">تحذير: المفتاح الرئيسي للنظام المشفر عرضة لهجوم يهدد أمن البيانات.\nيرجى فك تشفير قسم/محرك النظام ثم إعادة تشفيره.</entry>
     <entry lang="ar" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">تحذير: مفتاح رئيسي للحجم يحتوي على ثغرة أمنية.</entry>
+    <entry lang="ar" key="MOUNTPOINT_BLOCKED">خطأ: نقطة تركيب الحجم محظورة لأنها تحل محل دليل نظام محمي.\n\nيرجى اختيار نقطة تركيب مختلفة.</entry>
+    <entry lang="ar" key="MOUNTPOINT_NOTALLOWED">خطأ: نقطة تركيب الحجم غير مسموح بها لأنها تحل محل دليل مدرج ضمن متغير البيئة PATH.\n\nيرجى اختيار نقطة تركيب مختلفة.</entry>
+    <entry lang="ar" key="INSECURE_MODE">[وضع غير آمن]</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

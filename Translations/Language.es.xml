@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.14">
+  <localization prog-version= "1.26.18">
     <language langid="es" name="Español" en-name="Spanish" version="1.0.0" translators="Juan Antonio Auñón Ochando" />
     <font lang="es" class="normal" size="11" face="default" />
     <font lang="es" class="bold" size="13" face="Arial" />
@@ -1641,6 +1641,9 @@
     <entry lang="es" key="ERR_XTS_MASTERKEY_VULNERABLE">ADVERTENCIA: La clave maestra del volumen es vulnerable a un ataque que compromete la seguridad de los datos.\n\nCree un nuevo volumen y transfiera los datos a él.</entry>
     <entry lang="es" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">ADVERTENCIA: La clave maestra del sistema cifrado es vulnerable a un ataque que compromete la seguridad de los datos.\nDescifre la partición/unidad del sistema y luego vuelva a cifrarla.</entry>
     <entry lang="es" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">ADVERTENCIA: La clave maestra del volumen tiene una vulnerabilidad de seguridad.</entry>
+    <entry lang="es" key="MOUNTPOINT_BLOCKED">ERROR: El punto de montaje del volumen está bloqueado porque sobrescribe un directorio protegido del sistema.\n\nElija un punto de montaje diferente.</entry>
+    <entry lang="es" key="MOUNTPOINT_NOTALLOWED">ERROR: No se permite el punto de montaje del volumen porque sobrescribe un directorio que forma parte de la ruta PATH.\n\nElija un punto de montaje diferente.</entry>
+    <entry lang="es" key="INSECURE_MODE">[MODO INSEGURO]</entry>
 </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">
