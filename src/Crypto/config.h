@@ -157,15 +157,6 @@
     #define CRYPTOPP_BOOL_SSE41_INTRINSICS_AVAILABLE 0
 #endif
 
-#if !defined(CRYPTOPP_DISABLE_SHANI) && !defined(_M_ARM) && !defined(_M_ARM64) && !defined(__arm__) && !defined(__aarch64__) && !defined(__arm64__) && defined(CRYPTOPP_BOOL_SSE41_INTRINSICS_AVAILABLE) && \
-	(defined(__SHA__) || (_MSC_VER >= 1900) || (__SUNPRO_CC >= 0x5160) || \
-	(CRYPTOPP_GCC_VERSION >= 40900) || (__INTEL_COMPILER >= 1600) || \
-	(CRYPTOPP_LLVM_CLANG_VERSION >= 30400) || (CRYPTOPP_APPLE_CLANG_VERSION >= 50100))
-	#define CRYPTOPP_SHANI_AVAILABLE 1
-#else
-	#define CRYPTOPP_SHANI_AVAILABLE 0
-#endif
-
 // how to allocate 16-byte aligned memory (for SSE2)
 #if defined(_MSC_VER)
 	#define CRYPTOPP_MM_MALLOC_AVAILABLE
@@ -206,6 +197,17 @@
     #define CRYPTOPP_BOOL_X64 0
 #endif
 
+#if !defined(CRYPTOPP_DISABLE_SHANI) && \
+	(CRYPTOPP_BOOL_X32 || CRYPTOPP_BOOL_X86 || CRYPTOPP_BOOL_X64) && \
+	defined(CRYPTOPP_BOOL_SSE41_INTRINSICS_AVAILABLE) && \
+	(defined(__SHA__) || (_MSC_VER >= 1900) || (__SUNPRO_CC >= 0x5160) || \
+	(CRYPTOPP_GCC_VERSION >= 40900) || (__INTEL_COMPILER >= 1600) || \
+	(CRYPTOPP_LLVM_CLANG_VERSION >= 30400) || (CRYPTOPP_APPLE_CLANG_VERSION >= 50100))
+	#define CRYPTOPP_SHANI_AVAILABLE 1
+#else
+	#define CRYPTOPP_SHANI_AVAILABLE 0
+#endif
+
 #if defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
 	#define CRYPTOPP_BOOL_ARMV8 1
 	#define CRYPTOPP_BOOL_ARM64 1
@@ -236,6 +238,19 @@
       (CRYPTOPP_LLVM_CLANG_VERSION >= 30300) || (CRYPTOPP_APPLE_CLANG_VERSION >= 40300) || \
       (CRYPTOPP_MSC_VERSION >= 1916)
 #   define CRYPTOPP_ARM_AES_AVAILABLE 1
+#  endif  // Compilers
+# endif  // Platforms
+#endif
+
+// ARMv8 and SHA-1, SHA-256. -march=armv8-a+crypto or above must be present
+// Requires GCC 4.8, Clang 3.3 or Visual Studio 2017
+#if !defined(CRYPTOPP_ARM_SHA_AVAILABLE) && !defined(CRYPTOPP_DISABLE_ARM_SHA)
+# if defined(__aarch32__) || defined(__aarch64__) || defined(_M_ARM64)
+#  if defined(__ARM_FEATURE_CRYPTO) || (CRYPTOPP_GCC_VERSION >= 40800) || \
+      (CRYPTOPP_LLVM_CLANG_VERSION >= 30300) || (CRYPTOPP_APPLE_CLANG_VERSION >= 40300) || \
+      (CRYPTOPP_MSC_VERSION >= 1916)
+#   define CRYPTOPP_ARM_SHA1_AVAILABLE 1
+#   define CRYPTOPP_ARM_SHA2_AVAILABLE 1
 #  endif  // Compilers
 # endif  // Platforms
 #endif
