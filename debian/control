@@ -10,7 +10,7 @@ Build-Depends: debhelper-compat (= 13),
  pkgconf,
  yasm [any-i386 any-amd64]
 Rules-Requires-Root: no
-Standards-Version: 4.7.0
+Standards-Version: 4.7.2
 Homepage: https://veracrypt.fr/
 
 Package: veracrypt
