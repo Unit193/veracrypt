@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="it" name="Italiano" en-name="Italian" version="1.0.1" translators="Maurizio Ballo, Consiglio Gaetano" />
     <font lang="it" class="normal" size="11" face="default" />
     <font lang="it" class="bold" size="13" face="Arial" />
@@ -122,7 +122,7 @@
     <entry lang="it" key="IDC_ENABLE_HARDWARE_ENCRYPTION">Accelera la codifica/decodifica AES usando le istruzioni AES del processore (se disponibili)</entry>
     <entry lang="it" key="IDC_ENABLE_KEYFILES">Usa file chiave</entry>
     <entry lang="it" key="IDC_ENABLE_NEW_KEYFILES">Usa file chiave</entry>
-    <entry lang="it" key="IDC_EXIT">Chiudi</entry>
+    <entry lang="it" key="IDC_EXIT">Esci</entry>
     <entry lang="it" key="IDC_FAVORITES_HELP_LINK">Guida sui volumi preferiti</entry>
     <entry lang="it" key="IDC_FAVORITE_DISABLE_HOTKEY">Non montare il volume selezionato quando il tasto di scorciatoia 'Monta volumi preferiti' &amp;viene premuto</entry>
     <entry lang="it" key="IDC_FAVORITE_MOUNT_ON_ARRIVAL">Montare il volume selezionato quando la sua periferica ospite viene &amp;connessa</entry>
@@ -744,7 +744,7 @@
     <entry lang="it" key="LABEL">Etichetta</entry>
     <entry lang="it" key="CLUSTER_TOO_SMALL">La dimensione del cluster selezionata è troppo piccola per la dimensione di questo volume. Verrà usata una dimensione del cluster maggiore.</entry>
     <entry lang="it" key="CANT_GET_VOLSIZE">ERRORE: impossibile leggere la dimensione del volume!\n\nAssicurarsi che il volume selezionato non sia usato dal sistema o dalle applicazioni.</entry>
-    <entry lang="it" key="HIDDEN_VOL_HOST_SPARSE">I volumi ignoti non devono essere creati all'interno di contenitore dinamici(file sparsi). Per consentire la negabilità plausibile, il volume nascosto deve essere creato in un contenitore non dinamico.</entry>
+    <entry lang="it" key="HIDDEN_VOL_HOST_SPARSE">I volumi ignoti non devono essere creati all'interno di contenitore dinamici(file sparsi). Per consentire la negazione plausibile, il volume nascosto deve essere creato in un contenitore non dinamico.</entry>
     <entry lang="it" key="HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS">La procedura di creazione del volume VeraCrypt può creare un voume nascosto solo all’interno di un volume FAT oppure NTFS.</entry>
     <entry lang="it" key="HIDDEN_VOL_HOST_UNSUPPORTED_FILESYS_WIN2000">In ambiente operativo Windows 2000, la procedura di creazione del volume di VeraCrypt può creare un volume nascosto solamente in un volume FAT.</entry>
     <entry lang="it" key="HIDDEN_VOL_HOST_NTFS">Nota: Il file system FAT è più adeguato per i volumi esterni che il file system NTFS (per esempio, la dimensione massima possibile per il volume nascosto può essere significativamente molto grande se il volume esterno è stato formattato come FAT).</entry>
@@ -855,7 +855,7 @@
     <entry lang="it" key="TC_INSTALLER_IS_RUNNING">L’installer di VeraCrypt è attualmente in esecuzione in questo sistema ed esegue o prepara l’installazione oppure aggiornamento di VeraCrypt. Prima di procedere, attendere per finire o chiudere esso. Se non potete chiudere l’installer, riavviare i computer prima di procedere.</entry>
     <entry lang="it" key="INSTALL_FAILED">Installazione fallita.</entry>
     <entry lang="it" key="UNINSTALL_FAILED">Disinstallazione fallita.</entry>
-    <entry lang="it" key="DIST_PACKAGE_CORRUPTED">Questo pacchetto di distribuzione è danneggiato. Provare a scaricarlo nuovamente (preferibilmente dal sito ufficiale di VeraCrypt all’indirizzo https://www.veracrypt.fr).</entry>
+    <entry lang="it" key="DIST_PACKAGE_CORRUPTED">Questo pacchetto di distribuzione è danneggiato. Provare a scaricarlo nuovamente (preferibilmente dal sito ufficiale di VeraCrypt all’indirizzo https://veracrypt.jp).</entry>
     <entry lang="it" key="CANNOT_WRITE_FILE_X">Impossibile scrivere il file %s</entry>
     <entry lang="it" key="EXTRACTING_VERB">Estrazione</entry>
     <entry lang="it" key="CANNOT_READ_FROM_PACKAGE">Impossibile leggere i dati dal pacchetto.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="it" key="HIDDEN_OS_CREATION_PREINFO_HELP">Nei passi successivi, VeraCrypt creerà il sistema operativo nascosto copiando il contenuto della partizione di sistema nel volume nascosto (i dati in copia saranno Codificati al volo con una chiave di codifica differente da quella usata per il sistema operativo di richiamo).\n\nNotate che il processo sarà eseguito in ambiente di pre-boot(prima dell’avvio di Windows) e può impiegare molto tempo per essere completato; diverse ore o anche diversi giorni (a seconda della dimensione della partizione di sistema e dalle prestazioni del vostro computer).\n\nVoi potrete interrompere il processo, spegnere il vostro computer, avviare il sistema operativo e riavviare il processo. Comunque, se interrompete tale processo, l’intera procedura di copia del sistema dovrà ripartire dall’inizio (perché il contenuto della partizione di sistema non deve cambiare durante la clonazione).</entry>
     <entry lang="it" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Volete annullare l’intero processo di creazione del sistema operativo nascosto?\n\nNota: NON potrete ripristinare il processo se lo annullate adesso.</entry>
     <entry lang="it" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Volete annullare il pre-test per la codifica di sistema?</entry>
-    <entry lang="it" key="BOOT_PRETEST_FAILED_RETRY">La richiesta di codifica di sistema VeraCrypt è fallita. Volete ritentare?\n\nSelezionando 'No', il componente di autenticazione in pre-boot sarà disinstallato.\n\nNota:\n\n- Se il Boot Loader di VeraCrypt non vi richiede di digitare la password prima dell'avvio di Windows, è possibile che il vostro sistema operativo non si it is avvia dall'unità nella quale esso è installato. Questo non è supportato.\n\n- Se usate un algoritmo di cifratura diverso di AES e la richiesta è fallita (ed avete digitato la password), questo è stato causato da un driver designato inadeguatamente. Selezionare 'No', e ritentare la cifratura della partizione/unità di sistema, usando l'algoritmo di codifica AES (che ha dei requisiti di memoria inferiori).\n\n- Per più possibili cause e soluzioni, visitare: https://www.veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="it" key="BOOT_PRETEST_FAILED_RETRY">La richiesta di codifica di sistema VeraCrypt è fallita. Volete ritentare?\n\nSelezionando 'No', il componente di autenticazione in pre-boot sarà disinstallato.\n\nNota:\n\n- Se il Boot Loader di VeraCrypt non vi richiede di digitare la password prima dell'avvio di Windows, è possibile che il vostro sistema operativo non si it is avvia dall'unità nella quale esso è installato. Questo non è supportato.\n\n- Se usate un algoritmo di cifratura diverso di AES e la richiesta è fallita (ed avete digitato la password), questo è stato causato da un driver designato inadeguatamente. Selezionare 'No', e ritentare la cifratura della partizione/unità di sistema, usando l'algoritmo di codifica AES (che ha dei requisiti di memoria inferiori).\n\n- Per più possibili cause e soluzioni, visitare: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="it" key="SYS_DRIVE_NOT_ENCRYPTED">La partizione/disco di sistema non sembra essere criptato (né parzialmente né interamente).</entry>
     <entry lang="it" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">La vostra partizione/disco di sistema è criptato (parzialmente o completamente).\n\nDeCodificate la vostra partizione/disco interamente prima di procedere. Per fare questo, selezionate 'Sistema'&gt;'Decodifica definitivamente la partizione/disco di sistema' dal menu della barra strumenti della finestra principale di VeraCrypt.</entry>
     <entry lang="it" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Quando la partizione/unità di sistema è crittata (parzialmente o totalmente), non potete tornare ad una precedente versione di VeraCrypt (ma potete aggiornare o reinstallare la stessa versione di esso).</entry>
@@ -1510,7 +1510,7 @@
     <entry lang="it" key="LINUX_DYNAMIC_NOTICE">Tieni presente che se il sistema operativo non alloca i file dall'inizio dello spazio libero, e quindi la dimensione massima possibile del volume nascosto potrebbe essere molto inferiore alla dimensione dello spazio libero sul volume esterno.\nQuesto non è un bug in VeraCrypt ma una limitazione del sistema operativo.</entry>
     <entry lang="it" key="LINUX_MAX_HIDDEN_SIZE">La dimensione massima del volume nascosto possibile per questo volume è {0}.</entry>
     <entry lang="it" key="LINUX_OPEN_OUTER_VOL">Apri il volume esterno</entry>
-    <entry lang="it" key="LINUX_OUTER_VOL_IS_MOUNTED">Il volume esterno è stato creato e montato correttamente come '{0}'.\nIn questo volume dovresti ora copiare alcuni file dall'aspetto sensibile che in realtà NON vuoi nascondere.\nI file saranno lì per chiunque ti costringa a rivelare la tua password.\nRivelerai solo la password per questo volume esterno, non per quello nascosto.\nI file a cui tieni davvero verranno archiviati nel volume nascosto, che verrà creato in seguito.\nAl termine della copia, fare clic su Avanti. Non smontare il volume.\nNota: dopo aver fatto selezionato 'Avanti', il volume esterno verrà analizzato per determinare la dimensione dell'area ininterrotta di spazio libero la cui estremità è allineata con l'estremità del volume.\nQuest'area ospiterà il volume nascosto, quindi limiterà la sua dimensione massima possibile.\nLa procedura garantisce che nessun dato sul volume esterno venga sovrascritto dal volume nascosto.</entry>
+    <entry lang="it" key="LINUX_OUTER_VOL_IS_MOUNTED">Il volume esterno è stato creato e montato correttamente come '{0}'.\nIn questo volume dovresti ora copiare alcuni file dall'aspetto sensibile che in realtà NON vuoi nascondere.\nI file saranno lì per chiunque ti costringa a rivelare la tua password.\nRivelerai solo la password per questo volume esterno, non per quello nascosto.\nI file a cui tieni davvero verranno archiviati nel volume nascosto, che verrà creato in seguito.\nAl termine della copia, fare clic su Avanti. Non smontare il volume.\nNota: dopo aver selezionato 'Avanti', il volume esterno verrà analizzato per determinare la dimensione dell'area ininterrotta di spazio libero la cui estremità è allineata con l'estremità del volume.\nQuest'area ospiterà il volume nascosto, quindi limiterà la sua dimensione massima possibile.\nLa procedura garantisce che nessun dato sul volume esterno venga sovrascritto dal volume nascosto.</entry>
     <entry lang="it" key="LINUX_ERROR_TRY_ENCRYPT_SYSTEM_DRIVE">Errore: stai tentando di crittografare un'unità di sistema.\n\nVeraCrypt può crittografare un'unità di sistema solo in Windows.</entry>
     <entry lang="it" key="LINUX_ERROR_TRY_ENCRYPT_SYSTEM_PARTITION">Errore: stai tentando di crittografare una partizione di sistema.\n\nVeraCrypt può crittografare le partizioni di sistema solo in Windows.</entry>
     <entry lang="it" key="LINUX_WARNING_FORMAT_DESTROY_FS">ATTENZIONE: la formattazione del dispositivo eliminerà tutti i dati sul filesystem '{0}'.\n\nVuoi continuare?</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="it" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Errore: l'unità usa una dimensione del settore diversa da 512 byte.\n\nA causa delle limitazioni dei componenti disponibili nella piattaforma, non è possibile creare/usare volumi ospitati in una partizione/dispositivo nell'unità.\n\nPossibili soluzioni:\n- Creare nell'unità un volume (contenitore) ospitato da un file.\n- Usare un'unità con settori da 512 byte.\n- Usare VeraCrypt in un'altra piattaforma.</entry>
     <entry lang="it" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Il file/dispositivo host è già in uso.</entry>
     <entry lang="it" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Slot volume non disponibile.</entry>
-    <entry lang="it" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt richiede OSXFUSE 2.5 o superiore.</entry>
+    <entry lang="it" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt richiede macFUSE 2.5 o superiore.</entry>
     <entry lang="it" key="EXCEPTION_OCCURRED">Si è verificata un'eccezione</entry>
     <entry lang="it" key="ENTER_PASSWORD">Inserire password</entry>
     <entry lang="it" key="ENTER_TC_VOL_PASSWORD">Digita la password del volume VeraCrypt</entry>
@@ -1608,7 +1608,7 @@
     <entry lang="it" key="EXPANDER_ERROR_MAX_VC_VOLUME_SIZE_EXCEEDED">Dimensione massima del volume VeraCrypt di %I64u TB superata!\n</entry>
     <entry lang="it" key="FULL_FORMAT">Formato Completo</entry>
     <entry lang="it" key="FAST_CREATE">Creazione Veloce</entry>
-    <entry lang="it" key="WARN_FAST_CREATE">ATTENZIONE: Dovrebbe usare la Creazione Veloce solo nei seguenti casi:\n\n1) Il dispositivo non contiene dati sensibili e non ha bisogno di negazione plausibile.\n2) Il dispositivo è già stato crittografato in modo sicuro e completamente.\n\nÈ sicuro di voler usare la Creazione Veloce?</entry>
+    <entry lang="it" key="WARN_FAST_CREATE">ATTENZIONE: Dovrebbe usare la Creazione Veloce solo nei seguenti casi:\n\n1) Il dispositivo non contiene dati sensibili e non richiede la negazione plausibile.\n2) Il dispositivo è già stato crittografato in modo sicuro e completamente.\n\nSei sicuro di voler usare la Creazione Veloce?</entry>
     <entry lang="it" key="IDC_ENABLE_EMV_SUPPORT">Abilita Supporto EMV</entry>
     <entry lang="it" key="COMMAND_APDU_INVALID">Il comando APDU inviato alla carta non è valido.</entry>
     <entry lang="it" key="EXTENDED_APDU_UNSUPPORTED">I comandi APDU estesi non possono essere utilizzati con il token corrente.</entry>
@@ -1620,10 +1620,10 @@
     <entry lang="it" key="EMV_CPLC_NOTFOUND">CPLC non è stato trovato nella carta EMV.</entry>
     <entry lang="it" key="EMV_PAN_NOTFOUND">Nessun Numero di Conto Primario (PAN) trovato nella carta EMV.</entry>
     <entry lang="it" key="INVALID_EMV_PATH">Il percorso EMV non è valido.</entry>
-    <entry lang="it" key="EMV_KEYFILE_DATA_NOTFOUND">Impossibile creare un file chiave dai dati della carta EMV.\n\nUno dei seguenti è mancante:\n- Certificato di Chiave Pubblica ICC.\n- Certificato di Chiave Pubblica dell'Emittente.\n- Dati CPLC.</entry>
+    <entry lang="it" key="EMV_KEYFILE_DATA_NOTFOUND">Impossibile generare un file chiave dai dati della carta EMV.\n\nUno dei seguenti è mancante:\n- Certificato di Chiave Pubblica ICC.\n- Certificato di Chiave Pubblica dell'Emittente.\n- Dati CPLC.</entry>
     <entry lang="it" key="SCARD_W_REMOVED_CARD">Nessuna carta nel lettore.\n\nAssicurati che la carta sia correttamente inserita.</entry>
-    <entry lang="it" key="FORMAT_EXTERNAL_FAILED">Il comando format.com di Windows non è riuscito a formattare il volume come NTFS/exFAT/ReFS: Errore 0x%.8X.\n\nRitorno all'uso dell'API FormatEx di Windows.</entry>
-    <entry lang="it" key="FORMATEX_API_FAILED">L'API FormatEx di Windows non è riuscita a formattare il volume come NTFS/exFAT/ReFS.\n\nStato di fallimento = %s.</entry>
+    <entry lang="it" key="FORMAT_EXTERNAL_FAILED">Il comando format.com di Windows non è riuscito a formattare il volume come NTFS/exFAT/ReFS: Errore 0x%.8X.\n\nSi passerà all'uso dell'API FormatEx di Windows.</entry>
+    <entry lang="it" key="FORMATEX_API_FAILED">L'API FormatEx di Windows non è riuscita a formattare il volume come NTFS/exFAT/ReFS.\n\nCodice di errore = %s.</entry>
     <entry lang="it" key="EXPANDER_WRITING_RANDOM_DATA">Scrittura di dati casuali nel nuovo spazio ...\n</entry>
     <entry lang="it" key="EXPANDER_WRITING_ENCRYPTED_BACKUP">Scrittura dell'header di backup ricrittografato ...\n</entry>
     <entry lang="it" key="EXPANDER_WRITING_ENCRYPTED_PRIMARY">Scrittura dell'header primario ricrittografato ...\n</entry>
@@ -1631,19 +1631,21 @@
     <entry lang="it" key="EXPANDER_MOUNTING_VOLUME">Montaggio del volume ...\n</entry>
     <entry lang="it" key="EXPANDER_UNMOUNTING_VOLUME">Smontaggio del volume ...\n</entry>
     <entry lang="it" key="EXPANDER_EXTENDING_FILESYSTEM">Estensione del file system ...\n</entry>
-    <entry lang="it" key="PARTIAL_SYSENC_MOUNT_READONLY">Avviso: La partizione di sistema che hai tentato di montare non è stata completamente crittografata. Come misura di sicurezza per prevenire potenziali corruzioni o modifiche indesiderate, il volume '%s' è stato montato come di sola lettura.</entry>
+    <entry lang="it" key="PARTIAL_SYSENC_MOUNT_READONLY">Avviso: La partizione di sistema che hai tentato di montare non è stata completamente crittografata. Come misura di sicurezza per prevenire possibili danneggiamenti o modifiche indesiderate, il volume '%s' è stato montato come di sola lettura.</entry>
     <entry lang="it" key="IDC_LINK_KEYFILES_EXTENSIONS_WARNING">Informazioni importanti sull'uso delle estensioni di file di terze parti</entry>
     <entry lang="it" key="IDC_DISABLE_MEMORY_PROTECTION">Disabilita la protezione della memoria per la compatibilità con gli strumenti di accessibilità</entry>
-    <entry lang="it" key="DISABLE_MEMORY_PROTECTION_WARNING">ATTENZIONE: Disabilitare la protezione della memoria riduce significativamente la sicurezza. Abilita questa opzione SOLO se fai affidamento su strumenti di accessibilità, come Screen Readers, per interagire con l'interfaccia utente di VeraCrypt.</entry>
+    <entry lang="it" key="DISABLE_MEMORY_PROTECTION_WARNING">ATTENZIONE: Disabilitare la protezione della memoria riduce significativamente la sicurezza. Attiva questa opzione SOLO se fai affidamento su strumenti di accessibilità, come Screen Readers, per interagire con l'interfaccia utente di VeraCrypt.</entry>
     <entry lang="it" key="LINUX_LANGUAGE">Lingua</entry>
     <entry lang="it" key="LINUX_SELECT_SYS_DEFAULT_LANG">Seleziona la lingua predefinita del sistema</entry>
     <entry lang="it" key="LINUX_RESTART_FOR_LANGUAGE_CHANGE">Perché il cambio di lingua abbia effetto, VeraCrypt deve essere riavviato.</entry>
-    <entry lang="it" key="ERR_XTS_MASTERKEY_VULNERABLE">ATTENZIONE: La chiave master del volume è vulnerabile a un attacco che compromette la sicurezza dei dati.\n\nSi prega di creare un nuovo volume e trasferire i dati in esso.</entry>
-    <entry lang="it" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">ATTENZIONE: La chiave master del sistema crittografato è vulnerabile a un attacco che compromette la sicurezza dei dati.\nSi prega di decrittografare la partizione/unità di sistema e poi ricrittografarla.</entry>
+    <entry lang="it" key="ERR_XTS_MASTERKEY_VULNERABLE">ATTENZIONE: La chiave master del volume è vulnerabile a un attacco che compromette la sicurezza dei dati.\n\nSi consiglia di creare un nuovo volume e trasferirvi i dati.</entry>
+    <entry lang="it" key="ERR_SYSENC_XTS_MASTERKEY_VULNERABLE">ATTENZIONE: La chiave master del sistema crittografato è vulnerabile a un attacco che compromette la sicurezza dei dati.\nSi prega di decrittografare la partizione/unità di sistema e quindi crittografarla nuovamente.</entry>
     <entry lang="it" key="ERR_XTS_MASTERKEY_VULNERABLE_SHORT">ATTENZIONE: La chiave master del volume ha una vulnerabilità di sicurezza.</entry>
-    <entry lang="it" key="MOUNTPOINT_BLOCKED">ERRORE: Il punto di montaggio del volume è bloccato perché sovrascrive una directory di sistema protetta.\n\nSi prega di scegliere un punto di montaggio diverso.</entry>
-    <entry lang="it" key="MOUNTPOINT_NOTALLOWED">ERRORE: Il punto di montaggio del volume non è consentito perché sovrascrive una directory che fa parte della variabile d'ambiente PATH.\n\nSi prega di scegliere un punto di montaggio diverso.</entry>
+    <entry lang="it" key="MOUNTPOINT_BLOCKED">ERRORE: Il punto di montaggio del volume è bloccato perché sovrascrive una directory di sistema protetta.\n\nScegli un punto di montaggio diverso.</entry>
+    <entry lang="it" key="MOUNTPOINT_NOTALLOWED">ERRORE: Il punto di montaggio del volume non è consentito perché sovrascrive una directory che fa parte della variabile d'ambiente PATH.\n\nScegli un punto di montaggio diverso.</entry>
     <entry lang="it" key="INSECURE_MODE">[MODALITÀ NON SICURA]</entry>
+    <entry lang="it" key="IDC_DISABLE_SCREEN_PROTECTION">Disabilita la protezione contro screenshot e registrazione dello schermo</entry>
+    <entry lang="it" key="DISABLE_SCREEN_PROTECTION_WARNING">ATTENZIONE: Disabilitare la protezione dello schermo riduce significativamente la sicurezza. Attiva questa opzione SOLO se hai una necessità specifica di acquisire l’interfaccia di VeraCrypt. Questo potrebbe esporre dati sensibili a strumenti di cattura schermo e a funzionalità di registrazione come Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="es" name="Español" en-name="Spanish" version="1.0.0" translators="Juan Antonio Auñón Ochando" />
     <font lang="es" class="normal" size="11" face="default" />
     <font lang="es" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="es" key="TC_INSTALLER_IS_RUNNING">El Instalador de VeraCrypt ya se está ejecutando en este sistema y está preparando o llevando a cabo la instalación o actualización de VeraCrypt. Antes de continuar, espere a que termine o ciérrelo. Si no puede cerrarlo, reinicie su ordenador antes de continuar.</entry>
     <entry lang="es" key="INSTALL_FAILED">La Instalación falló.</entry>
     <entry lang="es" key="UNINSTALL_FAILED">La Desinstalación falló.</entry>
-    <entry lang="es" key="DIST_PACKAGE_CORRUPTED">Este paquete de distribución está dañado. Intente descargarlo nuevamente (preferentemente desde la página oficial de VeraCrypt en https://www.veracrypt.fr).</entry>
+    <entry lang="es" key="DIST_PACKAGE_CORRUPTED">Este paquete de distribución está dañado. Intente descargarlo nuevamente (preferentemente desde la página oficial de VeraCrypt en https://veracrypt.jp).</entry>
     <entry lang="es" key="CANNOT_WRITE_FILE_X">No se puede escribir el archivo %s</entry>
     <entry lang="es" key="EXTRACTING_VERB">Extrayendo</entry>
     <entry lang="es" key="CANNOT_READ_FROM_PACKAGE">No se puede leer información del paquete.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="es" key="HIDDEN_OS_CREATION_PREINFO_HELP">En los siguientes pasos, VeraCrypt creará el sistema operativo oculto copiando el contenido de la partición del sistema al volumen oculto (los datos que se copien serán cifrados al vuelo con una clave de cifrado diferente de la que se usará para el sistema operativo señuelo).\n\nTenga en cuenta que el proceso se realizará en el entorno de pre-arranque (antes del inicio de Windows) y puede tardar mucho en completarse; varias horas o incluso días (dependiendo del tamaño de la partición del sistema y del rendimiento de su ordenador).\n\nPodrá interrumpir el proceso, apagar su ordenador, iniciar el sistema operativo y luego continuar el proceso. No obstante, si lo interrumpe, el proceso de copiado tendrá que comenzar desde el principio (porque el contenido de la partición del sistema no debe cambiar durante la clonación).</entry>
     <entry lang="es" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">¿Desea cancelar el proceso entero de creación del sistema operativo oculto?\n\nNota: NO podrá continuar el proceso más tarde si lo cancela ahora.</entry>
     <entry lang="es" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">¿Desea cancelar la prueba del cifrado del sistema?</entry>
-    <entry lang="es" key="BOOT_PRETEST_FAILED_RETRY">Ha fallado la prueba del cifrado del sistema VeraCrypt. ¿Desea intentarlo de nuevo?\n\nSi selecciona 'No', el componente de autenticación de pre-arranque será desinstalado.\n\nNotas:\n\n- Si el Cargador de Arranque VeraCrypt no le pidió que introdujera la contraseña antes de que Windows se iniciara, es posible que su sistema operativo no arranque desde la unidad en la que está instalado. Esto no está soportado.\n\n- Si usó un algoritmo de cifrado distinto a AES y la prueba falló (e introdujo la contraseña), la causa puede ser un controlador diseñado inapropiadamente. Seleccione 'No', y trate de cifrar la partición/unidad del sistema otra vez, pero use el algoritmo de cifrado AES (que tiene los requisitos de memoria más bajos).\n\n- Para más causas y soluciones posibles, vea https://www.veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="es" key="BOOT_PRETEST_FAILED_RETRY">Ha fallado la prueba del cifrado del sistema VeraCrypt. ¿Desea intentarlo de nuevo?\n\nSi selecciona 'No', el componente de autenticación de pre-arranque será desinstalado.\n\nNotas:\n\n- Si el Cargador de Arranque VeraCrypt no le pidió que introdujera la contraseña antes de que Windows se iniciara, es posible que su sistema operativo no arranque desde la unidad en la que está instalado. Esto no está soportado.\n\n- Si usó un algoritmo de cifrado distinto a AES y la prueba falló (e introdujo la contraseña), la causa puede ser un controlador diseñado inapropiadamente. Seleccione 'No', y trate de cifrar la partición/unidad del sistema otra vez, pero use el algoritmo de cifrado AES (que tiene los requisitos de memoria más bajos).\n\n- Para más causas y soluciones posibles, vea https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="es" key="SYS_DRIVE_NOT_ENCRYPTED">La partición/unidad del sistema no parece estar cifrada (ni parcial ni completamente).</entry>
     <entry lang="es" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Su partición/unidad del sistema está cifrada (parcial o completamente).\n\nDescifre por completo su partición/unidad del sistema antes de continuar. Para ello, seleccione 'Sistema' &gt; 'Descifrar Permanentemente la Partición/Unidad del Sistema' desde el menú de la ventana principal de VeraCrypt.</entry>
     <entry lang="es" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Si la partición/unidad del sistema está cifrada (parcial o completamente), no puede usar una versión anterior de VeraCrypt (pero puede actualizarlo o reinstalar la misma versión).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="es" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Error: La unidad utiliza un tamaño de sector diferente a 512 bytes.\n\nDebido a las limitaciones de los componentes disponibles en su plataforma, los volúmenes alojados en particiones/dispositivos no se pueden crear/utilizar en la unidad.\n\nPosibles soluciones:\n- Cree un volumen alojado en un archivo (contenedor) en la unidad.\n- Utilice una unidad con sectores de 512 bytes.\n- Utilice VeraCrypt en otra plataforma.</entry>
     <entry lang="es" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">El archivo/dispositivo anfitrión ya está en uso.</entry>
     <entry lang="es" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Ranura de volumen no disponible.</entry>
-    <entry lang="es" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt requiere OSXFUSE 2.5 o superior.</entry>
+    <entry lang="es" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt requiere macFUSE 2.5 o superior.</entry>
     <entry lang="es" key="EXCEPTION_OCCURRED">Se produjo una excepción</entry>
     <entry lang="es" key="ENTER_PASSWORD">Introducir contraseña</entry>
     <entry lang="es" key="ENTER_TC_VOL_PASSWORD">Introducir contraseña de volumen VeraCrypt</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="es" key="MOUNTPOINT_BLOCKED">ERROR: El punto de montaje del volumen está bloqueado porque sobrescribe un directorio protegido del sistema.\n\nElija un punto de montaje diferente.</entry>
     <entry lang="es" key="MOUNTPOINT_NOTALLOWED">ERROR: No se permite el punto de montaje del volumen porque sobrescribe un directorio que forma parte de la ruta PATH.\n\nElija un punto de montaje diferente.</entry>
     <entry lang="es" key="INSECURE_MODE">[MODO INSEGURO]</entry>
+    <entry lang="es" key="IDC_DISABLE_SCREEN_PROTECTION">Deshabilitar la protección contra capturas de pantalla y grabación de pantalla</entry>
+    <entry lang="es" key="DISABLE_SCREEN_PROTECTION_WARNING">ADVERTENCIA: Deshabilitar la protección de pantalla reduce significativamente la seguridad. Habilite esta opción SOLO si necesita capturar la interfaz de VeraCrypt por un motivo específico. Esto puede exponer datos sensibles a herramientas de captura de pantalla y funciones de grabación de pantalla, como Windows 11 Recall.</entry>
 </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

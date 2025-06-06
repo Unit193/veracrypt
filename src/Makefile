@@ -4,7 +4,7 @@
 # by the TrueCrypt License 3.0.
 #
 # Modifications and additions to the original source code (contained in this file)
-# and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+# and all other portions of this file are Copyright (c) 2025 AM Crypto
 # and are governed by the Apache License 2.0 the full text of which is
 # contained in the file License.txt included in VeraCrypt binary and source
 # code distribution packages.
@@ -320,6 +320,7 @@ $(error Specified SDK version was not found, ensure your active developer direct
 	CC := gcc
 	CXX := g++
 
+	GCC_GTEQ_440 := 1
 	GCC_GTEQ_430 := 1
 	GCC_GTEQ_500 := 1
 
@@ -429,6 +430,7 @@ ifeq "$(shell uname -s)" "FreeBSD"
 	CC := cc
 	CXX := c++
 
+	GCC_GTEQ_440 := 1
 	GCC_GTEQ_430 := 1
 	GCC_GTEQ_500 := 1
 	
@@ -492,6 +494,7 @@ ifeq "$(shell uname -s)" "OpenBSD"
 	CC := cc
 	CXX := c++
 
+	GCC_GTEQ_440 := 1
 	GCC_GTEQ_430 := 1
 	GCC_GTEQ_500 := 1
 
@@ -601,6 +604,9 @@ install:
 
 package:
 	$(MAKE) -C Main -f Main.make NAME=Main package
+
+appimage:
+	$(MAKE) -C Main -f Main.make NAME=Main appimage
 
 #------ wxWidgets build ------
 

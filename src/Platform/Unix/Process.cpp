@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -263,4 +263,36 @@ namespace VeraCrypt
 
 		return strOutput;
 	}
+
+#if defined(TC_LINUX)
+	bool Process::IsRunningUnderAppImage (const string &executablePath)
+	{
+		if (executablePath.empty())
+			return false;
+
+		// AppImage detection logic:
+		// Check that APPIMAGE and APPDIR environment variables are set
+		// Check that the executable path starts with APPDIR
+		// Check that APPDIR itself starts with the expected AppImage mount prefix
+		const char* appImageEnv = getenv("APPIMAGE");
+		const char* appDirEnv = getenv("APPDIR");
+
+		if (appImageEnv && appDirEnv)
+		{
+			string appDirString = appDirEnv;
+			string appImageFileString = appImageEnv;
+			const string appImageMountPrefix1 = "/tmp/.mount_Veracr";
+			const string appImageMountPrefix2 = "/tmp/.mount_VeraCr";
+
+			if (!appDirString.empty() &&
+				executablePath.rfind(appDirString, 0) == 0 &&
+				(appDirString.rfind(appImageMountPrefix1, 0) == 0 || appDirString.rfind(appImageMountPrefix2, 0) == 0))
+			{
+				// All conditions met, this is the AppImage scenario.
+				return true;
+			}
+		}
+		return false;
+	}
+#endif
 }

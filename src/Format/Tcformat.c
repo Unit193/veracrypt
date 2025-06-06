@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -2504,6 +2504,7 @@ static void UpdateWipeControls (void)
 
 static void __cdecl sysEncDriveAnalysisThread (void *hwndDlgArg)
 {
+	ScreenCaptureBlocker blocker;
 	// Mark the detection process as 'in progress'
 	HiddenSectorDetectionStatus = 1;
 	SaveSettings (NULL);
@@ -2548,6 +2549,7 @@ static void __cdecl volTransformThreadFunction (void *hwndDlgArg)
 	BOOL bHidden;
 	HWND hwndDlg = (HWND) hwndDlgArg;
 	volatile FORMAT_VOL_PARAMETERS *volParams = (FORMAT_VOL_PARAMETERS *) malloc (sizeof(FORMAT_VOL_PARAMETERS));
+	ScreenCaptureBlocker blocker;
 
 	if (volParams == NULL)
 		AbortProcess ("ERR_MEM_ALLOC");
@@ -6162,6 +6164,10 @@ BOOL CALLBACK PageDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		}
 
 		return 0;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -9076,6 +9082,10 @@ ovf_end:
 		PostMessage (hwndDlg, TC_APPMSG_FORMAT_USER_QUIT, 0, 0);
 		return 1;
 
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
+
 	case WM_NCDESTROY:
 		{
 			hPasswordInputField = NULL;
@@ -10565,6 +10575,7 @@ static void AfterWMInitTasks (HWND hwndDlg)
 int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpszCommandLine, int nCmdShow)
 {
 	int status;
+	ScreenCaptureBlocker blocker;
 	atexit (localcleanup);
 
 	VirtualLock (&volumePassword, sizeof(volumePassword));

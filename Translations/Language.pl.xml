@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="pl" name="Polski" en-name="Polish" version="1.0.0" translators="Mirek Druchowicz, Janusz Zamecki, Sobiesław Antolak, Begina Felicysym" />
     <font lang="pl" class="normal" size="11" face="default" />
     <font lang="pl" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="pl" key="TC_INSTALLER_IS_RUNNING">VeraCrypt Installer jest uruchomiony w twoim systemie i przygotowuje lub dokonuje instalacji lub uaktualnienia VeraCrypt. Przed dalszym kontynuowaniem instalacji, proszę poczekać na zakończenie aktualnego działania lub zamknij aplikacje. Jeżeli nie możesz zamknąć, proszę zrestartuj komputer przed uruchomieniem procesu instalacji.</entry>
     <entry lang="pl" key="INSTALL_FAILED">Niepowodzenie instalacji.</entry>
     <entry lang="pl" key="UNINSTALL_FAILED">Niepowodzenie dezinstalacji.</entry>
-    <entry lang="pl" key="DIST_PACKAGE_CORRUPTED">Pakiet dystrybucyjny jest uszkodzony. Pobierz go ponownie (najlepiej z oficjalnej strony programu VeraCrypt po adresem https://www.veracrypt.fr).</entry>
+    <entry lang="pl" key="DIST_PACKAGE_CORRUPTED">Pakiet dystrybucyjny jest uszkodzony. Pobierz go ponownie (najlepiej z oficjalnej strony programu VeraCrypt po adresem https://veracrypt.jp).</entry>
     <entry lang="pl" key="CANNOT_WRITE_FILE_X">Nie można zapisać pliku %s</entry>
     <entry lang="pl" key="EXTRACTING_VERB">Wyodrębnianie</entry>
     <entry lang="pl" key="CANNOT_READ_FROM_PACKAGE">Nie można odczytać danych z tego pakietu.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="pl" key="HIDDEN_OS_CREATION_PREINFO_HELP">W następnym kroku, VeraCrypt będzie tworzył ukryty system operacyjny przez skopiowanie zawartości partycji systemowej do ukrytego wolumenu (kopiowane dane zostaną zaszyfrowane "w locie" z innym kluczem niż został użyty w zwodzącym systemie operacyjnym).\n\nProszę pamiętać, że proces zacznie się od rozruchu wstępnego i może zabrać dość dużo czasu aż skończy; od kilu godzin lub nieraz kliku dni (w zależności od wielkości partycji systemowej i wydajności twojego komputera).\n\nMożesz przerwać proces, wyłączając komputer, a proces wznowi się, gdy włączysz go ponownie. Jednakże, jeżeli przerwiesz proces, cały proces kopiowania zacznie się od początku (ponieważ zawartość systemowej partycji nie może ulec zmianie podczas klonowania).</entry>
     <entry lang="pl" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Czy chcesz anulować cały proces tworzenia ukrytego systemu operacyjnego?\n\nInfo: Nie będziesz mógł wznowić procesu jeżeli go anulujesz teraz.</entry>
     <entry lang="pl" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Chcesz anulować test szyfrowania systemu?</entry>
-    <entry lang="pl" key="BOOT_PRETEST_FAILED_RETRY">Test szyfrowania systemu przez program VeraCrypt nie powiódł się. Czy chcesz spróbować jeszcze raz?\n\nJeśli wybierzesz 'Nie', komponent odpowiedzialny za uwierzytelnienie przed uruchomieniem zostanie odinstalowany.\n\nUwagi: \n\n- Jeśli program startowy VeraCrypt nie pytał o hasło przed uruchomieniem systemu Windows, jest możliwe, że system operacyjny nie startuje z dysku, na którym jest zainstalowany. \n\n- Jeśli używasz algorytmu szyfrującego innego niż AES i test się nie powiódł (po wpisaniu hasła), mogło to być spowodowane przez niepoprawnie przydzielony sterownik. Wybierz 'Nie' i spróbuj zaszyfrować ponownie partycję lub dysk systemowy, jednak przy użyciu algorytmu szyfrowania AES (który ma najmniejsze wymagania co do pamięci).\n\n- Więcej możliwych powodów i rozwiązań na stronie https://www.veracrypt.fr/en/Troubleshooting.html (w języku angielskim).</entry>
+    <entry lang="pl" key="BOOT_PRETEST_FAILED_RETRY">Test szyfrowania systemu przez program VeraCrypt nie powiódł się. Czy chcesz spróbować jeszcze raz?\n\nJeśli wybierzesz 'Nie', komponent odpowiedzialny za uwierzytelnienie przed uruchomieniem zostanie odinstalowany.\n\nUwagi: \n\n- Jeśli program startowy VeraCrypt nie pytał o hasło przed uruchomieniem systemu Windows, jest możliwe, że system operacyjny nie startuje z dysku, na którym jest zainstalowany. \n\n- Jeśli używasz algorytmu szyfrującego innego niż AES i test się nie powiódł (po wpisaniu hasła), mogło to być spowodowane przez niepoprawnie przydzielony sterownik. Wybierz 'Nie' i spróbuj zaszyfrować ponownie partycję lub dysk systemowy, jednak przy użyciu algorytmu szyfrowania AES (który ma najmniejsze wymagania co do pamięci).\n\n- Więcej możliwych powodów i rozwiązań na stronie https://veracrypt.jp/en/Troubleshooting.html (w języku angielskim).</entry>
     <entry lang="pl" key="SYS_DRIVE_NOT_ENCRYPTED">Partycja/dysk systemowy nie jest zaszyfrowany (ani częściowo, ani w pełni).</entry>
     <entry lang="pl" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Partycja/dysk systemowy jest zaszyfrowany (częściowo lub całkowicie).\n\nOdszyfruj partycję lub dysk systemowy przed kontynuowaniem. W tym celu wybierz opcję 'System' &gt; 'Trwale odszyfruj partycję lub dysk systemowy' w menu głównym programu VeraCrypt.</entry>
     <entry lang="pl" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Kiedy systemowa partycja/dysk jest zaszyfrowany (częściowo lub całkowicie), nie możesz wykonać instalacji wcześniejszej wersji VeraCrypt (ale możesz zrobić aktualizacji lub reinstalację tej samej wersji).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="pl" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Błąd: Dysk używa rozmiaru sektora innego niż 512 bajty.\n\nZe względu na ograniczenia komponentów dostępnych na Twojej platformie wolumeny oparte na partycjach/urządzeniu nie mogą być tworzone/używane na dysku.\n\nMożliwe rozwiązania:\n- Utwórz na dysku wolumen (kontener) oparty na pliku.\n- Użyj dysku z sektorami 512-bajtowymi.\n- Użyj VeraCrypt na innej platformie.</entry>
     <entry lang="pl" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Plik/urządzenie hosta jest już używane.</entry>
     <entry lang="pl" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Miejsce na wolumen jest niedostępne.</entry>
-    <entry lang="pl" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt wymaga OSXFUSE w wersji 2.5 lub nowszego.</entry>
+    <entry lang="pl" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt wymaga macFUSE w wersji 2.5 lub nowszego.</entry>
     <entry lang="pl" key="EXCEPTION_OCCURRED">Wystąpił wyjątek.</entry>
     <entry lang="pl" key="ENTER_PASSWORD">Wprowadź hasło</entry>
     <entry lang="pl" key="ENTER_TC_VOL_PASSWORD">Wprowadź hasło wolumenu VeraCrypt</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="pl" key="MOUNTPOINT_BLOCKED">BŁĄD: Punkt podłączania wolumenu jest zablokowany, ponieważ nadpisuje chroniony katalog systemowy.\n\nWybierz inny punkt podłączania.</entry>
     <entry lang="pl" key="MOUNTPOINT_NOTALLOWED">BŁĄD: Punkt podłączania wolumenu nie jest dozwolony, ponieważ nadpisuje katalog, który jest częścią zmiennej środowiskowej PATH.\n\nWybierz inny punkt podłączania.</entry>
     <entry lang="pl" key="INSECURE_MODE">[TRYB NIEBEZPIECZNY]</entry>
+    <entry lang="pl" key="IDC_DISABLE_SCREEN_PROTECTION">Wyłącz ochronę przed zrzutami ekranu i nagrywaniem ekranu</entry>
+    <entry lang="pl" key="DISABLE_SCREEN_PROTECTION_WARNING">OSTRZEŻENIE: Wyłączenie ochrony ekranu znacząco obniża poziom bezpieczeństwa. Włącz tę opcję TYLKO wtedy, gdy musisz przechwycić interfejs VeraCrypt. Może to narazić wrażliwe dane na dostęp narzędzi do zrzutów ekranu i funkcji nagrywania ekranu, takich jak Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

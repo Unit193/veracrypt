@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8' standalone='no'?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="tr" name="Türkçe" en-name="Turkish" version="1.26.20" translators="FabSec; By Fabriel, Ali İskender Turan, Zeynel Abidin Öztürk, Mehmet Keçeci, Kaya Zeren" />
     <font lang="tr" class="normal" size="11" face="default" />
     <font lang="tr" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="tr" key="TC_INSTALLER_IS_RUNNING">VeraCrypt kurucu şu anda bu sistemde çalışıyor ve VeraCrypt kurulumu ya da güncellemesi işlemlerini yapıyor ya da hazırlıyor. İlerlemeden önce lütfen işlemin tamamlanmasını bekleyin ya da kapatın. Uygulamayı kapatamıyorsanız, ilerlemeden önce lütfen bilgisayarınızı yeniden başlatın.</entry>
     <entry lang="tr" key="INSTALL_FAILED">Kurulamadı.</entry>
     <entry lang="tr" key="UNINSTALL_FAILED">Kaldırılamadı.</entry>
-    <entry lang="tr" key="DIST_PACKAGE_CORRUPTED">Dağıtım paketi bozulmuş. Lütfen yeniden indirmeyi deneyin (https://www.veracrypt.fr resmi VeraCrypt sitesini yeğleyin).</entry>
+    <entry lang="tr" key="DIST_PACKAGE_CORRUPTED">Dağıtım paketi bozulmuş. Lütfen yeniden indirmeyi deneyin (https://veracrypt.jp resmi VeraCrypt sitesini yeğleyin).</entry>
     <entry lang="tr" key="CANNOT_WRITE_FILE_X">%s dosyasına yazılamadı</entry>
     <entry lang="tr" key="EXTRACTING_VERB">Ayıklanıyor</entry>
     <entry lang="tr" key="CANNOT_READ_FROM_PACKAGE">Paketten veriler okunamadı.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="tr" key="HIDDEN_OS_CREATION_PREINFO_HELP">Sonraki adımlarda VeraCrypt, sistem bölümünün içeriğini gizli birime kopyalayarak gizli işletim sistemini oluşturacak (kopyalanan veriler, sahte işletim sistemi için kullanılacak olandan farklı bir şifreleme anahtarıyla anında şifrelenecek).\n\nİşlemin başlatma öncesi ortamda (Windows başlamadan önce) gerçekleştirileceğini ve tamamlanmasının uzun sürebileceğini lütfen unutmayın (bilgisayarınızın başarımına ve sistem bölümünün boyutuna bağlı olarak birkaç saat ya da birkaç gün).\n\nİşlemi yarıda kesebilir, bilgisayarınızı kapatabilir, işletim sistemini başlatabilir ve ardından işlemi sürdürebilirsiniz. Ancak işlemi yarıda keserseniz, sistemin tüm kopyalama sürecine en baştan başlaması gerekir (çünkü sistem bölümünün içeriğinin kopyalama sırasında değişmemesi gerekir).</entry>
     <entry lang="tr" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Gizli işletim sisteminin oluşturulma sürecini tümüyle iptal etmek istiyor musunuz?\n\nNot: Şimdi iptal ederseniz işlemi sürdüremeyeceksiniz.</entry>
     <entry lang="tr" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Sistem şifrelemesi için ön sınamayı iptal etmek istiyor musunuz?</entry>
-    <entry lang="tr" key="BOOT_PRETEST_FAILED_RETRY">VeraCrypt sistem şifreleme ön sınaması başarısız oldu. Yeniden denemek ister misiniz?\n\n'Hayır' üzerine tıklarsanız, başlatma öncesi kimlik doğrulama bileşeni kaldırılır.\n\nNotlar:\n\n- VeraCrypt başlatma yükleyicisi Windows başlamadan önce sizden parolayı yazmanızı istemediyse, işletim sisteminiz kurulu olduğu sürücüden başlatılamayabilir. Bu durum desteklenmiyor.\n\n- AES dışında bir şifreleme algoritması kullandıysanız ve ön sınama başarısız olduysa (ve parolayı yazdıysanız), bunun nedeni uygun olmayan şekilde tasarlanmış bir sürücü olabilir. 'Hayır' üzerine tıklayın ve sistem bölümünü ya da sürücüsünü yeniden şifrelemeyi deneyin, ancak (en düşük bellek gereksinimleri olan) AES şifreleme algoritmasını kullanın.\n\n- Diğer olası nedenler ve çözümleri için şu adrese bakabilirsiniz: https://www.veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="tr" key="BOOT_PRETEST_FAILED_RETRY">VeraCrypt sistem şifreleme ön sınaması başarısız oldu. Yeniden denemek ister misiniz?\n\n'Hayır' üzerine tıklarsanız, başlatma öncesi kimlik doğrulama bileşeni kaldırılır.\n\nNotlar:\n\n- VeraCrypt başlatma yükleyicisi Windows başlamadan önce sizden parolayı yazmanızı istemediyse, işletim sisteminiz kurulu olduğu sürücüden başlatılamayabilir. Bu durum desteklenmiyor.\n\n- AES dışında bir şifreleme algoritması kullandıysanız ve ön sınama başarısız olduysa (ve parolayı yazdıysanız), bunun nedeni uygun olmayan şekilde tasarlanmış bir sürücü olabilir. 'Hayır' üzerine tıklayın ve sistem bölümünü ya da sürücüsünü yeniden şifrelemeyi deneyin, ancak (en düşük bellek gereksinimleri olan) AES şifreleme algoritmasını kullanın.\n\n- Diğer olası nedenler ve çözümleri için şu adrese bakabilirsiniz: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="tr" key="SYS_DRIVE_NOT_ENCRYPTED">Sistem bölümü/sürücüsü şifrelenmiş gibi görünmüyor (bir bölümü ya da tümü).</entry>
     <entry lang="tr" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Sistem bölümünüz ya da sürücünüz şifrelendi (bir bölümü ya da tümü).\n\nİlerlemeden önce lütfen sistem bölümünüzün ya da sürücünüzün şifresini tamamen çözün. Bunu yapmak için, VeraCrypt ana penceresindeki menüden 'Sistem' &gt; 'Sistem bölümünün/sürücüsünün şifresini kalıcı olarak çöz' üzerine tıklayın.</entry>
     <entry lang="tr" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Sistem bölümü ya da sürücüsü şifrelendiğinde (bir bölümü ya da tümü), VeraCrypt sürümünü düşüremezsiniz (ancak yükseltebilir ya da aynı sürümü yeniden kurabilirsiniz).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="tr" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Hata: Sürücü 512 bayt değerinden farklı bir kesim boyutu kullanıyor.\n\nPlatformunuzda bulunan bileşenlerin sınırlamaları nedeniyle, bölüm ya da aygıt üzerinde barındırılan birimler sürücüde oluşturulamaz ya da kullanılamaz.\n\nOlası çözümler:\n- Sürücüde dosya üzerinde barındırılan bir birim (kapsayıcı) oluşturun.\n- 512 baytlık kesimleri olan bir sürücü kullanın.\n- VeraCrypt uygulamasını başka bir platformda kullanın.</entry>
     <entry lang="tr" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Barındırılan dosya ya da aygıt zaten kullanılıyor.</entry>
     <entry lang="tr" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Birim konumu kullanılamıyor.</entry>
-    <entry lang="tr" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt için OSXFUSE 2.5 ya da üzeri gereklidir.</entry>
+    <entry lang="tr" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt için macFUSE 2.5 ya da üzeri gereklidir.</entry>
     <entry lang="tr" key="EXCEPTION_OCCURRED">Sorun çıktı</entry>
     <entry lang="tr" key="ENTER_PASSWORD">Parolayı yazın</entry>
     <entry lang="tr" key="ENTER_TC_VOL_PASSWORD">VeraCrypt biriminin parolasını yazın</entry>
@@ -1623,7 +1623,7 @@
     <entry lang="tr" key="EMV_KEYFILE_DATA_NOTFOUND">EMV kartı verilerinden anahtar dosyası oluşturulamadı.\n\nŞunlardan biri eksik:\n- ICC herkese açık anahtar sertifikası.\n- Yayıncının herkese açık anahtar sertifikası.\n- CPLC verileri.</entry>
     <entry lang="tr" key="SCARD_W_REMOVED_CARD">Okuyucuda bir kart yok.\n\nLütfen kartın doğru şekilde yerleştirildiğinden emin olun.</entry>
     <entry lang="tr" key="FORMAT_EXTERNAL_FAILED">Windows format.com komutu, birimi NTFS/exFAT/ReFS olarak biçimlendiremedi: Hata kodu: 0x%.8X.\n\nWindows FormatEx API uygulamasını kullanmaya geri dönülüyor.</entry>
-    <entry lang="en" key="FORMATEX_API_FAILED">Windows FormatEx API uygulaması birimi NTFS/exFAT/ReFS olarak biçimlendiremedi.\n\nHata durumu = %s.</entry>
+    <entry lang="tr" key="FORMATEX_API_FAILED">Windows FormatEx API uygulaması birimi NTFS/exFAT/ReFS olarak biçimlendiremedi.\n\nHata durumu = %s.</entry>
     <entry lang="tr" key="EXPANDER_WRITING_RANDOM_DATA">Yeni alana rastgele veriler yazılıyor...\n</entry>
     <entry lang="tr" key="EXPANDER_WRITING_ENCRYPTED_BACKUP">Yeniden şifrelenmiş yedek üst bilgiler yazılıyor...\n</entry>
     <entry lang="tr" key="EXPANDER_WRITING_ENCRYPTED_PRIMARY">Yeniden şifrelenmiş birincil üst bilgiler yazılıyor...\n</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="tr" key="MOUNTPOINT_BLOCKED">HATA: Birim bağlama noktası, korunan bir sistem dizinini geçersiz kıldığı için engellendi.\n\nLütfen farklı bir bağlama noktası seçin.</entry>
     <entry lang="tr" key="MOUNTPOINT_NOTALLOWED">HATA: Birim bağlama noktası, PATH ortam değişkeninin bir parçası olan bir dizini geçersiz kıldığı için izin verilmiyor.\n\nLütfen farklı bir bağlama noktası seçin.</entry>
     <entry lang="tr" key="INSECURE_MODE">[GÜVENSİZ MOD]</entry>
+    <entry lang="tr" key="IDC_DISABLE_SCREEN_PROTECTION">Ekran görüntüsü ve ekran kaydına karşı korumayı devre dışı bırak</entry>
+    <entry lang="tr" key="DISABLE_SCREEN_PROTECTION_WARNING">UYARI: Ekran korumasını devre dışı bırakmak güvenliği önemli ölçüde azaltır. Bu seçeneği YALNIZCA VeraCrypt arayüzünü yakalamak için özel bir ihtiyacınız varsa etkinleştirin. Bu işlem, hassas verilerin ekran görüntüsü araçları ve Windows 11 Recall gibi ekran kaydı özelliklerine maruz kalmasına neden olabilir.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

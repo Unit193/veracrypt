@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="sv" name="Svenska" en-name="Swedish" version="1.0.0" translators="Peter Runesson" />
     <font lang="sv" class="normal" size="11" face="default" />
     <font lang="sv" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="sv" key="TC_INSTALLER_IS_RUNNING">VeraCrypts installationsprogram körs för närvarande på detta system och utför eller förbereder installation eller uppdatering av VeraCrypt. Innan du fortsätter, vänta tills den är klar eller stäng den. Om du inte kan stänga den, starta om datorn innan du fortsätter.</entry>
     <entry lang="sv" key="INSTALL_FAILED">Installationen misslyckades.</entry>
     <entry lang="sv" key="UNINSTALL_FAILED">Avinstallationen misslyckades.</entry>
-    <entry lang="sv" key="DIST_PACKAGE_CORRUPTED">Detta distributionspaket är skadat. Försök att hämta den igen (helst från den officiella VeraCrypt-webbplatsen på https://www.veracrypt.fr).</entry>
+    <entry lang="sv" key="DIST_PACKAGE_CORRUPTED">Detta distributionspaket är skadat. Försök att hämta den igen (helst från den officiella VeraCrypt-webbplatsen på https://veracrypt.jp).</entry>
     <entry lang="sv" key="CANNOT_WRITE_FILE_X">Det går inte att skriva filen %s</entry>
     <entry lang="sv" key="EXTRACTING_VERB">Extraherar</entry>
     <entry lang="sv" key="CANNOT_READ_FROM_PACKAGE">Kan inte läsa data från paketet.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="sv" key="HIDDEN_OS_CREATION_PREINFO_HELP">I nästa steg kommer VeraCrypt att skapa det dolda operativsystemet genom att kopiera innehållet i systempartitionen till den dolda volymen (data som kopieras kommer att krypteras i farten med en annan krypteringsnyckel än den som kommer att användas för skenoperativsystemetn\nObservera att processen kommer att utföras i miljön före start (innan Windows startar) och det kan ta lång tid att slutföra; flera timmar eller till och med flera dagar (beroende på storleken på systempartitionen och din dators prestanda).\n\nDu kommer att kunna avbryta processen, stänga av datorn, starta operativsystemet och sedan återuppta processen . Men om du avbryter det måste hela processen med att kopiera systemet börja från början (eftersom innehållet i systempartitionen inte får ändras under kloning).</entry>
     <entry lang="sv" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Vill du avbryta hela processen för att skapa det dolda operativsystemet?\n\nObs: Du kommer INTE att kunna återuppta processen om du avbryter den nu.</entry>
     <entry lang="sv" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Vill du avbryta förtestet av systemkrypteringen?</entry>
-    <entry lang="sv" key="BOOT_PRETEST_FAILED_RETRY">VeraCrypt-systemets krypteringsförtest misslyckades. Vill du försöka igen?\n\nOm du väljer "Nej", kommer autentiseringskomponenten före start avinstalleras.\n\nAnmärkningar:\n\n- Om VeraCrypt-startinläsaren inte bad dig att ange lösenordet innan Windows startade är det möjligt att ditt operativsystem inte startar från den enhet som det är installerat på. Detta stöds inte.\n\n- Om du använde en annan krypteringsalgoritm än AES och förtestet misslyckades (och du angav lösenordet), kan det ha orsakats av en olämpligt utformad drivrutin. Välj "Nej" och försök att kryptera systempartitionen/enheten igen, men använd AES-krypteringsalgoritmen (som har de lägsta minneskraven).\n\n- För fler möjliga orsaker och lösningar, se: https://www. veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="sv" key="BOOT_PRETEST_FAILED_RETRY">VeraCrypt-systemets krypteringsförtest misslyckades. Vill du försöka igen?\n\nOm du väljer "Nej", kommer autentiseringskomponenten före start avinstalleras.\n\nAnmärkningar:\n\n- Om VeraCrypt-startinläsaren inte bad dig att ange lösenordet innan Windows startade är det möjligt att ditt operativsystem inte startar från den enhet som det är installerat på. Detta stöds inte.\n\n- Om du använde en annan krypteringsalgoritm än AES och förtestet misslyckades (och du angav lösenordet), kan det ha orsakats av en olämpligt utformad drivrutin. Välj "Nej" och försök att kryptera systempartitionen/enheten igen, men använd AES-krypteringsalgoritmen (som har de lägsta minneskraven).\n\n- För fler möjliga orsaker och lösningar, se: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="sv" key="SYS_DRIVE_NOT_ENCRYPTED">Systempartitionen/enheten verkar inte vara krypterad (varken delvis eller helt).</entry>
     <entry lang="sv" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Din systempartition/enhet är krypterad (delvis eller helt).\n\nDekryptera din systempartition/enhet helt innan du fortsätter. För att göra det, välj "System" &gt; "Dekryptera systempartition/enhet permanent" från menyraden i huvudfönstret i VeraCrypt.</entry>
     <entry lang="sv" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">När systempartitionen/enheten är krypterad (delvis eller helt) kan du inte nedgradera VeraCrypt (men du kan uppgradera den eller installera om samma version).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="sv" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Fel: Enheten använder en annan sektorstorlek än 512 byte.\n\nPå grund av begränsningar av komponenter som är tillgängliga på din plattform kan partitions-/enhetsvärdade volymer inte skapas/användas på enheten.\n\nMöjliga lösningar:\n- Skapa en filvärdad volym (behållare) på enheten.\n- Använd en enhet med 512-byte sektorer.\n- Använd VeraCrypt på en annan plattform.</entry>
     <entry lang="sv" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Värdfilen/-enheten används redan.</entry>
     <entry lang="sv" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Volymplatsen är inte tillgänglig.</entry>
-    <entry lang="sv" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt kräver OSXFUSE 2.5 eller högre.</entry>
+    <entry lang="sv" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt kräver macFUSE 2.5 eller högre.</entry>
     <entry lang="sv" key="EXCEPTION_OCCURRED">Undantag inträffade</entry>
     <entry lang="sv" key="ENTER_PASSWORD">Ange lösenord</entry>
     <entry lang="sv" key="ENTER_TC_VOL_PASSWORD">Ange lösenord för VeraCrypt-volym</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="sv" key="MOUNTPOINT_BLOCKED">FEL: Volymens monteringspunkt är blockerad eftersom den skriver över en skyddad systemkatalog.\n\nVar god välj en annan monteringspunkt.</entry>
     <entry lang="sv" key="MOUNTPOINT_NOTALLOWED">FEL: Volymens monteringspunkt är inte tillåten eftersom den skriver över en katalog som är en del av miljövariabeln PATH.\n\nVar god välj en annan monteringspunkt.</entry>
     <entry lang="sv" key="INSECURE_MODE">[OSÄKERT]</entry>
+    <entry lang="sv" key="IDC_DISABLE_SCREEN_PROTECTION">Inaktivera skydd mot skärmdumpar och skärminspelning</entry>
+    <entry lang="sv" key="DISABLE_SCREEN_PROTECTION_WARNING">VARNING: Att inaktivera skärmskydd minskar säkerheten avsevärt. Aktivera det här alternativet ENDAST om du har ett specifikt behov av att fånga VeraCrypts gränssnitt. Detta kan exponera känslig information för skärmdumpsverktyg och skärminspelningsfunktioner, såsom Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

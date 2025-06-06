@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -59,7 +59,7 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define TC_APP_NAME						"VeraCrypt"
 
 // Version displayed to user 
-#define VERSION_STRING					"1.26.20"
+#define VERSION_STRING					"1.26.24"
 
 #ifdef VC_EFI_CUSTOM_MODE
 #define VERSION_STRING_SUFFIX			"-CustomEFI"
@@ -73,9 +73,9 @@ extern unsigned short _rotl16(unsigned short value, unsigned char shift);
 #define VERSION_NUM						0x0126
 
 // Release date
-#define TC_STR_RELEASE_DATE			L"February 3, 2025"
+#define TC_STR_RELEASE_DATE			L"May 30, 2025"
 #define TC_RELEASE_DATE_YEAR			2025
-#define TC_RELEASE_DATE_MONTH			 2
+#define TC_RELEASE_DATE_MONTH			 5
 
 #define BYTES_PER_KB                    1024LL
 #define BYTES_PER_MB                    1048576LL
@@ -405,12 +405,12 @@ void EraseMemory (void *memory, int size);
 #define TC_MAX_PATH		260	/* Includes the null terminator */
 #endif
 
-#define TC_STR_RELEASED_BY L"Released by IDRIX on " TC_STR_RELEASE_DATE
+#define TC_STR_RELEASED_BY L"Released by AM Crypto on " TC_STR_RELEASE_DATE
 
 #define MAX_URL_LENGTH	2084 /* Internet Explorer limit. Includes the terminating null character. */
 
-#define TC_HOMEPAGE L"https://www.idrix.fr/"
-#define TC_APPLINK L"https://www.veracrypt.fr"
+#define TC_HOMEPAGE L"https://amcrypto.jp"
+#define TC_APPLINK L"https://veracrypt.jp"
 
 enum
 {

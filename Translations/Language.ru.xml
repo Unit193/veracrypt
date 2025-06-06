@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
-    <language langid="ru" name="Русский" en-name="Russian" version="1.26.20" translators="Dmitry Yerokhin [erodim@mail.ru] (240826)" />
+  <localization prog-version= "1.26.24">
+    <language langid="ru" name="Русский" en-name="Russian" version="1.26.24" translators="Dmitry Yerokhin [erodim@mail.ru] (240826)" />
     <font lang="ru" class="normal" size="11" face="default" />
     <font lang="ru" class="bold" size="13" face="Arial" />
     <font lang="ru" class="fixed" size="12" face="Lucida Console" />
@@ -855,7 +855,7 @@
     <entry lang="ru" key="TC_INSTALLER_IS_RUNNING">В системе сейчас запущен установщик VeraCrypt. Он выполняет/готовит установку или обновление VeraCrypt. Дождитесь завершения работы или закройте его. Если закрыть установщик не получается, перезагрузите компьютер и лишь потом продолжайте.</entry>
     <entry lang="ru" key="INSTALL_FAILED">Установка не выполнена.</entry>
     <entry lang="ru" key="UNINSTALL_FAILED">Удаление не выполнено.</entry>
-    <entry lang="ru" key="DIST_PACKAGE_CORRUPTED">Этот дистрибутивный пакет повреждён. Загрузите его снова (желательно с официального сайта VeraCrypt - https://www.veracrypt.fr).</entry>
+    <entry lang="ru" key="DIST_PACKAGE_CORRUPTED">Этот дистрибутивный пакет повреждён. Загрузите его снова (желательно с официального сайта VeraCrypt - https://veracrypt.jp).</entry>
     <entry lang="ru" key="CANNOT_WRITE_FILE_X">Невозможно записать файл %s</entry>
     <entry lang="ru" key="EXTRACTING_VERB">Извлечение</entry>
     <entry lang="ru" key="CANNOT_READ_FROM_PACKAGE">Невозможно прочитать данные из дистрибутива.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="ru" key="HIDDEN_OS_CREATION_PREINFO_HELP">На следующих этапах VeraCrypt создаст скрытую ОС, скопировав содержимое системного раздела в скрытый том (копируемые данные шифруются "на лету" с ключом, отличным от используемого для обманной ОС).\n\nУчтите, что процесс выполняется на предзагрузочном этапе (до запуска Windows) и может занять много времени (несколько часов или даже дней, в зависимости от размера системного раздела и быстродействия ПК).\n\nВы сможете прервать этот процесс, выключить ПК, запустить ОС и затем возобновить его. Однако в случае прерывания, копирование системы придётся начать сначала (так как при клонировании содержимое системного раздела не должно изменяться).</entry>
     <entry lang="ru" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Отменить весь процесс создания скрытой операционной системы?\n\nПри отмене вы НЕ сможете затем продолжить процесс.</entry>
     <entry lang="ru" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Отменить пре-тест шифрования системы?</entry>
-    <entry lang="ru" key="BOOT_PRETEST_FAILED_RETRY">Пре-тест шифрования системы не пройден. Повторить попытку?\n\nПри выборе "Нет" компонент предзагрузочной аутентификации будет удалён.\n\nПримечания:\n\n- Если загрузчик VeraCrypt не просил ввести пароль перед стартом Windows, возможно, ОС загружается не с того диска, на котором она установлена. Такая конфигурация не поддерживается.\n\n- Если используется отличный от AES алгоритм шифрования, и пре-тест выдаёт ошибку (и вы ввели пароль), причина может быть в некорректном драйвере. Выберите "Нет" и попробуйте снова зашифровать системный раздел/диск, но используя AES (у этого алгоритма наименьшие требования к памяти).\n\n- Другие причины и решения см. здесь: https://www.veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="ru" key="BOOT_PRETEST_FAILED_RETRY">Пре-тест шифрования системы не пройден. Повторить попытку?\n\nПри выборе "Нет" компонент предзагрузочной аутентификации будет удалён.\n\nПримечания:\n\n- Если загрузчик VeraCrypt не просил ввести пароль перед стартом Windows, возможно, ОС загружается не с того диска, на котором она установлена. Такая конфигурация не поддерживается.\n\n- Если используется отличный от AES алгоритм шифрования, и пре-тест выдаёт ошибку (и вы ввели пароль), причина может быть в некорректном драйвере. Выберите "Нет" и попробуйте снова зашифровать системный раздел/диск, но используя AES (у этого алгоритма наименьшие требования к памяти).\n\n- Другие причины и решения см. здесь: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="ru" key="SYS_DRIVE_NOT_ENCRYPTED">Похоже, системный раздел/диск не зашифрован\n(ни частично, ни полностью).</entry>
     <entry lang="ru" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Системный раздел/диск зашифрован (частично или полностью).\n\nПрежде чем продолжить, полностью расшифруйте системный раздел/диск. Чтобы это сделать, выберите в главном окне VeraCrypt меню "Система" &gt; "Окончательно расшифровать системный раздел/диск".</entry>
     <entry lang="ru" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Если системный раздел/диск зашифрован (частично или полностью), нельзя устанавливать VeraCrypt более старой версии (но можно более новую или ту же версию).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="ru" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">ОШИБКА: Диск использует не 512-байтовые сектора.\n\nИз-за ограничений компонентов на вашей платформе, на этом диске нельзя монтировать/использовать тома на основе раздела/устройства.\n\nВозможные решения:\n- Создайте на диске том на основе файла (контейнер).\n- Используйте диск с 512-байтовыми секторами.\n- Используйте VeraCrypt на другой платформе.</entry>
     <entry lang="ru" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Хост-файл/устройство уже используется.</entry>
     <entry lang="ru" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Слот для тома недоступен.</entry>
-    <entry lang="ru" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">Для VeraCrypt требуется OSXFUSE 2.5 или новее.</entry>
+    <entry lang="ru" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">Для VeraCrypt требуется macFUSE 2.5 или новее.</entry>
     <entry lang="ru" key="EXCEPTION_OCCURRED">Произошло исключение</entry>
     <entry lang="ru" key="ENTER_PASSWORD">Введите пароль</entry>
     <entry lang="ru" key="ENTER_TC_VOL_PASSWORD">Введите пароль тома VeraCrypt</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="ru" key="MOUNTPOINT_BLOCKED">ОШИБКА: Точка монтирования тома заблокирована, так как она переопределяет защищённую системную папку.\n\nВыберите другую точку монтирования.</entry>
     <entry lang="ru" key="MOUNTPOINT_NOTALLOWED">ОШИБКА: Точка монтирования тома не разрешена, так как она переопределяет папку, которая является частью переменной среды PATH.\n\nВыберите другую точку монтирования.</entry>
     <entry lang="ru" key="INSECURE_MODE">[НЕБЕЗОПАСНЫЙ РЕЖИМ]</entry>
+    <entry lang="ru" key="IDC_DISABLE_SCREEN_PROTECTION">Отключить защиту от создания скриншотов и записи экрана</entry>
+    <entry lang="ru" key="DISABLE_SCREEN_PROTECTION_WARNING">ВНИМАНИЕ: Отключение защиты экрана значительно снижает уровень безопасности. Включайте эту опцию ТОЛЬКО при наличии конкретной необходимости захвата интерфейса VeraCrypt. Это может привести к утечке конфиденциальных данных через инструменты создания скриншотов и записи экрана, такие как Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -67,6 +67,19 @@ namespace VeraCrypt
 	int GraphicUserInterface::g_customIdCmdV = 0;
 	int GraphicUserInterface::g_customIdCmdA = 0;
 #endif
+
+	// Check if given language has a corresponding translated documentation
+	static BOOL HasTranslatedDocumentation(const char* language)
+	{
+		// hardcoded list of languages for which a translated documentation exists
+		const char* supportedLanguages[] = { "en", "ru", "zh-cn"};
+		for (size_t i = 0; i < sizeof(supportedLanguages) / sizeof(supportedLanguages[0]); i++)
+		{
+			if (strcmp(language, supportedLanguages[i]) == 0)
+				return TRUE;
+		}
+		return FALSE;
+	}
 
 	GraphicUserInterface::GraphicUserInterface () :
 		ActiveFrame (nullptr),
@@ -1220,7 +1233,7 @@ namespace VeraCrypt
 		}
 		else if (linkId == L"onlinehelp")
 		{
-			url = L"https://www.veracrypt.fr/en/Documentation.html";
+			url = L"https://veracrypt.jp/en/Documentation.html";
 			buildUrl = false;
 		}
 		else if (linkId == L"localizations")
@@ -1345,18 +1358,40 @@ namespace VeraCrypt
 #ifdef TC_RESOURCE_DIR
 			htmlPath = StringConverter::ToWide (string (TC_TO_STRING (TC_RESOURCE_DIR)) + "/doc/HTML/");
 #elif defined (TC_WINDOWS)
-			htmlPath += L"\\docs\\html\\en\\";
+			htmlPath += L"\\docs\\html\\";
 #elif defined (TC_MACOSX)
 			htmlPath += L"/../Resources/doc/HTML/";
 #elif defined (TC_UNIX)
 			htmlPath = L"/usr/share/doc/veracrypt/HTML/";
+#if defined(TC_LINUX)
+			// AppImage specific handling:
+			// if we are running from an AppImage, we need to use the path inside the AppImage
+			// instead of the path on the host system
+			std::string appPath= StringConverter::ToSingle (wstring(Application::GetExecutablePath()));
+			if (Process::IsRunningUnderAppImage(appPath))
+			{
+				const char* appDirEnv = getenv("APPDIR");
+				if (appDirEnv)
+				{
+					htmlPath = wxString::FromUTF8(appDirEnv);
+					htmlPath += L"/usr/share/doc/veracrypt/HTML/";
+				}
+			}
+#endif
 #else
 			localFile = false;
 #endif
+			string preferredLang = LangString.GetPreferredLang();
+			// Use preferred language only if it has translated documentation
+			if (!HasTranslatedDocumentation (preferredLang.c_str()))
+			{
+				preferredLang = "en";
+			}
+			wstring documentationLang = StringConverter::ToWide (preferredLang);
 			if (localFile)
 			{
 				/* check if local file exists */
-				wxFileName htmlFile = htmlPath + url;
+				wxFileName htmlFile = htmlPath + documentationLang + L"/" + url;
 				htmlFile.Normalize (
 					wxPATH_NORM_ENV_VARS |
 					wxPATH_NORM_DOTS     |
@@ -1366,11 +1401,32 @@ namespace VeraCrypt
 					wxPATH_NORM_TILDE
 				);
 				localFile = htmlFile.FileExists();
+				if (!localFile)
+				{
+					htmlFile = htmlPath + L"en/" + url;
+					htmlFile.Normalize (
+						wxPATH_NORM_ENV_VARS |
+						wxPATH_NORM_DOTS     |
+						wxPATH_NORM_CASE     |
+						wxPATH_NORM_LONG     |
+						wxPATH_NORM_SHORTCUT |
+						wxPATH_NORM_TILDE
+					);
+					localFile = htmlFile.FileExists();
+					if (localFile)
+					{
+						htmlPath += L"en/";
+					}
+				}
+				else
+				{
+					htmlPath += documentationLang + L"/";
+				}
 			}
 
 			if (!localFile)
 			{
-				htmlPath = L"https://www.veracrypt.fr/en/";
+				htmlPath = L"https://veracrypt.jp/" + documentationLang + L"/";
 			}
 			else
 			{

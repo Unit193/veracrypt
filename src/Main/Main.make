@@ -4,7 +4,7 @@
 # by the TrueCrypt License 3.0.
 #
 # Modifications and additions to the original source code (contained in this file)
-# and all other portions of this file are Copyright (c) 2013-2017 IDRIX
+# and all other portions of this file are Copyright (c) 2013-2017 AM Crypto
 # and are governed by the Apache License 2.0 the full text of which is
 # contained in the file License.txt included in VeraCrypt binary and source
 # code distribution packages.
@@ -179,7 +179,7 @@ endif
 GUI_CONDITION := $(filter gui,$(INSTALLER_TYPE))
 GTK2_CONDITION := $(filter 2,$(GTK_VERSION))
 
-INTERNAL_INSTALLER_NAME := veracrypt_install_f$(SYSTEMNAME)_$(INSTALLER_TYPE)_$(CPU_ARCH).sh
+INTERNAL_INSTALLER_NAME := veracrypt_install_$(SYSTEMNAME)_$(INSTALLER_TYPE)_$(CPU_ARCH).sh
 
 ifneq (,$(GUI_CONDITION))
 ifneq (,$(GTK2_CONDITION))
@@ -314,6 +314,10 @@ ifndef TC_NO_GUI
 	cp $(BASE_DIR)/Resources/Icons/VeraCrypt-256x256.xpm $(BASE_DIR)/Setup/Linux/usr/share/pixmaps/$(APPNAME).xpm
 	cp $(BASE_DIR)/Setup/Linux/$(APPNAME).desktop $(BASE_DIR)/Setup/Linux/usr/share/applications/$(APPNAME).desktop
 	cp $(BASE_DIR)/Setup/Linux/$(APPNAME).xml $(BASE_DIR)/Setup/Linux/usr/share/mime/packages/$(APPNAME).xml
+
+	cp $(BASE_DIR)/Resources/Icons/VeraCrypt-256x256.xpm $(BASE_DIR)/Setup/Linux/veracrypt.AppDir/$(APPNAME).xpm
+	rm -fr $(BASE_DIR)/Setup/Linux/veracrypt.AppDir/usr
+	cp -r $(BASE_DIR)/Setup/Linux/usr $(BASE_DIR)/Setup/Linux/veracrypt.AppDir/.
 endif
 
 
@@ -344,6 +348,48 @@ package: prepare
 	cp $(INTERNAL_INSTALLER_NAME) $(BASE_DIR)/Setup/Linux/packaging/.
 	makeself $(BASE_DIR)/Setup/Linux/packaging $(BASE_DIR)/Setup/Linux/$(INSTALLER_NAME) "VeraCrypt $(TC_VERSION) Installer" ./$(INTERNAL_INSTALLER_NAME)
 
+appimage: prepare
+	@set -e; \
+	_appimagetool_arch_suffix=""; \
+	_final_appimage_arch_suffix=""; \
+	case "$(CPU_ARCH)" in \
+		x86) \
+			_appimagetool_arch_suffix="i686"; \
+			_final_appimage_arch_suffix="i686"; \
+			;; \
+		x64) \
+			_appimagetool_arch_suffix="x86_64"; \
+			_final_appimage_arch_suffix="x86_64"; \
+			;; \
+		arm64) \
+			_appimagetool_arch_suffix="aarch64"; \
+			_final_appimage_arch_suffix="aarch64"; \
+			;; \
+		arm7) \
+			_appimagetool_arch_suffix="armhf"; \
+			_final_appimage_arch_suffix="armhf"; \
+			;; \
+		*) \
+			echo "Error: Unsupported CPU_ARCH for AppImage: $(CPU_ARCH). Supported: x86, x64, arm64, arm7" >&2; \
+			exit 1; \
+			;; \
+	esac; \
+	_appimagetool_executable_name="appimagetool-$${_appimagetool_arch_suffix}.AppImage"; \
+	_appimagetool_executable_path="$(BASE_DIR)/Setup/Linux/$${_appimagetool_executable_name}"; \
+	_appimagetool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/$${_appimagetool_executable_name}"; \
+	_final_appimage_filename="VeraCrypt-$(TC_VERSION)-$${_final_appimage_arch_suffix}.AppImage"; \
+	_final_appimage_path="$(BASE_DIR)/Setup/Linux/$${_final_appimage_filename}"; \
+	\
+	echo "Preparing AppImage for $(CPU_ARCH) (using $${_appimagetool_arch_suffix})..."; \
+	echo "Downloading appimagetool from $${_appimagetool_url}..."; \
+	wget --quiet -O "$${_appimagetool_executable_path}" "$${_appimagetool_url}"; \
+	chmod +x "$${_appimagetool_executable_path}"; \
+	echo "Creating AppImage $${_final_appimage_path}..."; \
+	ARCH="$${_final_appimage_arch_suffix}" "$${_appimagetool_executable_path}" "$(BASE_DIR)/Setup/Linux/veracrypt.AppDir" "$${_final_appimage_path}"; \
+	echo "AppImage created: $${_final_appimage_path}"; \
+	echo "Cleaning up appimagetool..."; \
+	rm -f "$${_appimagetool_executable_path}";
+
 endif
 
 endif
@@ -354,7 +400,7 @@ prepare: $(APPNAME)
 	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/bin
 	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/share/doc/$(APPNAME)/HTML
 	cp $(BASE_DIR)/Main/$(APPNAME) $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)
-	cp $(BASE_DIR)/Setup/Linux/$(APPNAME)-uninstall.sh $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)-uninstall.sh
+	cp $(BASE_DIR)/Setup/FreeBSD/$(APPNAME)-uninstall.sh $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)-uninstall.sh
 	chmod +x $(BASE_DIR)/Setup/FreeBSD/usr/bin/$(APPNAME)-uninstall.sh
 	cp $(BASE_DIR)/License.txt $(BASE_DIR)/Setup/FreeBSD/usr/share/doc/$(APPNAME)/License.txt
 	cp -R $(BASE_DIR)/../doc/html/* "$(BASE_DIR)/Setup/FreeBSD/usr/share/doc/$(APPNAME)/HTML"
@@ -364,10 +410,10 @@ prepare: $(APPNAME)
 ifndef TC_NO_GUI
 	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/share/applications
 	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/share/pixmaps
-	mkdir -p $(BASE_DIR)/Setup/Linux/usr/share/mime/packages
+	mkdir -p $(BASE_DIR)/Setup/FreeBSD/usr/share/mime/packages
 	cp $(BASE_DIR)/Resources/Icons/VeraCrypt-256x256.xpm $(BASE_DIR)/Setup/FreeBSD/usr/share/pixmaps/$(APPNAME).xpm
-	cp $(BASE_DIR)/Setup/Linux/$(APPNAME).desktop $(BASE_DIR)/Setup/FreeBSD/usr/share/applications/$(APPNAME).desktop
-	cp $(BASE_DIR)/Setup/Linux/$(APPNAME).xml $(BASE_DIR)/Setup/Linux/usr/share/mime/packages/$(APPNAME).xml
+	cp $(BASE_DIR)/Setup/FreeBSD/$(APPNAME).desktop $(BASE_DIR)/Setup/FreeBSD/usr/share/applications/$(APPNAME).desktop
+	cp $(BASE_DIR)/Setup/FreeBSD/$(APPNAME).xml $(BASE_DIR)/Setup/FreeBSD/usr/share/mime/packages/$(APPNAME).xml
 endif
 	chown -R root:wheel $(BASE_DIR)/Setup/FreeBSD/usr
 	chmod -R go-w $(BASE_DIR)/Setup/FreeBSD/usr
