@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -172,7 +172,7 @@ typedef struct
 #ifdef TC_WINDOWS_BOOT
 #define MAX_EXPANDED_KEY	VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), CAMELLIA_KS)
 #else
-#define MAX_EXPANDED_KEY	VC_MAX(VC_MAX(VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), CAMELLIA_KS + KUZNYECHIK_KS + SERPENT_KS), KUZNYECHIK_KS + TWOFISH_KS), AES_KS + KUZNYECHIK_KS)
+#define MAX_EXPANDED_KEY    VC_MAX(VC_MAX(VC_MAX((AES_KS + SERPENT_KS + TWOFISH_KS), CAMELLIA_KS + KUZNYECHIK_KS + SERPENT_KS), KUZNYECHIK_KS + TWOFISH_KS), AES_KS + KUZNYECHIK_KS)
 #endif
 #endif
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="uz" name="Ўзбекча" en-name="Uzbek (Cyrillic)" version="0.1.0" translators="Abdurauf Azizov, Dmitry Yerokhin" />
     <font lang="uz" class="normal" size="11" face="default" />
     <font lang="uz" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="uz" key="TC_INSTALLER_IS_RUNNING">В этой системе сейчас запущен инсталлятор VeraCrypt. Он выполняет/готовит установку или обновление VeraCrypt. Дождитесь завершения его работы или закройте его. Если закрыть инсталлятор не получается, перезагрузите компьютер и лишь потом продолжите.</entry>
     <entry lang="uz" key="INSTALL_FAILED">Установка не выполнена.</entry>
     <entry lang="uz" key="UNINSTALL_FAILED">Удаление не выполнено.</entry>
-    <entry lang="uz" key="DIST_PACKAGE_CORRUPTED">Этот дистрибутивный пакет повреждён. Загрузите его снова (желательно с официального сайта VeraCrypt - https://www.veracrypt.fr).</entry>
+    <entry lang="uz" key="DIST_PACKAGE_CORRUPTED">Этот дистрибутивный пакет повреждён. Загрузите его снова (желательно с официального сайта VeraCrypt - https://veracrypt.jp).</entry>
     <entry lang="uz" key="CANNOT_WRITE_FILE_X">Невозможно записать файл %s</entry>
     <entry lang="uz" key="EXTRACTING_VERB">Извлечение</entry>
     <entry lang="uz" key="CANNOT_READ_FROM_PACKAGE">Невозможно прочитать данные из дистрибутива.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="uz" key="HIDDEN_OS_CREATION_PREINFO_HELP">Yf следующих этапах VeraCrypt создаст скрытую ОС, скопировав содержимое системного раздела в скрытый том (копируемые данные шифруются 'на лету' с ключом, отличным от используемого для обманной ОС).\n\nУчтите, что процесс выполняется на предзагрузочной стадии (до запуска Windows) и может занять много времени (несколько часов или даже дней, в зависимости от размера системного раздела и быстродействия ПК).\n\nВы сможете прервать этот процесс, выключить ПК, запустить ОС и затем возобновить его. Однако в случае прерывания, копирование системы придётся начать сначала (так как при клонировании содержимое системного раздела не должно изменяться).</entry>
     <entry lang="uz" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Вы хотите отменить весь процесс создания скрытой операционной системы?\n\nПримечание: в случае отмены вы НЕ сможете возобновить процесс.</entry>
     <entry lang="uz" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Вы хотите отменить пре-тест шифрования системы?</entry>
-    <entry lang="en" key="BOOT_PRETEST_FAILED_RETRY">The VeraCrypt system encryption pretest failed. Do you want to try again?\n\nIf you select 'No', the pre-boot authentication component will be uninstalled.\n\nNotes:\n\n- If the VeraCrypt Boot Loader did not ask you to enter the password before Windows started, it is possible that your operating system does not boot from the drive on which it is installed. This is not supported.\n\n- If you used an encryption algorithm other than AES and the pretest failed (and you entered the password), it may have been caused by an inappropriately designed driver. Select 'No', and try encrypting the system partition/drive again, but use the AES encryption algorithm (which has the lowest memory requirements).\n\n- For more possible causes and solutions, see: https://www.veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="en" key="BOOT_PRETEST_FAILED_RETRY">The VeraCrypt system encryption pretest failed. Do you want to try again?\n\nIf you select 'No', the pre-boot authentication component will be uninstalled.\n\nNotes:\n\n- If the VeraCrypt Boot Loader did not ask you to enter the password before Windows started, it is possible that your operating system does not boot from the drive on which it is installed. This is not supported.\n\n- If you used an encryption algorithm other than AES and the pretest failed (and you entered the password), it may have been caused by an inappropriately designed driver. Select 'No', and try encrypting the system partition/drive again, but use the AES encryption algorithm (which has the lowest memory requirements).\n\n- For more possible causes and solutions, see: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="uz" key="SYS_DRIVE_NOT_ENCRYPTED">Судя по всему, системный раздел/диск не зашифрован (ни частично, ни полностью).</entry>
     <entry lang="uz" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Системный раздел/диск зашифрован (частично или полностью).\n\nПрежде чем продолжить, полностью дешифруйте системный раздел/диск. Чтобы это сделать, выберите в главном окне VeraCrypt меню 'Система' &gt; 'Permanently Decrypt System Partition/Drive'.</entry>
     <entry lang="en" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">When the system partition/drive is encrypted (partially or fully), you cannot downgrade VeraCrypt (but you can upgrade it or reinstall the same version).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="en" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Error: The drive uses a sector size other than 512 bytes.\n\nDue to limitations of components available on your platform, partition/device-hosted volumes cannot be created/used on the drive.\n\nPossible solutions:\n- Create a file-hosted volume (container) on the drive.\n- Use a drive with 512-byte sectors.\n- Use VeraCrypt on another platform.</entry>
     <entry lang="en" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">The host file/device is already in use.</entry>
     <entry lang="en" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Volume slot unavailable.</entry>
-    <entry lang="en" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt requires OSXFUSE 2.5 or above.</entry>
+    <entry lang="en" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt requires macFUSE 2.5 or above.</entry>
     <entry lang="en" key="EXCEPTION_OCCURRED">Exception occurred</entry>
     <entry lang="en" key="ENTER_PASSWORD">Enter password</entry>
     <entry lang="en" key="ENTER_TC_VOL_PASSWORD">Enter VeraCrypt Volume Password</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="en" key="MOUNTPOINT_BLOCKED">ERROR: The volume mount point is blocked because it overrides a protected system directory.\n\nPlease choose a different mount point.</entry>
     <entry lang="en" key="MOUNTPOINT_NOTALLOWED">ERROR: The volume mount point is not allowed because it overrides a directory that is part of the PATH environment variable.\n\nPlease choose a different mount point.</entry>
     <entry lang="en" key="INSECURE_MODE">[INSECURE MODE]</entry>
+    <entry lang="en" key="IDC_DISABLE_SCREEN_PROTECTION">Disable protection against screenshots and screen recording</entry>
+    <entry lang="en" key="DISABLE_SCREEN_PROTECTION_WARNING">WARNING: Disabling screen protection significantly reduces security. Enable this option ONLY if you have a specific need to capture VeraCrypt's interface. This may expose sensitive data to screenshot tools and screen recording features such as Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

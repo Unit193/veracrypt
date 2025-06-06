@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2013-2024 IDRIX
+# Copyright (c) 2013-2025 AM Crypto
 # Governed by the Apache License 2.0 the full text of which is contained
 # in the file License.txt included in VeraCrypt binary and source
 # code distribution packages.
@@ -54,6 +54,7 @@ else
     make WXSTATIC=1 wxbuild || exit 1
 fi
 
+rm -rf "$PARENTDIR/VeraCrypt_Setup/GUI"
 make WXSTATIC=1 clean 				|| exit 1
 make WXSTATIC=1 					|| exit 1
 make WXSTATIC=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/GUI"	|| exit 1
@@ -75,6 +76,7 @@ else
     make WXSTATIC=1 NOGUI=1 wxbuild || exit 1
 fi
 
+rm -rf "$PARENTDIR/VeraCrypt_Setup/Console"
 make WXSTATIC=1 NOGUI=1 clean 				|| exit 1
 make WXSTATIC=1 NOGUI=1 					|| exit 1
 make WXSTATIC=1 NOGUI=1 install DESTDIR="$PARENTDIR/VeraCrypt_Setup/Console"	|| exit 1
@@ -83,6 +85,9 @@ echo "Creating VeraCrypt RPM packages "
 
 # -DCPACK_RPM_PACKAGE_DEBUG=TRUE for debugging cpack RPM
 # -DCPACK_RPM_PACKAGE_DEBUG=TRUE for debugging cpack RPM
+
+# remove old packages
+rm -rf $PARENTDIR/VeraCrypt_Packaging
 
 mkdir -p $PARENTDIR/VeraCrypt_Packaging/GUI
 mkdir -p $PARENTDIR/VeraCrypt_Packaging/Console

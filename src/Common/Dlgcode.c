@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses' 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -302,12 +302,12 @@ DWORD SystemFileSelectorCallerThreadId;
 typedef BOOL (WINAPI *SetDefaultDllDirectoriesPtr)(DWORD DirectoryFlags);
 
 static unsigned char gpbSha512CodeSignCertFingerprint[64] = {
-	0x9C, 0xA0, 0x21, 0xD3, 0x7C, 0x90, 0x61, 0x88, 0xEF, 0x5F, 0x99, 0x3D,
-	0x54, 0x9F, 0xB8, 0xCE, 0x72, 0x32, 0x4F, 0x57, 0x4F, 0x19, 0xD2, 0xA4,
-	0xDC, 0x84, 0xFF, 0xE2, 0x84, 0x2B, 0xD4, 0x30, 0xAB, 0xA7, 0xE4, 0x63,
-	0x18, 0xD1, 0xD8, 0x32, 0x0E, 0xA4, 0x81, 0x3C, 0x19, 0xBF, 0x13, 0x11,
-	0xA4, 0x37, 0xD6, 0xDB, 0x26, 0xBA, 0xDC, 0x8F, 0x86, 0x96, 0x55, 0x96,
-	0xDB, 0x6F, 0xC0, 0x62
+	0xDA, 0x24, 0x2D, 0x36, 0x88, 0xC1, 0x4A, 0x34, 0x53, 0x26, 0x9C, 0x65,
+	0x66, 0x24, 0xE3, 0xE7, 0xC5, 0xBA, 0x64, 0x68, 0xC7, 0x32, 0xAB, 0x4B,
+	0x06, 0xA8, 0x55, 0x98, 0xAD, 0x04, 0xFD, 0xFD, 0x31, 0xCE, 0x8D, 0xD1,
+	0xBF, 0x8C, 0x51, 0x5F, 0x8B, 0xF9, 0xC3, 0xCF, 0x32, 0x8B, 0xA9, 0x8A,
+	0x53, 0xCB, 0x7C, 0x4D, 0xF3, 0x15, 0x43, 0x2F, 0x2B, 0x71, 0x30, 0x2F,
+	0xF1, 0x08, 0xF3, 0xA8
 };
 
 static unsigned char gpbSha512MSCodeSignCertFingerprint[64] = {
@@ -868,6 +868,75 @@ BOOL TCCopyFile (wchar_t *sourceFileName, wchar_t *destinationFile)
 	return TCCopyFileBase (src, dst);
 }
 
+#if !defined(_WIN64) && defined(NDEBUG) && !defined (VC_SKIP_OS_DRIVER_REQ_CHECK)
+// in 32-bit build, Crypto project is not compiled so we need to provide this function here
+
+#pragma comment(lib, "bcrypt.lib")
+
+void sha512(unsigned char* result, const unsigned char* source, uint64_t sourceLen)
+{
+	BCRYPT_ALG_HANDLE   hAlg = NULL;
+	BCRYPT_HASH_HANDLE  hHash = NULL;
+	NTSTATUS            status = 0;
+
+	// Open an algorithm provider for SHA512.
+	status = BCryptOpenAlgorithmProvider(
+		&hAlg,
+		BCRYPT_SHA512_ALGORITHM,
+		NULL,
+		0);
+	if (!BCRYPT_SUCCESS(status))
+	{
+		goto cleanup;
+	}
+
+	// Create a hash handle.
+	status = BCryptCreateHash(
+		hAlg,
+		&hHash,
+		NULL,
+		0,
+		NULL,   // Optional secret, not needed for SHA512
+		0,
+		0);
+	if (!BCRYPT_SUCCESS(status))
+	{
+		goto cleanup;
+	}
+
+	// Hash the data. Note: BCryptHashData takes an ULONG for the length.
+	status = BCryptHashData(
+		hHash,
+		(PUCHAR)source,
+		(ULONG)sourceLen,
+		0);
+	if (!BCRYPT_SUCCESS(status))
+	{
+		goto cleanup;
+	}
+
+	// Finalize the hash computation and write the result.
+	status = BCryptFinishHash(
+		hHash,
+		result,
+		SHA512_DIGESTSIZE,
+		0);
+	if (!BCRYPT_SUCCESS(status))
+	{
+		goto cleanup;
+	}
+
+cleanup:
+	if (hHash)
+	{
+		BCryptDestroyHash(hHash);
+	}
+	if (hAlg)
+	{
+		BCryptCloseAlgorithmProvider(hAlg, 0);
+	}
+}
+#endif
 
 BOOL VerifyModuleSignature (const wchar_t* path)
 {
@@ -2139,7 +2208,7 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 			LocalizeDialog (hwndDlg, "IDD_ABOUT_DLG");
 
 			// Hyperlink
-			SetWindowText (GetDlgItem (hwndDlg, IDC_HOMEPAGE), L"www.idrix.fr");
+			SetWindowText (GetDlgItem (hwndDlg, IDC_HOMEPAGE), L"amcrypto.jp");
 			ToHyperlink (hwndDlg, IDC_HOMEPAGE);
 
 			// Logo area background (must not keep aspect ratio; must retain Windows-imposed distortion)
@@ -2178,6 +2247,7 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 			L"Based on TrueCrypt 7.1a, freely available at http://www.truecrypt.org/ .\r\n\r\n"
 
 			L"Portions of this software:\r\n"
+			L"Copyright \xA9 2025 AM Crypto. All rights reserved.\r\n"
 			L"Copyright \xA9 2013-2025 IDRIX. All rights reserved.\r\n"
 			L"Copyright \xA9 2003-2012 TrueCrypt Developers Association. All Rights Reserved.\r\n"
 			L"Copyright \xA9 1998-2000 Paul Le Roux. All Rights Reserved.\r\n"
@@ -2191,9 +2261,9 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 			L"Copyright \xA9 1999-2023 Igor Pavlov\r\n\r\n"
 
 			L"This software as a whole:\r\n"
-			L"Copyright \xA9 2013-2025 IDRIX. All rights reserved.\r\n\r\n"
+			L"Copyright \xA9 2025 AM Crypto. All rights reserved.\r\n\r\n"
 
-			L"An IDRIX Release");
+			L"An AM Crypto Release");
 
 		return 1;
 
@@ -2229,6 +2299,9 @@ BOOL CALLBACK AboutDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
 
 		EndDialog (hwndDlg, 0);
 		return 1;
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -2299,6 +2372,10 @@ static BOOL CALLBACK StaticModelessWaitDlgProc (HWND hwndDlg, UINT msg, WPARAM w
 		StaticModelessWaitDlgHandle = NULL;
 		EndDialog (hwndDlg, 0);
 		return 1;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -2935,6 +3012,7 @@ typedef struct
 void ExceptionHandlerThread (void *threadArg)
 {
 	ExceptionHandlerThreadArgs *args = (ExceptionHandlerThreadArgs *) threadArg;
+	ScreenCaptureBlocker blocker;
 
 	EXCEPTION_POINTERS *ep = args->ExceptionPointers;
 	//DWORD addr;
@@ -3403,6 +3481,25 @@ BOOL WriteMemoryProtectionConfig (BOOL bEnable)
 	return WriteLocalMachineRegistryDword (L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", VC_ENABLE_MEMORY_PROTECTION, config);
 }
 
+BOOL ReadScreenProtectionConfig()
+{
+	DWORD config;
+
+	if (!ReadLocalMachineRegistryDword(L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", VC_ENABLE_SCREEN_PROTECTION, &config))
+	{
+		// enabled by default
+		config = 1;
+	}
+	return (config) ? TRUE : FALSE;
+}
+
+BOOL WriteScreenProtectionConfig(BOOL bEnable)
+{
+	DWORD config = bEnable ? 1 : 0;
+
+	return WriteLocalMachineRegistryDword(L"SYSTEM\\CurrentControlSet\\Services\\veracrypt", VC_ENABLE_SCREEN_PROTECTION, config);
+}
+
 BOOL LoadSysEncSettings ()
 {
 	BOOL status = TRUE;
@@ -3659,7 +3756,7 @@ void InitApp (HINSTANCE hInstance, wchar_t *lpszCommandLine)
 #if !defined(SETUP)
 	GetModuleFileNameW (NULL, modPath, ARRAYSIZE (modPath));
 	if (!VerifyModuleSignature (modPath))
-		AbortProcessDirect (L"This distribution package is damaged. Please try downloading it again (preferably from the official VeraCrypt website at https://www.veracrypt.fr).");
+		AbortProcessDirect (L"This distribution package is damaged. Please try downloading it again (preferably from the official VeraCrypt website at https://veracrypt.jp).");
 #endif
 
 #ifndef SETUP
@@ -4284,6 +4381,10 @@ BOOL CALLBACK TextEditDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPa
 		NormalCursor ();
 		EndDialog (hwndDlg, 0);
 		return 1;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -4425,6 +4526,10 @@ BOOL CALLBACK TextInfoDialogBoxDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, L
 		NormalCursor ();
 		EndDialog (hwndDlg, 0);
 		return 1;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -4614,6 +4719,10 @@ BOOL CALLBACK RawDevicesDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM l
 #endif
 			return 1;
 		}
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 
 	case WM_COMMAND:
 	case WM_NOTIFY:
@@ -5706,6 +5815,9 @@ static BOOL CALLBACK LocalizeDialogEnum( HWND hwnd, LPARAM font)
 void LocalizeDialog (HWND hwnd, char *stringId)
 {
 	LastDialogId = stringId;
+
+	AttachProtectionToCurrentThread(hwnd);
+
 	SetWindowLongPtrW (hwnd, GWLP_USERDATA, (LONG_PTR) 'VERA');
 	SendMessageW (hwnd, WM_SETFONT, (WPARAM) hUserFont, 0);
 
@@ -6741,6 +6853,10 @@ BOOL CALLBACK BenchmarkDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 
 		break;
 
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
+
 	}
 	return 0;
 }
@@ -6919,6 +7035,9 @@ exit:
 
 			return 1;
 		}
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 	return 0;
 }
@@ -7346,6 +7465,10 @@ exit:
 			NormalCursor ();
 			return 1;
 		}
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 	return 0;
 }
@@ -7552,13 +7675,13 @@ CipherTestDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				// Secondary key
 
-				if (GetWindowText(GetDlgItem(hwndDlg, IDC_SECONDARY_KEY), szTmp, ARRAYSIZE(szTmp)) != 64)
+				if (GetWindowText(GetDlgItem(hwndDlg, IDC_SECONDARY_KEY), szTmp, ARRAYSIZE(szTmp)) != ks * 2)
 				{
 					Warning ("TEST_INCORRECT_SECONDARY_KEY_SIZE", hwndDlg);
 					return 1;
 				}
 
-				for (n = 0; n < 64; n ++)
+				for (n = 0; n < ks; n ++)
 				{
 					wchar_t szTmp2[3], *ptr;
 					long x;
@@ -7698,6 +7821,10 @@ CipherTestDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		idTestCipher = -1;
 		EndDialog (hwndDlg, 0);
 		return 1;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -7735,7 +7862,7 @@ ResetCipherTest(HWND hwndDlg, int idTestCipher)
 
 	SendMessage(GetDlgItem(hwndDlg, IDC_TEST_BLOCK_NUMBER), CB_SETCURSEL, 0, 0);
 
-	SetWindowText(GetDlgItem(hwndDlg, IDC_SECONDARY_KEY), L"0000000000000000000000000000000000000000000000000000000000000000");
+	
 	SetWindowText(GetDlgItem(hwndDlg, IDC_TEST_DATA_UNIT_NUMBER), L"0");
 	
 	SetWindowText(GetDlgItem(hwndDlg, IDC_PLAINTEXT), L"0000000000000000");
@@ -7745,8 +7872,10 @@ ResetCipherTest(HWND hwndDlg, int idTestCipher)
 		|| idTestCipher == KUZNYECHIK
 		)
 	{
-		ndx = (int) SendMessage (GetDlgItem(hwndDlg, IDC_KEY_SIZE), CB_ADDSTRING, 0,(LPARAM) L"256");
-		SendMessage(GetDlgItem(hwndDlg, IDC_KEY_SIZE), CB_SETITEMDATA, ndx,(LPARAM) 32);
+		ndx = (int)SendMessage(GetDlgItem(hwndDlg, IDC_KEY_SIZE), CB_ADDSTRING, 0, (LPARAM)L"256");
+		SendMessage(GetDlgItem(hwndDlg, IDC_KEY_SIZE), CB_SETITEMDATA, ndx, (LPARAM)32);
+		SetWindowText(GetDlgItem(hwndDlg, IDC_KEY), L"0000000000000000000000000000000000000000000000000000000000000000");
+		SetWindowText(GetDlgItem(hwndDlg, IDC_SECONDARY_KEY), L"0000000000000000000000000000000000000000000000000000000000000000");
 		SendMessage(GetDlgItem(hwndDlg, IDC_KEY_SIZE), CB_SETCURSEL, ndx,0);
 
 		SendMessage (GetDlgItem(hwndDlg, IDC_PLAINTEXT_SIZE), CB_RESETCONTENT, 0,0);
@@ -7754,7 +7883,6 @@ ResetCipherTest(HWND hwndDlg, int idTestCipher)
 		SendMessage(GetDlgItem(hwndDlg, IDC_PLAINTEXT_SIZE), CB_SETITEMDATA, ndx,(LPARAM) 16);
 		SendMessage(GetDlgItem(hwndDlg, IDC_PLAINTEXT_SIZE), CB_SETCURSEL, ndx,0);
 
-		SetWindowText(GetDlgItem(hwndDlg, IDC_KEY), L"0000000000000000000000000000000000000000000000000000000000000000");
 		SetWindowText(GetDlgItem(hwndDlg, IDC_PLAINTEXT), L"00000000000000000000000000000000");
 		SetWindowText(GetDlgItem(hwndDlg, IDC_CIPHERTEXT), L"00000000000000000000000000000000");
 	}
@@ -7982,6 +8110,10 @@ BOOL CALLBACK MultiChoiceDialogProc (HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 		// This prevents the window from being closed by pressing Alt-F4 (the Close button is hidden).
 		// Note that the OS handles modal MessageBox() dialog windows the same way.
 		return 1;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 	}
 
 	return 0;
@@ -8428,6 +8560,7 @@ typedef struct
 static void _cdecl WaitThread (void* pParam)
 {
 	WaitThreadParam* pThreadParam = (WaitThreadParam*) pParam;
+	ScreenCaptureBlocker screenCaptureBlocker;
 
 	pThreadParam->callback(pThreadParam->pArg, pThreadParam->hwnd);
 
@@ -8481,6 +8614,10 @@ BOOL CALLBACK WaitDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			return 1;
 		else
 			return 0;
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		return 0;
 
 	default:
 		if (msg == g_wmWaitDlg)
@@ -11142,6 +11279,19 @@ std::wstring GetWindowsEdition ()
 extern wchar_t InstallationPath[TC_MAX_PATH];
 #endif
 
+// Check if given language has a corresponding translated documentation
+BOOL HasTranslatedDocumentation(const char* language)
+{
+    // hardcoded list of languages for which a translated documentation exists
+    const char* supportedLanguages[] = { "en", "ru", "zh-cn"};
+    for (size_t i = 0; i < sizeof(supportedLanguages) / sizeof(supportedLanguages[0]); i++)
+    {
+        if (strcmp(language, supportedLanguages[i]) == 0)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 void Applink (const char *dest)
 {
 	wchar_t url [MAX_URL_LENGTH] = {0};
@@ -11149,6 +11299,19 @@ void Applink (const char *dest)
 	wchar_t installDir[TC_MAX_PATH] = {0};
 	BOOL buildUrl = TRUE;
 	INT_PTR r;
+	wchar_t currentLanguage[8];
+	if (strcmp (GetPreferredLangId(), "en") == 0
+	|| strlen(GetPreferredLangId()) == 0
+    || !HasTranslatedDocumentation(GetPreferredLangId()))
+	{
+		// set currentLanguage to "en"
+		StringCbCopyW(currentLanguage, sizeof(currentLanguage), L"en");
+	}
+	else
+	{
+        // set currentLanguage to return value of GetPreferredLangId()
+        StringCbPrintfW(currentLanguage, sizeof(currentLanguage), L"%S", GetPreferredLangId());
+	}
 
 	ArrowWaitCursor ();
 	
@@ -11193,7 +11356,7 @@ void Applink (const char *dest)
 	}
 	else if (strcmp(dest, "onlinehelp") == 0)
 	{
-		StringCbCopyW (url, sizeof (url),L"https://www.veracrypt.fr/en/Documentation.html");
+		StringCbPrintfW (url, sizeof (url),L"https://veracrypt.jp/%s/Documentation.html", currentLanguage);
 		buildUrl = FALSE;
 	}
 	else if (strcmp(dest, "keyfiles") == 0)
@@ -11305,18 +11468,32 @@ void Applink (const char *dest)
 #ifdef SETUP
 		if (IsInternetConnected())
 		{
-			StringCbPrintfW (url, sizeof (url), L"https://www.veracrypt.fr/en/%s", page);
+			StringCbPrintfW (url, sizeof (url), L"https://veracrypt.jp/%s/%s", currentLanguage, page);
 			buildUrl = FALSE;
 		}
-		else
+#endif
+		if (buildUrl)
 		{
-			StringCbPrintfW (url, sizeof (url), L"file:///%sdocs/html/en/%s", installDir, page);
+            // first check that directory of translated documentation exists
+            BOOL bFallbackToEnglish = FALSE;
+            if (wcscmp(currentLanguage, L"en") != 0)
+			{
+				std::wstring pageFullPath = installDir;
+				pageFullPath += L"docs\\html\\";
+				pageFullPath += currentLanguage;
+
+				if (!FileExists(pageFullPath.c_str()))
+				{
+					// fallback to English
+                    bFallbackToEnglish = TRUE;
+				}
+			}
+			if (bFallbackToEnglish)
+                StringCbPrintfW (url, sizeof (url), L"file:///%sdocs/html/en/%s", installDir, page);
+			else
+				StringCbPrintfW (url, sizeof (url), L"file:///%sdocs/html/%s/%s", installDir, currentLanguage, page);
 			CorrectURL (url);
 		}
-#else
-		StringCbPrintfW (url, sizeof (url), L"file:///%sdocs/html/en/%s", installDir, page);
-		CorrectURL (url);
-#endif
 	}
 
 	if (IsAdmin ())
@@ -11332,13 +11509,15 @@ void Applink (const char *dest)
 			if (S_OK == UrlUnescapeW (pageFileName, pageFileName, &cchUnescaped, URL_UNESCAPE_INPLACE))
 			{
 				std::wstring pageFullPath = installDir;
-				pageFullPath += L"docs\\html\\en\\";
+				pageFullPath += L"docs\\html\\";
+                pageFullPath += currentLanguage;
+				pageFullPath += L"\\";
 				pageFullPath += pageFileName;
 			
 				if (!FileExists (pageFullPath.c_str()))
 				{
 					// fallback to online resources
-					StringCbPrintfW (url, sizeof (url), L"https://www.veracrypt.fr/en/%s", page);
+					StringCbPrintfW (url, sizeof (url), L"https://veracrypt.jp/%s/%s", currentLanguage, page);
 					SafeOpenURL (url);
 					openDone = 1;
 				}
@@ -11357,7 +11536,7 @@ void Applink (const char *dest)
 		if (((r == ERROR_FILE_NOT_FOUND) || (r == ERROR_PATH_NOT_FOUND)) && buildUrl)
 		{
 			// fallback to online resources
-			StringCbPrintfW (url, sizeof (url), L"https://www.veracrypt.fr/en/%s", page);
+			StringCbPrintfW (url, sizeof (url), L"https://veracrypt.jp/%s/%s", currentLanguage, page);
 			ShellExecuteW (NULL, L"open", url, NULL, NULL, SW_SHOWNORMAL);
 		}			
 	}
@@ -11957,6 +12136,10 @@ BOOL CALLBACK SecurityTokenPasswordDlgProc (HWND hwndDlg, UINT msg, WPARAM wPara
 		}
 		return 1;
 
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
+
 	case WM_NCDESTROY:
 		{
 			/* unregister drap-n-drop support */
@@ -12028,6 +12211,10 @@ static BOOL CALLBACK NewSecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPA
 			SetWindowTextW (GetDlgItem (hwndDlg, IDC_TOKEN_KEYFILE_NAME), Utf8StringToWide (newParams->Name).c_str());
 			return 1;
 		}
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 
 	case WM_COMMAND:
 		switch (lw)
@@ -12184,6 +12371,10 @@ BOOL CALLBACK SecurityTokenKeyfileDlgProc (HWND hwndDlg, UINT msg, WPARAM wParam
 			SecurityTokenKeyfileDlgFillList (hwndDlg, keyfiles);
 			return 1;
 		}
+
+	case WM_DESTROY:
+		DetachProtectionFromCurrentThread();
+		break;
 
 	case WM_COMMAND:
 	case WM_NOTIFY:
@@ -13984,6 +14175,8 @@ static unsigned int __stdcall SecureDesktopThread( LPVOID lpThreadParameter )
 
 	if (bNewDesktopSet)
 	{
+		ScreenCaptureBlocker blocker;
+
 		// call ImmDisableIME　from imm32.dll to disable IME since it can create issue with secure desktop
 		// cf: https://keepass.info/help/kb/sec_desk.html#ime
 		HMODULE hImmDll = LoadLibraryEx (L"imm32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -15983,5 +16176,232 @@ cleanup:
 		FreeSid(pAdminSID);
 
 	return result;
+}
+#endif
+
+#if !defined(SETUP) && !defined(VC_COMREG)
+
+/*
+* Screen Protection Functions
+* These functions provide against screen capture, screen recording,  
+* and Windows 11 Recall feature by leveraging the Windows Display Affinity API.
+* 
+* Main windows/dialogs are protected via HCBT_ACTIVATE hook while menus/tooltips are protected
+* via selective window subclassing that allows calling SetWindowDisplayAffinity when they are created.
+* 
+* limitations: ComboBox dropdowns are not protected on Windows 11 because of a regression affecting 
+* layered windows (combobox dropdowns are layered windows)
+* 
+* Author: Mounir IDRASSI <mounir.idrassi@amcrypto.jp> for the VeraCrypt project
+* Date: 2025-05-23
+* 
+*/
+
+#include <atomic>
+#include <map>
+#include <mutex>
+
+static std::once_flag g_configOnce;                 // ensures one-time read
+static std::atomic_bool g_screenProtectionEnabled;  // readonly after init
+static thread_local HHOOK  g_cbtHook = nullptr;   // one per thread
+static thread_local int g_protectionRefCount = 0; 
+
+std::map<HWND, WNDPROC> g_MenuWndProcs;
+std::map<HWND, bool> g_Initialized;
+std::mutex g_MenuMutex;
+
+static void InitScreenProtectionFlag()
+{
+    // Runs exactly once thanks to std::call_once
+    BOOL enabled = ReadScreenProtectionConfig();
+    g_screenProtectionEnabled.store(enabled, std::memory_order_release);
+}
+
+static bool IsScreenProtectionEnabled()
+{
+    std::call_once(g_configOnce, InitScreenProtectionFlag);
+    return g_screenProtectionEnabled.load(std::memory_order_acquire);
+}
+
+
+// Custom WndProc for menu windows
+static LRESULT CALLBACK ProtectedWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (msg == WM_CREATE) {
+		SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+	}
+
+	// Forward to original WndProc
+	WNDPROC origProc = nullptr;
+	{
+		std::lock_guard<std::mutex> lock(g_MenuMutex);
+		auto it = g_MenuWndProcs.find(hwnd);
+		if (it != g_MenuWndProcs.end())
+			origProc = it->second;
+	}
+
+	LRESULT result = 0;
+	if (origProc) {
+		result = CallWindowProc(origProc, hwnd, msg, wParam, lParam);
+	}
+	else {
+		// fallback to DefWindowProc if somehow no mapping exists
+		result = DefWindowProc(hwnd, msg, wParam, lParam);
+	}
+
+	if (msg == WM_NCDESTROY) {
+		// Clean up the mapping when the window is destroyed
+		std::lock_guard<std::mutex> lock(g_MenuMutex);
+		g_MenuWndProcs.erase(hwnd);
+		g_Initialized.erase(hwnd);
+	}
+
+	return result;
+}
+
+void SubclassProtectedWindow(HWND hwnd)
+{
+	WNDPROC origProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
+
+	{
+		std::lock_guard<std::mutex> lock(g_MenuMutex);
+		g_MenuWndProcs[hwnd] = origProc;
+		g_Initialized[hwnd] = false;
+	}
+
+	SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)ProtectedWndProc);
+}
+
+BOOL IsMenuWindow(HWND hwnd)
+{
+	TCHAR szClass[256] = { 0 };
+	GetClassName(hwnd, szClass, 255);
+	if (!_tcsicmp(szClass, _T("#32768")))
+	{
+		return TRUE;
+	}
+	else
+	{
+		return FALSE;
+	}
+}
+
+BOOL IsTooltipWindow(HWND hwnd)
+{
+	TCHAR szClass[256] = { 0 };
+	GetClassName(hwnd, szClass, 255);
+	if (!_tcsicmp(szClass, _T("tooltips_class32")))
+	{
+		return TRUE;
+	}
+	else if (!_tcsicmp(szClass, _T("SysShadow")))
+	{
+		// check if it has WS_EX_TOOLWINDOW style: this helps identify the arrow area of the tooltip
+		LONG_PTR exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+		if (exStyle & WS_EX_TOOLWINDOW)
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+static LRESULT CALLBACK CBT_PROC(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	// for normal windows, HCBT_ACTIVATE is enough but for menus and tooltips we need to subclass them
+	// in order to call SetWindowDisplayAffinity when they are created
+	if (nCode == HCBT_ACTIVATE)
+	{
+		HWND hwnd = (HWND)(wParam);
+		LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
+
+		if ((style & (WS_POPUP | WS_OVERLAPPEDWINDOW)))
+		{
+			// get current affinity
+			DWORD dwAffinity = 0;
+			if (GetWindowDisplayAffinity(hwnd, &dwAffinity))
+			{
+				// if the affinity is not set, set it to exclude from capture
+				if (dwAffinity != WDA_EXCLUDEFROMCAPTURE)
+				{
+					SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+				}
+				else
+				{
+					dwAffinity = 0;
+				}
+			}
+			else
+			{
+				// if we can't get the affinity, set it to exclude from capture
+				SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+			}
+		}
+	}
+
+	if (nCode == HCBT_CREATEWND)
+	{
+		HWND hwnd = (HWND)(wParam);
+		if (IsMenuWindow(hwnd) || IsTooltipWindow(hwnd))
+		{
+			SubclassProtectedWindow(hwnd);
+		}
+	}
+	return CallNextHookEx(g_cbtHook, nCode, wParam, lParam);
+}
+
+BOOL AttachProtectionToCurrentThread(HWND hwnd)
+{
+    if (!IsScreenProtectionEnabled())
+        return TRUE;
+
+	if (hwnd) SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+
+    if (g_protectionRefCount == 0)
+    {
+		// From now on, protect every future window/menu automatically.
+		// Set the hook only once per thread
+		g_cbtHook = SetWindowsHookExW(WH_CBT, CBT_PROC,
+			NULL,               // procedure lives in EXE
+			GetCurrentThreadId()); // thread-local hook
+		if (!g_cbtHook)
+		{
+			return FALSE;
+		}
+	}
+
+	g_protectionRefCount++;
+
+	return TRUE;
+}
+
+void DetachProtectionFromCurrentThread()
+{
+	if (!IsScreenProtectionEnabled())
+		return;
+
+    if (g_protectionRefCount == 0)
+        return;
+
+    --g_protectionRefCount;
+    if (g_protectionRefCount == 0)
+    {
+		// Last detach for this thread: remove hook
+		if (g_cbtHook)
+		{
+			UnhookWindowsHookEx(g_cbtHook);
+			g_cbtHook = nullptr;
+		}
+	}
+}
+#else
+// Dummy functions for screen protection
+BOOL AttachProtectionToCurrentThread(HWND hwnd)
+{
+	return TRUE;
+}
+void DetachProtectionFromCurrentThread()
+{
 }
 #endif

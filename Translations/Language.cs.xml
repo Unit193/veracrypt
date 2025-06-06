@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="cs" name="Čeština" en-name="Czech" version="1.3.0" translators="Vítek Moser, Lagardere" />
     <font lang="cs" class="normal" size="11" face="default" />
     <font lang="cs" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="cs" key="TC_INSTALLER_IS_RUNNING">Instalátor programu VeraCrypt momentálně běží na tomto systému a provádí nebo připravuje instalaci nebo update programu VeraCrypt. Než budete pokračovat, počkejte na dokončení nebo jej zavřete. Nemůžete-li ho zavřít, restartujte prosím počítač, než budete pokračovat.</entry>
     <entry lang="cs" key="INSTALL_FAILED">Instalace nebyla úspěšná.</entry>
     <entry lang="cs" key="UNINSTALL_FAILED">Odinstalace nebyla úspěšná.</entry>
-    <entry lang="cs" key="DIST_PACKAGE_CORRUPTED">Distribuční balíček je poškozený. Stáhněte jej prosím znovu (nejlépe z oficiálních stránek programu VeraCrypt na adrese https://www.veracrypt.fr).</entry>
+    <entry lang="cs" key="DIST_PACKAGE_CORRUPTED">Distribuční balíček je poškozený. Stáhněte jej prosím znovu (nejlépe z oficiálních stránek programu VeraCrypt na adrese https://veracrypt.jp).</entry>
     <entry lang="cs" key="CANNOT_WRITE_FILE_X">Nelze zapsat soubor %s</entry>
     <entry lang="cs" key="EXTRACTING_VERB">Rozbalení</entry>
     <entry lang="cs" key="CANNOT_READ_FROM_PACKAGE">Nelze přečíst data z balíčku.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="cs" key="HIDDEN_OS_CREATION_PREINFO_HELP">V následujícím kroku vytvoří VeraCrypt skrytý operační systém tak, že zkopíruje obsah systémového diskového oddílu do skrytého svazku (kopírovaná data budou zašifrována za běhu jiným šifrovacím klíčem, než je ten, co se používá pro klamný operační systém).\n\nÚkon bude proveden v prostředí zavaděče (než se Windows spustí) a může to trvat delší dobu; několik hodin nebo dokonce několik dní (záleží na velikosti systémového diskového oddílu a na výkonu vašeho počítače).\n\nBudete moci úkon přerušit, vypnout počítač a pak spustit operační systém a pokračovat v úkonu. Pokud ho ale přerušíte, celý úkon kopírování systému bude spuštěn úplně od začátku (protože obsah systémového diskového oddílu se nesmí během klonování změnit).</entry>
     <entry lang="cs" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Chcete zrušit celý úkon vytváření skrytého operačního systému?\n\nPoznámka: NEBUDETE moci pokračovat, pokud ho nyní zrušíte.</entry>
     <entry lang="cs" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Chcete zrušit před-testování šifrování systému?</entry>
-    <entry lang="cs" key="BOOT_PRETEST_FAILED_RETRY">Předběžná zkouška zašifrování systému nebyla úspěšná. Chcete to zkusit znovu?\n\nVyberete-li „Ne”, ověřovací součást zavaděče bude odinstalována.\n\nPoznámka:\n\n- Nevyzval-li vás zavaděč VeraCryptu k zadání hesla před spuštěním Windows, je možné, že váš operační systém se nezavádí z disku, na kterém je nainstalován. To není podporováno.\n\n- Pokud jste použili jiný šifrovací algoritmus než AES a předběžná zkouška nebyla úspěšná (a vy jste zadali heslo), může to být způsobeno nevhodně navrženým ovladačem. Vyberte „Ne” a zkuste systémový diskový oddíl/jednotku znovu zašifrovat, ale použijte šifrovací algoritmus AES (který má nejmenší nároky na paměť).\n\n- Pro zjištění, jaké jsou další možné příčiny a řešení, viz: https://www.veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="cs" key="BOOT_PRETEST_FAILED_RETRY">Předběžná zkouška zašifrování systému nebyla úspěšná. Chcete to zkusit znovu?\n\nVyberete-li „Ne”, ověřovací součást zavaděče bude odinstalována.\n\nPoznámka:\n\n- Nevyzval-li vás zavaděč VeraCryptu k zadání hesla před spuštěním Windows, je možné, že váš operační systém se nezavádí z disku, na kterém je nainstalován. To není podporováno.\n\n- Pokud jste použili jiný šifrovací algoritmus než AES a předběžná zkouška nebyla úspěšná (a vy jste zadali heslo), může to být způsobeno nevhodně navrženým ovladačem. Vyberte „Ne” a zkuste systémový diskový oddíl/jednotku znovu zašifrovat, ale použijte šifrovací algoritmus AES (který má nejmenší nároky na paměť).\n\n- Pro zjištění, jaké jsou další možné příčiny a řešení, viz: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="cs" key="SYS_DRIVE_NOT_ENCRYPTED">Systémový diskový oddíl/disk pravděpodobně není zašifrován (ani částečně ani plně).</entry>
     <entry lang="cs" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Váš systémový diskový oddíl/disk je zašifrován (částečně nebo plně).\n\nPřed pokračováním celý systémový diskový oddíl/disk nejdříve dešifrujte. Chcete-li tak učinit, zvolte „Systém &gt; Trvale dešifrovat systémový diskový oddíl/disk” z nabídky hlavního okna programu VeraCrypt.</entry>
     <entry lang="cs" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Je-li systémový diskový oddíl/disk zašifrován (částečně nebo úplně), nemůžete snížit verzi VeraCryptu (ale můžete jej aktualizovat nebo přeinstalovat stejnou verzí).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="cs" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Chyba: Disk používá jinou velikost sektoru než 512 bajtů.\n\nVzhledem k omezením komponent dostupných na vaší platformě, svazky hostované diskovým oddílem/zařízením nemohou být vytvořeny/použity.\n\nMožná řešení:\n- Vytvořit na jednotce svazek pro soubory (kontejner).\n- Použít jednotku s 512bajtovými sektory.\n- Použít VeraCrypt na jiné platformě.</entry>
     <entry lang="cs" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Hostitelský soubor/zařízení se již používá.</entry>
     <entry lang="cs" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Slot pro svazek není k dispozici.</entry>
-    <entry lang="cs" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt vyžaduje minimálně OSXFUSE 2.5.</entry>
+    <entry lang="cs" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt vyžaduje minimálně macFUSE 2.5.</entry>
     <entry lang="cs" key="EXCEPTION_OCCURRED">Vyskytla se chyba</entry>
     <entry lang="cs" key="ENTER_PASSWORD">Zadejte heslo</entry>
     <entry lang="cs" key="ENTER_TC_VOL_PASSWORD">Zadejte heslo ke svazku Veracrypt</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="cs" key="MOUNTPOINT_BLOCKED">CHYBA: Připojovací bod svazku je blokován, jelikož je nadřazen chráněnému systémovému adresáři.\n\nProsím, zvolte jiný přípojovací bod.</entry>
     <entry lang="cs" key="MOUNTPOINT_NOTALLOWED">CHYBA: Připojovací bod svazku není povolen, jelikož přepisuje adresář, jenž je součástí proměnného prostředí PATH.\n\nProsím, vyberte jiný připojovací bod.</entry>
     <entry lang="cs" key="INSECURE_MODE">[NEZABEZPEČENÝ REŽIM]</entry>
+    <entry lang="cs" key="IDC_DISABLE_SCREEN_PROTECTION">Zakázat ochranu proti snímkům obrazovky a záznamu obrazovky</entry>
+    <entry lang="cs" key="DISABLE_SCREEN_PROTECTION_WARNING">UPOZORNĚNÍ: Vypnutí ochrany obrazovky výrazně snižuje úroveň zabezpečení. Tuto možnost povolte POUZE v případě, že potřebujete konkrétně zachytit rozhraní VeraCryptu. Toto nastavení může vystavit citlivá data nástrojům pro snímání obrazovky a funkcím pro záznam obrazovky, jako je například Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

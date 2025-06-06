@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2013-2024 IDRIX
+# Copyright (c) 2013-2025 AM Crypto
 # Governed by the Apache License 2.0 the full text of which is contained
 # in the file License.txt included in VeraCrypt binary and source
 # code distribution packages.
@@ -72,6 +72,7 @@ build_and_install() {
         indicator_value="INDICATOR=1"
     fi
 
+    rm -rf "$PARENTDIR/VeraCrypt_Setup/$target"
     make $wxstatic_value $indicator_value $nogui clean || exit 1
     make $wxstatic_value $indicator_value $nogui || exit 1
     make $wxstatic_value $indicator_value $nogui install DESTDIR="$PARENTDIR/VeraCrypt_Setup/$target" || exit 1
@@ -105,7 +106,11 @@ echo "Creating VeraCrypt DEB packages"
 # -DCPACK_RPM_PACKAGE_DEBUG=TRUE for debugging cpack DEB
 # -DCPACK_RPM_PACKAGE_DEBUG=TRUE for debugging cpack DEB
 
-mkdir -p $PARENTDIR/VeraCrypt_Packaging/{GUI,Console}
+# remove old packages
+rm -rf $PARENTDIR/VeraCrypt_Packaging
+
+mkdir -p $PARENTDIR/VeraCrypt_Packaging/GUI
+mkdir -p $PARENTDIR/VeraCrypt_Packaging/Console
 
 cmake -H$SCRIPTPATH -B$PARENTDIR/VeraCrypt_Packaging/GUI -DVERACRYPT_BUILD_DIR="$PARENTDIR/VeraCrypt_Setup/GUI" -DNOGUI=FALSE || exit 1
 cpack --config $PARENTDIR/VeraCrypt_Packaging/GUI/CPackConfig.cmake || exit 1

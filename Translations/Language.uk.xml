@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="uk" name="Українська" en-name="Ukrainian" version="1.1.0" translators="Kravchuk Olexandr, Babchuk Volodymyr" />
     <font lang="uk" class="normal" size="11" face="default" />
     <font lang="uk" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="uk" key="TC_INSTALLER_IS_RUNNING">В этой системе сейчас запущен инсталлятор VeraCrypt. Он выполняет/готовит установку или обновление VeraCrypt. Дождитесь завершения его работы или закройте его. Если закрыть инсталлятор не получается, перезагрузите комп'ютер и лишь потом продолжите.</entry>
     <entry lang="uk" key="INSTALL_FAILED">Невдале встановлювання.</entry>
     <entry lang="uk" key="UNINSTALL_FAILED">Невдале видалення.</entry>
-    <entry lang="uk" key="DIST_PACKAGE_CORRUPTED">Цей файл встановлення пошкоджено. Будь ласка, спробуйте завантажити його знову (рекомендовано з офіційної сторінки VeraCrypt на https://www.veracrypt.fr).</entry>
+    <entry lang="uk" key="DIST_PACKAGE_CORRUPTED">Цей файл встановлення пошкоджено. Будь ласка, спробуйте завантажити його знову (рекомендовано з офіційної сторінки VeraCrypt на https://veracrypt.jp).</entry>
     <entry lang="uk" key="CANNOT_WRITE_FILE_X">Неможливо записати файл %s</entry>
     <entry lang="uk" key="EXTRACTING_VERB">Видобування</entry>
     <entry lang="uk" key="CANNOT_READ_FROM_PACKAGE">Неможливо прочитати дані з файлу встановлювання.</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="uk" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Помилка: диск використовує розмір сектора, відмінний від 512 байт.\n\nЧерез обмеження компонентів, доступних на вашій платформі, томи, що розміщені на розділі/пристрої, не можна створити/використовувати на диску.\n\nМожливі рішення:\n- Створіть том (контейнер) на диску.\n- Використовуйте диск із секторами розміром 512 байт.\n- Використовуйте VeraCrypt на іншій платформі.</entry>
     <entry lang="uk" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Файл/пристрій, що розміщує том, уже використовується.</entry>
     <entry lang="uk" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Слот тому недоступний.</entry>
-    <entry lang="uk" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt потребує OSXFUSE 2.5 або вище.</entry>
+    <entry lang="uk" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt потребує macFUSE 2.5 або вище.</entry>
     <entry lang="uk" key="EXCEPTION_OCCURRED">Сталася виняткова ситуація</entry>
     <entry lang="uk" key="ENTER_PASSWORD">Введіть пароль</entry>
     <entry lang="uk" key="ENTER_TC_VOL_PASSWORD">Введіть пароль до тому VeraCrypt</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="uk" key="MOUNTPOINT_BLOCKED">ПОМИЛКА: Точка монтування тому заблокована, оскільки вона заміщує захищений системний каталог.\n\nБудь ласка, оберіть іншу точку монтування.</entry>
     <entry lang="uk" key="MOUNTPOINT_NOTALLOWED">ПОМИЛКА: Точка монтування тому не дозволена, оскільки вона заміщує каталог, який є частиною змінної середовища PATH.\n\nБудь ласка, оберіть іншу точку монтування.</entry>
     <entry lang="uk" key="INSECURE_MODE">[НЕБЕЗПЕЧНИЙ РЕЖИМ]</entry>
+    <entry lang="uk" key="IDC_DISABLE_SCREEN_PROTECTION">Вимкнути захист від створення знімків екрана та запису екрану</entry>
+    <entry lang="uk" key="DISABLE_SCREEN_PROTECTION_WARNING">ПОПЕРЕДЖЕННЯ: Вимкнення захисту екрана значно знижує безпеку. Активуйте цю опцію ЛИШЕ за наявності конкретної потреби зафіксувати інтерфейс VeraCrypt. Це може призвести до витоку чутливих даних через інструменти створення знімків екрана та запису екрану, наприклад, Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

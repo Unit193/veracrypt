@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.20">
+  <localization prog-version= "1.26.24">
     <language langid="sl" name="Slovenščina" en-name="Slovenian" version="0.1.0" translators="Erik David Salam, Sasa Divjak" />
     <font lang="sl" class="normal" size="11" face="default" />
     <font lang="sl" class="bold" size="13" face="Arial" />
@@ -855,7 +855,7 @@
     <entry lang="sl" key="TC_INSTALLER_IS_RUNNING">Namestitveni program VeraCrypt Installer se trenutno izvaja v tem sistemu in izvaja ali pripravlja namestitev ali posodobitev VeraCrypt. Preden nadaljuješ, počakaj, da se konča, ali pa ga zapri. Če ga ne moreš zapreti, znova zaženi računalnik, preden nadaljuješ.</entry>
     <entry lang="sl" key="INSTALL_FAILED">Namestitev ni uspela.</entry>
     <entry lang="sl" key="UNINSTALL_FAILED">Odstranitev ni uspela.</entry>
-    <entry lang="sl" key="DIST_PACKAGE_CORRUPTED">Ta distribucijski paket je poškodovan. Poskusi ga znova prenesti (po možnosti z uradne spletne strani VeraCrypt na naslovu https://www.veracrypt.fr).</entry>
+    <entry lang="sl" key="DIST_PACKAGE_CORRUPTED">Ta distribucijski paket je poškodovan. Poskusi ga znova prenesti (po možnosti z uradne spletne strani VeraCrypt na naslovu https://veracrypt.jp).</entry>
     <entry lang="sl" key="CANNOT_WRITE_FILE_X">Ne morem zapisati datoteke %s</entry>
     <entry lang="sl" key="EXTRACTING_VERB">Ekstrakcija</entry>
     <entry lang="sl" key="CANNOT_READ_FROM_PACKAGE">Ne morem brati podatkov iz paketa.</entry>
@@ -1229,7 +1229,7 @@
     <entry lang="sl" key="HIDDEN_OS_CREATION_PREINFO_HELP">V naslednjih korakih bo VeraCrypt ustvaril skriti operacijski sistem s kopiranjem vsebine sistemske particije na skriti nosilec (podatki, ki se kopirajo, bodo sproti šifrirani s šifrirnim ključem, ki se razlikuje od tistega, ki se bo uporabljal za operacijo z vabnim sistemom).\n\nUpoštevaj, da bo postopek izveden v predzagonskem okolju (pred zagonom sistema Windows) in lahko traja dolgo časa; več ur ali celo več dni (odvisno od velikosti sistemske particije in zmogljivosti vašega računalnika).\n\nProces boš lahko prekinil, izklopil računalnik, zagnal operacijski sistem in nato nadaljeval s postopkom . Če pa ga prekineš, bo treba celoten proces kopiranja sistema začeti od začetka (ker se vsebina sistemske particije med kloniranjem ne sme spreminjati).</entry>
     <entry lang="sl" key="CONFIRM_CANCEL_HIDDEN_OS_CREATION">Ali želiš preklicati celoten postopek ustvarjanja skritega operacijskega sistema?\n\nOpomba: Če ga zdaj prekličeš, postopka NE boš mogel nadaljevati.</entry>
     <entry lang="sl" key="CONFIRM_CANCEL_SYS_ENC_PRETEST">Ali želiš preklicati predpreizkus šifriranja sistema?</entry>
-    <entry lang="sl" key="BOOT_PRETEST_FAILED_RETRY">Predpreizkus šifriranja sistema VeraCrypt ni uspel. Ali želiš poskusiti znova?\n\nČe izbereš »Ne«, bo komponenta za preverjanje pristnosti pred zagonom odstranjena.\n\nOpombe:\n\n- Če zagonski nalagalnik VeraCrypt ni zahteval vnosa gesla preden se Windows zažene, je možno, da se tvoj operacijski sistem ne zažene s pogona, na katerem je nameščen. To ni podprto.\n\n- Če si uporabil šifrirni algoritem, ki ni AES, in predtestiranje ni uspelo (in si vnesel geslo), je to morda povzročil neustrezno oblikovan gonilnik. Izberi »Ne« in znova poskusi šifrirati sistemsko particijo/pogon, vendar uporabi šifrirni algoritem AES (ki ima najnižje pomnilniške zahteve).\n\n- Za več možnih vzrokov in rešitev glej: https://www. veracrypt.fr/en/Troubleshooting.html</entry>
+    <entry lang="sl" key="BOOT_PRETEST_FAILED_RETRY">Predpreizkus šifriranja sistema VeraCrypt ni uspel. Ali želiš poskusiti znova?\n\nČe izbereš »Ne«, bo komponenta za preverjanje pristnosti pred zagonom odstranjena.\n\nOpombe:\n\n- Če zagonski nalagalnik VeraCrypt ni zahteval vnosa gesla preden se Windows zažene, je možno, da se tvoj operacijski sistem ne zažene s pogona, na katerem je nameščen. To ni podprto.\n\n- Če si uporabil šifrirni algoritem, ki ni AES, in predtestiranje ni uspelo (in si vnesel geslo), je to morda povzročil neustrezno oblikovan gonilnik. Izberi »Ne« in znova poskusi šifrirati sistemsko particijo/pogon, vendar uporabi šifrirni algoritem AES (ki ima najnižje pomnilniške zahteve).\n\n- Za več možnih vzrokov in rešitev glej: https://veracrypt.jp/en/Troubleshooting.html</entry>
     <entry lang="sl" key="SYS_DRIVE_NOT_ENCRYPTED">Sistemska particija/pogon očitno ni šifrirana (ne deloma ali v celoti).</entry>
     <entry lang="sl" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED">Tvoja sistemska particija/pogon je šifriran (delno ali v celoti).\n\nPred nadaljevanjem v celoti dešifriraj svojo sistemsko particijo/pogon. To storiš tako, da v menijski vrstici glavnega okna VeraCrypt izbereš 'Sistem' &gt; 'Trajno dešifriraj sistemsko particijo/pogon'.</entry>
     <entry lang="sl" key="SETUP_FAILED_BOOT_DRIVE_ENCRYPTED_DOWNGRADE">Ko je sistemska particija/pogon šifriran (delno ali v celoti), VeraCrypt ne moreš spremeniti v prejšnjo različico (lahko pa ga nadgradiš ali znova namestiš isto različico).</entry>
@@ -1553,7 +1553,7 @@
     <entry lang="sl" key="LINUX_EX2MSG_UNSUPPORTEDSECTORSIZE">Napaka: pogon uporablja velikost sektorja, ki ni 512 bajtov.\n\nZaradi omejitev komponent, ki so na voljo na tvoji platformi, nosilcev, ki gostujejo v particiji/napravi, ni mogoče ustvariti/uporabiti na disku.\n\nMožne rešitve:\n- Na pogonu ustvari nosilec (vsebnik), ki gostuje v datotekah.\n- Uporabi pogon s 512-bajtnimi sektorji.\n- Uporabi VeraCrypt na drugi platformi.</entry>
     <entry lang="sl" key="LINUX_EX2MSG_VOLUMEHOSTINUSE">Gostiteljska datoteka/naprava je že v uporabi.</entry>
     <entry lang="sl" key="LINUX_EX2MSG_VOLUMESLOTUNAVAILABLE">Reža nosilca ni na voljo.</entry>
-    <entry lang="sl" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt zahteva OSXFUSE 2.5 ali novejši.</entry>
+    <entry lang="sl" key="LINUX_EX2MSG_HIGHERFUSEVERSIONREQUIRED">VeraCrypt zahteva macFUSE 2.5 ali novejši.</entry>
     <entry lang="sl" key="EXCEPTION_OCCURRED">Prišlo je do izjeme</entry>
     <entry lang="sl" key="ENTER_PASSWORD">Vnesi geslo</entry>
     <entry lang="sl" key="ENTER_TC_VOL_PASSWORD">Vnesi geslo nosilca VeraCrypt</entry>
@@ -1644,6 +1644,8 @@
     <entry lang="sl" key="MOUNTPOINT_BLOCKED">NAPAKA: Tocka priklopa nosilca je blokirana, ker prekriva zašciteno sistemsko mapo.\n\nIzberite drugo tocko priklopa.</entry>
     <entry lang="sl" key="MOUNTPOINT_NOTALLOWED">NAPAKA: Tocka priklopa nosilca ni dovoljena, ker prekriva mapo, ki je del okoljske spremenljivke PATH.\n\nIzberite drugo tocko priklopa.</entry>
     <entry lang="sl" key="INSECURE_MODE">[NEVAREN NACIN]</entry>
+    <entry lang="sl" key="IDC_DISABLE_SCREEN_PROTECTION">Onemogoči zaščito pred zajemanjem zaslona in snemanjem zaslona</entry>
+    <entry lang="sl" key="DISABLE_SCREEN_PROTECTION_WARNING">OPOZORILO: Onemogočanje zaščite zaslona bistveno zmanjša varnost. Omogoči to možnost SAMO, če imaš poseben razlog za zajem uporabniškega vmesnika VeraCrypt. S tem lahko občutljivi podatki postanejo dostopni orodjem za zajem zaslona in funkcijam snemanja zaslona, kot je Windows 11 Recall.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

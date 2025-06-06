@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -48,7 +48,7 @@ enum
 	TC_TBXID_EXTRA_BOOT_PARTITION_REMOVAL_INSTRUCTIONS
 };
 
-#define TC_APPLICATION_ID	L"IDRIX.VeraCrypt"
+#define TC_APPLICATION_ID	L"AMCrypto.VeraCrypt"
 
 #define TC_MUTEX_NAME_SYSENC				L"Global\\VeraCrypt System Encryption Wizard"
 #define TC_MUTEX_NAME_NONSYS_INPLACE_ENC	L"Global\\VeraCrypt In-Place Encryption Wizard"
@@ -355,6 +355,8 @@ uint32 ReadServiceConfigurationFlags ();
 uint32 ReadEncryptionThreadPoolFreeCpuCountLimit ();
 BOOL ReadMemoryProtectionConfig ();
 BOOL WriteMemoryProtectionConfig (BOOL bEnable);
+BOOL ReadScreenProtectionConfig();
+BOOL WriteScreenProtectionConfig(BOOL bEnable);
 BOOL LoadSysEncSettings ();
 int LoadNonSysInPlaceEncSettings (WipeAlgorithmId *wipeAlgorithm);
 void RemoveNonSysInPlaceEncNotifications (void);
@@ -602,6 +604,9 @@ DWORD FastResizeFile (const wchar_t* filePath, __int64 fileSize);
 void GetAppRandomSeed (unsigned char* pbRandSeed, size_t cbRandSeed);
 #endif
 BOOL IsInternetConnected();
+BOOL AttachProtectionToCurrentThread(HWND hwnd);
+void DetachProtectionFromCurrentThread();
+
 #if defined(SETUP) && !defined (PORTABLE)
 typedef struct _SECURITY_INFO_BACKUP {
 	PSID pOrigOwner;
@@ -814,6 +819,27 @@ public:
 BOOL GetHibernateStatus (BOOL& bHibernateEnabled, BOOL& bHiberbootEnabled);
 bool GetKbList (std::vector<std::wstring>& kbList);
 bool OneOfKBsInstalled (const wchar_t* szKBs[], int count);
+
+class ScreenCaptureBlocker
+{
+public:
+	ScreenCaptureBlocker(HWND hwnd = NULL)
+		: m_hwnd(hwnd), m_attached(false)
+	{
+		m_attached = AttachProtectionToCurrentThread(m_hwnd);
+	}
+
+	~ScreenCaptureBlocker()
+	{
+		if (m_attached)
+			DetachProtectionFromCurrentThread();
+	}
+
+private:
+	HWND m_hwnd;
+	bool m_attached;
+};
+
 
 #endif // __cplusplus
 

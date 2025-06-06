@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 IDRIX
+ and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -314,7 +314,11 @@ namespace VeraCrypt
 					if (sudoAbsolutePath.empty())
 						throw SystemException(SRC_POS, errorMsg);
 
-					std::string popenCommand = sudoAbsolutePath + " -n true > /dev/null 2>&1";	//	We redirect stderr to stdout (2>&1) to be able to catch the result of the command
+					string trueAbsolutePath = Process::FindSystemBinary("true", errorMsg);
+					if (trueAbsolutePath.empty())
+						throw SystemException(SRC_POS, errorMsg);
+
+					std::string popenCommand = sudoAbsolutePath + " -n " + trueAbsolutePath + " > /dev/null 2>&1";	//	We redirect stderr to stdout (2>&1) to be able to catch the result of the command
 					FILE* pipe = popen(popenCommand.c_str(), "r");
 					if (pipe)
 					{
@@ -426,6 +430,18 @@ namespace VeraCrypt
 							throw SystemException(SRC_POS, errorMsg);
 					}
 
+#if defined(TC_LINUX)
+                    // AppImage specific handling:
+                    // If running from an AppImage, use the path to the AppImage file itself for sudo.
+                    const char* appImageEnv = getenv("APPIMAGE");
+
+                    if (Process::IsRunningUnderAppImage(appPath) && appImageEnv != NULL)
+					{
+						// The path to the AppImage file is stored in the APPIMAGE environment variable.
+						// We need to use this path for sudo to work correctly.
+                        appPath = appImageEnv;
+                    }
+#endif
 					throw_sys_if (dup2 (inPipe->GetReadFD(), STDIN_FILENO) == -1);
 					throw_sys_if (dup2 (outPipe->GetWriteFD(), STDOUT_FILENO) == -1);
 					throw_sys_if (dup2 (errPipe.GetWriteFD(), STDERR_FILENO) == -1);
