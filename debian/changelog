@@ -1,3 +1,11 @@
+veracrypt (1.26.24-0vanir1) unstable; urgency=medium
+
+  * New upstream version 1.26.24.
+  * d/veracrypt.doc-base: Drop, not really useful.
+  * Update Standards-Version to 4.7.2.
+
+ -- Unit 193 <unit193@unit193.net>  Fri, 06 Jun 2025 19:18:33 -0400
+
 veracrypt (1.26.20-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.26.20.
