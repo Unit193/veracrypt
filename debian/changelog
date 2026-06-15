@@ -1,3 +1,14 @@
+veracrypt (1.26.29-0vanir1) unstable; urgency=medium
+
+  * d/watch: Convert to watch v5.
+  * New upstream version 1.26.29.
+    - d/p/*: Replace fuse3 port with automatic fuse3 fallback.
+  * d/control: Drop 'priority' and R³, set by default.
+  * d/copyright: Bump years.
+  * Update Standards-Version to 4.7.4.
+
+ -- Unit 193 <unit193@unit193.net>  Mon, 15 Jun 2026 05:26:06 -0400
+
 veracrypt (1.26.24-0vanir1) unstable; urgency=medium
 
   * New upstream version 1.26.24.
