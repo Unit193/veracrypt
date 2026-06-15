@@ -8,7 +8,7 @@ Build-Depends: debhelper-compat (= 13),
  libwxgtk3.2-dev | libwxgtk3.0-gtk3-dev,
  pkgconf,
  yasm [any-i386 any-amd64]
-Standards-Version: 4.7.2
+Standards-Version: 4.7.4
 Homepage: https://veracrypt.fr/
 
 Package: veracrypt
