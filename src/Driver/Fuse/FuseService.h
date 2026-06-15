@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -45,11 +45,13 @@ namespace VeraCrypt
 		static bool CheckAccessRights ();
 		static void Dismount ();
 		static int ExceptionToErrorCode ();
+		static const char *GetAuxDeviceInfoPath () { return "/aux-device-info"; }
 		static const char *GetControlPath () { return "/control"; }
 		static const char *GetVolumeImagePath ();
 		static string GetDeviceType () { return "veracrypt"; }
-		static uid_t GetGroupId () { return GroupId; }
+		static gid_t GetGroupId () { return GroupId; }
 		static uid_t GetUserId () { return UserId; }
+		static shared_ptr <Buffer> GetAuxDeviceInfo ();
 		static shared_ptr <Buffer> GetVolumeInfo ();
 		static uint64 GetVolumeSize ();
 		static uint64 GetVolumeSectorSize () { return MountedVolume->GetSectorSize(); }

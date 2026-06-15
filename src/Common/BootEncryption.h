@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -27,6 +27,10 @@ using namespace std;
 
 namespace VeraCrypt
 {
+#ifdef VC_EFI_BOOTLOADER_SELECTION_TEST
+	bool TestFirmwareDbBufferContainsMicrosoft2023UefiCAs (const uint8* db, size_t dbSize);
+#endif
+
 	class File
 	{
 	public:
@@ -40,6 +44,7 @@ namespace VeraCrypt
 		DWORD Read (uint8 *buffer, DWORD size);
 		void Write (uint8 *buffer, DWORD size);
 		void SeekAt (int64 position);
+		void SetEnd ();
 		void GetFileSize (unsigned __int64& size);
 		void GetFileSize (DWORD& dwSize);
       bool IoCtl(DWORD code, void* inBuf, DWORD inBufSize, void* outBuf, DWORD outBufSize);
@@ -198,15 +203,19 @@ namespace VeraCrypt
 		void PrepareBootPartition(bool bDisableException = false);
 		bool IsEfiBoot();
 
-		void DeleteStartExec(uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL);
+		bool DeleteStartExec(uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL);
 		void SetStartExec(wstring description, wstring execPath, bool setBootEntry = true, bool forceFirstBootEntry = true, bool setBootNext = true, uint16 statrtOrderNum = 0xDC5B, wchar_t* type = NULL, uint32 attr = 1);
 		void SaveFile(const wchar_t* name, uint8* data, DWORD size);
 		void GetFileSize(const wchar_t* name, unsigned __int64& size);
 		void ReadFile(const wchar_t* name, uint8* data, DWORD size);
+		bool ReadFileToBuffer (const wchar_t* name, std::vector<uint8>& fileContent);
 		void CopyFile(const wchar_t* name, const wchar_t* targetName);
 		bool FileExists(const wchar_t* name);
 		static bool CompareFiles (const wchar_t* fileName1, const wchar_t* fileName2);
 		static bool CompareFileData (const wchar_t* fileName, const uint8* data, DWORD size);
+		bool FileHasPattern (const wchar_t* name, const void* pattern, size_t patternLen);
+		bool IsVeraCryptBootLoader (const wchar_t* name);
+		bool IsWindowsBootLoader (const wchar_t* name);
 
 		BOOL RenameFile(const wchar_t* name, const wchar_t* nameNew, BOOL bForce);
 		BOOL DelFile(const wchar_t* name);
@@ -313,6 +322,7 @@ namespace VeraCrypt
 		void RestoreSystemLoader ();
 		static void UpdateSetupConfigFile (bool bForInstall);
 		void GetSecureBootConfig (BOOL* pSecureBootEnabled, BOOL *pVeraCryptKeysLoaded);
+		void GetEfiBootLoaderSigningSupport (BOOL* pMicrosoft2023UefiCAsSupported);
 		bool IsUsingUnsupportedAlgorithm(LONG driverVersion);
 		void NotifyService (DWORD dwNotifyCmd);
 	protected:

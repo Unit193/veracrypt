@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -129,6 +129,8 @@
 
 #define VC_IOCTL_ENCRYPTION_QUEUE_PARAMS				TC_IOCTL (43)
 
+#define TC_IOCTL_ABORT_MOUNT_VOLUME						TC_IOCTL (44)
+
 // Undocumented IOCTL sent by Windows 10 when handling EFS data on volumes
 #define IOCTL_UNKNOWN_WINDOWS10_EFS_ACCESS				0x455610D8
 
@@ -179,6 +181,12 @@ typedef struct
 	ULONG AlignmentMask;
 	BOOL VolumeMasterKeyVulnerable;
 } MOUNT_STRUCT;
+
+typedef struct
+{
+	int nDosDriveNo;					/* Drive number whose pending mount should be aborted; -1 aborts any pending mount */
+	int nReturnCode;					/* Return code back from driver */
+} MOUNT_ABORT_STRUCT;
 
 typedef struct
 {

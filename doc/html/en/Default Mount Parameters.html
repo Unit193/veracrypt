@@ -1,6 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>VeraCrypt - Free Open source disk encryption with strong security for the Paranoid</title>
@@ -42,10 +41,11 @@
 <p><img src="Home_VeraCrypt_Default_Mount_Parameters.png" alt="Default Mount Parameters Dialog"></p>
 <p>Make your modifications and then click OK.</p>
 <p>The chosen values are then written to VeraCrypt main configuration file (Configuration.xml) making them persistent.</p>
+<p>Under Linux, default filesystem mount options can also be specified in the <em>Mount options</em> field. For example, entering <code>noatime</code> makes VeraCrypt pass this option to Linux <code>mount -o</code> for subsequent mounts. These defaults can still be changed for an individual mount from the password dialog's <em>Options</em> button.</p>
 <p>All subsequent password request dialogs will use the default values chosen previously. For example, if in the Default Mount Parameters dialog you check TrueCrypt Mode and you select SHA-512 as a PRF, then subsequent password dialogs will look like:<br>
 <img src="Default Mount Parameters_VeraCrypt_password_using_default_parameters.png" alt="Mount Password Dialog using default values"></p>
 <p>&nbsp;</p>
-<p><strong>Note:</strong> The default mount parameters can be overridden by the&nbsp;<a href="Command%20Line%20Usage.html">Command Line</a> switches
+<p><strong>Note:</strong> The default mount parameters can be overridden by the&nbsp;<a href="Command%20Line%20Usage%20for%20Windows.html">Command Line</a> switches
 <strong>/tc</strong> and <strong>/hash</strong> which always take precedence.</p>
 <p>&nbsp;</p>
 </div><div class="ClearBoth"></div></body></html>

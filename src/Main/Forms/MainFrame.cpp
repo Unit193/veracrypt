@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -48,6 +48,11 @@ namespace VeraCrypt
 	MainFrame::MainFrame (wxWindow* parent) : MainFrameBase (parent),
 #ifdef HAVE_INDICATORS
 		indicator (NULL),
+		indicator_item_showhide (NULL),
+		indicator_item_mountfavorites (NULL),
+		indicator_item_dismountall (NULL),
+		indicator_item_prefs (NULL),
+		indicator_item_exit (NULL),
 #endif
 		ListItemRightClickEventPending (false),
 		SelectedItemIndex (-1),
@@ -651,7 +656,7 @@ namespace VeraCrypt
 			MountOptions mountOptions (GetPreferences().DefaultMountOptions);
 			if (CmdLine->ArgHash)
 			{
-				mountOptions.Kdf = Pkcs5Kdf::GetAlgorithm (*CmdLine->ArgHash);
+				mountOptions.Kdf = CmdLine->ArgHash;
 			}
 			if (CmdLine->ArgPim > 0)
 			{
@@ -676,7 +681,7 @@ namespace VeraCrypt
 			MountOptions mountOptions (GetPreferences().DefaultMountOptions);
 			if (CmdLine->ArgHash)
 			{
-				mountOptions.Kdf = Pkcs5Kdf::GetAlgorithm (*CmdLine->ArgHash);
+				mountOptions.Kdf = CmdLine->ArgHash;
 			}
 			if (CmdLine->ArgPim > 0)
 			{
@@ -707,7 +712,7 @@ namespace VeraCrypt
 		mountOptions.Path = GetSelectedVolumePath();
 		if (CmdLine->ArgHash)
 		{
-			mountOptions.Kdf = Pkcs5Kdf::GetAlgorithm (*CmdLine->ArgHash);
+			mountOptions.Kdf = CmdLine->ArgHash;
 		}
 		if (CmdLine->ArgPim > 0)
 		{
@@ -962,7 +967,7 @@ namespace VeraCrypt
 			MountOptions mountOptions (GetPreferences().DefaultMountOptions);
 			if (CmdLine->ArgHash)
 			{
-				mountOptions.Kdf = Pkcs5Kdf::GetAlgorithm (*CmdLine->ArgHash);
+				mountOptions.Kdf = CmdLine->ArgHash;
 			}
 			if (CmdLine->ArgPim > 0)
 			{
@@ -1445,7 +1450,7 @@ namespace VeraCrypt
 			try
 			{
 				uint8 buf[128];
-				if (read (ShowRequestFifo, buf, sizeof (buf)) > 0 && Gui->IsInBackgroundMode())
+				if (read (ShowRequestFifo, buf, sizeof (buf)) > 0)
 					Gui->SetBackgroundMode (false);
 			}
 			catch (...)
@@ -1687,7 +1692,6 @@ namespace VeraCrypt
 		}
 
 		VolumeInfoList protectionTriggeredVolumes;
-		SlotListCtrl->SetColumnWidth(0, wxLIST_AUTOSIZE);
 
 		// Update list
 		long prevItemIndex = -1;
@@ -1773,8 +1777,10 @@ namespace VeraCrypt
 			}
 		}
 
-		if (listChanged)
+		if (listChanged) {
+			SlotListCtrl->SetColumnWidth(0, wxLIST_AUTOSIZE);
 			OnListChanged();
+		}
 
 		foreach (shared_ptr <VolumeInfo> volume, protectionTriggeredVolumes)
 			OnHiddenVolumeProtectionTriggered (volume);

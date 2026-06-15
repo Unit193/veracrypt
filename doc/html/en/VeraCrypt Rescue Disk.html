@@ -1,6 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>VeraCrypt - Free Open source disk encryption with strong security for the Paranoid</title>
@@ -57,7 +56,7 @@ If you repeatedly enter the correct password but VeraCrypt says that the passwor
 <em style="text-align:left">Restore VeraCrypt Boot Loader</em>. Then enter your password, press 'Y' to confirm the action, remove the Rescue Disk from the USB port or CD/DVD drive, and restart your computer.<br style="text-align:left">
 <br style="text-align:left">
 Note: This feature cannot be used to restore the header of a hidden volume within which a
-<a href="Hidden%20Operating%20System.html" style="text-align:left; color:#0080c0; text-decoration:none.html">
+<a href="Hidden%20Operating%20System.html" style="text-align:left; color:#0080c0; text-decoration:none">
 hidden operating system</a> resides (see the section <a href="Hidden%20Operating%20System.html">
 Hidden Operating System</a>). To restore such a volume header, click <em style="text-align:left">
 Select Device</em>, select the partition behind the decoy system partition, click
@@ -71,7 +70,7 @@ Create Rescue Disk</em>). Otherwise, if an attacker knows your old password (for
 If <strong style="text-align:left">Windows is damaged and cannot start</strong> after typing the correct password on VeraCrypt password prompt, the VeraCrypt Rescue Disk allows you to permanently decrypt the partition/drive before Windows starts. For EFI boot, select
 <em style="text-align:left">Decrypt OS</em> in the Rescue Disk screen. For MBR legacy boot mode, select instead <em style="text-align:left">Repair Options</em> &gt; <em style="text-align:left">
 Permanently decrypt system partition/drive</em>. Enter the correct password and wait until decryption is complete. Then you can e.g. boot your MS Windows setup CD/DVD to repair your Windows installation. Note that this feature cannot be used to decrypt a hidden
- volume within which a <a href="Hidden%20Operating%20System.html" style="text-align:left; color:#0080c0; text-decoration:none.html">
+ volume within which a <a href="Hidden%20Operating%20System.html" style="text-align:left; color:#0080c0; text-decoration:none">
 hidden operating system</a> resides (see the section <a href="Hidden%20Operating%20System.html">
 Hidden Operating System</a>).<br style="text-align:left">
 <br style="text-align:left">
@@ -94,6 +93,8 @@ To boot a VeraCrypt Rescue Disk, insert it into a USB port or your CD/DVD drive 
  configuration screen appears, restart (reset) the computer again and start pressing F2 or Delete repeatedly as soon as you restart (reset) the computer. When a BIOS configuration screen appears, configure your BIOS to boot from the USB drive and CD/DVD drive first (for
  information on how to do so, please refer to the documentation for your BIOS/motherboard or contact your computer vendor's technical support team for assistance). Then restart your computer. The VeraCrypt Rescue Disk screen should appear now. Note: In the
  case of MBR legacy boot mode, you can select 'Repair Options' on the VeraCrypt Rescue Disk screen by pressing F8 on your keyboard.</div>
+<p>In EFI boot mode with Secure Boot enabled, the VeraCrypt Rescue Disk uses the Microsoft UEFI CA-signed bootloader set selected from the computer's current Secure Boot db state when the Rescue Disk is created. If firmware or Secure Boot db entries are later changed, create a new VeraCrypt Rescue Disk. A Rescue Disk created on a computer that trusts only one Microsoft UEFI CA generation may not Secure-Boot on a different computer that trusts only the other generation.</p>
+<p>Installed EFI bootloader files are refreshed only during VeraCrypt install, repair, upgrade, or Windows PostOOBE repair paths. If you manually change firmware Secure Boot db entries, run VeraCrypt repair or reinstall to refresh the installed bootloader set.</p>
 <p>If your VeraCrypt Rescue Disk is damaged, you can create a new one by selecting
 <em style="text-align:left">System</em> &gt; <em style="text-align:left">Create Rescue Disk</em>. To find out whether your VeraCrypt Rescue Disk is damaged, insert it into a USB port (or into your CD/DVD drive in case of MBR legacy boot mode) and select
 <em style="text-align:left">System</em> &gt; <em style="text-align:left">Verify Rescue Disk</em>.</p>
@@ -109,7 +110,7 @@ To create a bootable VeraCrypt Rescue USB drive you have to create a bootable US
 </div>
 <ul style="text-align:left; margin-top:18px; margin-bottom:19px; padding-top:0px; padding-bottom:0px">
 	<li style="text-align:left; margin-top:0px; margin-bottom:0px; padding-top:0px; padding-bottom:0px">
-		Download the required files from the official SourceForge repository of VeraCrypt: <a href="https://sourceforge.net/projects/veracrypt/files/Contributions/VeraCryptUsbRescueDisk.zip" style="text-align:left; 		color:#0080c0; text-decoration:none.html">
+		Download the required files from the official SourceForge repository of VeraCrypt: <a href="https://sourceforge.net/projects/veracrypt/files/Contributions/VeraCryptUsbRescueDisk.zip" style="text-align:left; 		color:#0080c0; text-decoration:none">
 		https://sourceforge.net/projects/veracrypt/files/Contributions/VeraCryptUsbRescueDisk.zip</a>
 	</li>
 

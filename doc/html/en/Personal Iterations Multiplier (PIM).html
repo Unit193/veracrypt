@@ -1,6 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>VeraCrypt - Free Open source disk encryption with strong security for the Paranoid</title>
@@ -37,25 +36,56 @@
 <div class="wikidoc">
 <h1>PIM</h1>
 <div>
-<p>PIM stands for &quot;Personal Iterations Multiplier&quot;. It is a parameter that was introduced in VeraCrypt 1.12 and whose value controls the number of iterations used by the header key derivation function. This value can be specified through the password dialog
+<p>PIM stands for &quot;Personal Iterations Multiplier&quot;. It is a parameter that was introduced in VeraCrypt 1.12 and whose value controls the computational parameters used by the header key derivation function. This value can be specified through the password dialog
  or in the command line.</p>
-<p>When a PIM value is specified, the number of iterations is calculated as follows:</p>
+<p>The exact meaning of PIM depends on the key derivation function (KDF) being used:</p>
+
+<h3>PBKDF2-HMAC Key Derivation</h3>
+<p>When PBKDF2-HMAC is used, the PIM value controls the number of iterations as follows:</p>
 <ul>
 <li>For system encryption that doesn't use SHA-512 or Whirlpool: Iterations = <strong>PIM x 2048</strong>
 </li><li>For system encryption that uses SHA-512 or Whirlpool: Iterations = <strong>15000 &#43; (PIM x 1000)</strong>
 </li><li>For non-system encryption and file containers: Iterations = <strong>15000 &#43; (PIM x 1000)</strong>
 </li></ul>
-<p>If no PIM value is specified, VeraCrypt will use the default number of iterations used in versions prior to 1.12 (see
-	<a href="Header%20Key%20Derivation.html">
-	Header Key Derivation</a>). This can be summarized as follows:<br/>
-		<ul>
-		<li>For system partition encryption (boot encryption) that uses SHA-256, BLAKE2s-256 or Streebog, <strong>200000</strong> iterations are used which is equivalent to a PIM value of <strong>98</strong>.</li>
-		<li>For system encryption that uses SHA-512 or Whirlpool, <strong>500000</strong> iterations are used which is equivalent to a PIM value of <strong>485</strong>.</li>
-		<li>For non-system encryption and file containers, all derivation algorithms will use <strong>500000</strong> iterations which is equivalent to a PIM value of <strong>485</strong>.</li>
-		</ul>
+
+<h3>Argon2id Key Derivation</h3>
+<p>When Argon2id is used, the PIM value controls both memory cost and time cost parameters:</p>
+<ul>
+<li><strong>Memory Cost (m_cost) in MiB:</strong><br/>
+m_cost(pim) = min(64 MiB + (pim - 1) * 32 MiB, 1024 MiB)<br/>
+The memory cost increases by 32 MiB for each increment of PIM, starting from 64 MiB, and is capped at 1024 MiB when PIM reaches 31 or higher.
+</li>
+<li><strong>Time Cost (t_cost) in iterations:</strong><br/>
+If PIM ≤ 31: t_cost(pim) = 3 + floor((pim - 1) / 3)<br/>
+If PIM > 31: t_cost(pim) = 13 + (pim - 31)<br/>
+The time cost increases by 1 iteration for every 3 increments of PIM when PIM ≤ 31, and by 1 iteration per PIM increment when PIM > 31.
+</li>
+<li><strong>Parallelism:</strong> Fixed at 1 thread for all cases.</li>
+</ul>
+
+<p><strong>Argon2id Examples:</strong></p>
+<ul>
+<li>For PIM = 12: Memory Cost = 416 MiB, Time Cost = 6 iterations</li>
+<li>For PIM = 31: Memory Cost = 1024 MiB, Time Cost = 13 iterations</li>
+<li>For PIM = 32: Memory Cost = 1024 MiB, Time Cost = 14 iterations</li>
+</ul>
+
+<p>If no PIM value is specified, VeraCrypt will use the default parameters used in versions prior to 1.12 for PBKDF2-HMAC (see
+    <a href="Header%20Key%20Derivation.html">
+    Header Key Derivation</a>). For Argon2id, default parameters are equivalent to PIM = 12:
 </p>
+<ul>
+<li><strong>PBKDF2-HMAC defaults:</strong></li>
+<ul>
+<li>For system partition encryption (boot encryption) that uses SHA-256, BLAKE2s-256 or Streebog, <strong>200000</strong> iterations are used which is equivalent to a PIM value of <strong>98</strong>.</li>
+<li>For system encryption that uses SHA-512 or Whirlpool, <strong>500000</strong> iterations are used which is equivalent to a PIM value of <strong>485</strong>.</li>
+<li>For non-system encryption and file containers using PBKDF2-HMAC, <strong>500000</strong> iterations are used which is equivalent to a PIM value of <strong>485</strong>.</li>
+</ul>
+<li><strong>Argon2id defaults:</strong> Memory Cost = 416 MiB, Time Cost = 6 iterations (equivalent to PIM = 12)</li>
+</ul>
+
 <p>Prior to version 1.12, the security of a VeraCrypt volume was only based on the password strength because VeraCrypt was using a fixed number of iterations.<br>
-With the introduction of PIM, VeraCrypt has a 2-dimensional security space for volumes based on the couple (Password, PIM). This provides more flexibility for adjusting the desired security level while also controlling the performance of the mount/boot operation.</p>
+With the introduction of PIM, VeraCrypt has a multi-dimensional security space for volumes based on the combination (Password, PIM, Key Derivation Function). This provides more flexibility for adjusting the desired security level while also controlling the performance of the mount/boot operation.</p>
 <h3>PIM Usage</h3>
 It is not mandatory to specify a PIM.</div>
 <div><br>
@@ -69,16 +99,16 @@ When creating a volume or when changing the password, the user has the possibili
 <div>During the creation of a volume or the encryption of the system, VeraCrypt forces the PIM value to be greater than or equal to a certain minimal value when the password is less than 20 characters. This check is done in order to ensure that, for short passwords,
  the security level is at least equal to the default level provided by an empty PIM.</div>
 <div>&nbsp;</div>
-<div>The PIM minimal value for short passwords is <strong>98</strong> for system encryption that doesn't use SHA-512 or Whirlpool and
-<strong>485</strong> for the other cases. For password with 20 characters and more, the PIM minimal value is
-<strong>1</strong>. In all cases, leaving the PIM empty or setting its value to 0 will make VeraCrypt use the default high number of iterations as explained in section
+<div>The PIM minimal value for short passwords is <strong>12</strong> for Argon2id volumes, <strong>98</strong> for system encryption that doesn't use SHA-512 or Whirlpool, and
+<strong>485</strong> for PBKDF2-HMAC in the other cases. For password with 20 characters and more, the PIM minimal value is
+<strong>1</strong>. In all cases, leaving the PIM empty or setting its value to 0 will make VeraCrypt use the default KDF parameters as explained in section
 <a href="Header%20Key%20Derivation.html">
 Header Key Derivation</a>.</div>
 <div><br>
 Motivations behind using a custom PIM value can be:<br>
 <ul>
 <li>Add an extra secret parameter (PIM) that an attacker will have to guess </li><li>Increase security level by using large PIM values to thwart future development of brute force attacks.
-</li><li>Speeding up booting or mounting through the use of a small PIM value (less than 98 for system encryption that doesn't use SHA-512 or Whirlpool and less than 485 for the other cases)
+</li><li>Speeding up booting or mounting through the use of a small PIM value (less than 12 for Argon2id volumes, less than 98 for system encryption that doesn't use SHA-512 or Whirlpool, and less than 485 for PBKDF2-HMAC in the other cases)
 </li></ul>
 <p>The screenshots below show the step to mount a volume using a PIM equal to 231:</p>
 <table style="margin-left:auto; margin-right:auto">
@@ -121,6 +151,6 @@ Motivations behind using a custom PIM value can be:<br>
 </tbody>
 </table>
 <p>&nbsp;</p>
-<p><a href="VeraCrypt%20Volume%20Format%20Specification.html" style="text-align:left; color:#0080c0; text-decoration:none; font-weight:bold.html">Next Section &gt;&gt;</a></p>
+<p><a href="VeraCrypt%20Volume%20Format%20Specification.html" style="text-align:left; color:#0080c0; text-decoration:none; font-weight:bold">Next Section &gt;&gt;</a></p>
 </div>
 </div><div class="ClearBoth"></div></body></html>

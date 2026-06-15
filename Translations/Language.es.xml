@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.24">
+  <localization prog-version="1.26.29">
     <language langid="es" name="Español" en-name="Spanish" version="1.0.0" translators="Juan Antonio Auñón Ochando" />
     <font lang="es" class="normal" size="11" face="default" />
     <font lang="es" class="bold" size="13" face="Arial" />
@@ -181,7 +181,7 @@
     <entry lang="es" key="IDC_TRAVEL_OPEN_EXPLORER">Abrir en el &amp;explorador el volumen montado</entry>
     <entry lang="es" key="IDC_TRAV_CACHE_PASSWORDS">Guardar &amp;contraseña en caché</entry>
     <entry lang="es" key="IDC_TRUECRYPT_MODE">Modo TrueCrypt</entry>
-    <entry lang="es" key="IDC_UNMOUNTALL">&amp;Desmontar Todo</entry>
+    <entry lang="es" key="IDC_UNMOUNTALL">Desmontar Tod&amp;o</entry>
     <entry lang="es" key="IDC_VOLUME_PROPERTIES">Propiedades del &amp;Volumen</entry>
     <entry lang="es" key="IDC_VOLUME_TOOLS">Herramien&amp;tas de volumen</entry>
     <entry lang="es" key="IDC_WIPE_CACHE">&amp;Borrar Caché</entry>
@@ -291,8 +291,8 @@
     <entry lang="es" key="IDT_NEW_PASSWORD">Contraseña:</entry>
     <entry lang="es" key="IDT_PARALLELIZATION_OPTIONS">Paralelización basada en hilos</entry>
     <entry lang="es" key="IDT_PKCS11_LIB_PATH">Ruta de Librería PKCS #11</entry>
-    <entry lang="es" key="IDT_PKCS5_PRF">PKCS-5 PRF:</entry>
-    <entry lang="es" key="IDT_NEW_PKCS5_PRF">PKCS-5 PRF:</entry>
+    <entry lang="es" key="IDT_KDF">KDF:</entry>
+    <entry lang="es" key="IDT_NEW_KDF">KDF:</entry>
     <entry lang="es" key="IDT_PW_CACHE_OPTIONS">Caché de Contraseñas</entry>
     <entry lang="es" key="IDT_SECURITY_OPTIONS">Opciones de seguridad</entry>
     <entry lang="es" key="IDT_EMV_OPTIONS">EMV Opciones</entry>
@@ -813,7 +813,7 @@
     <entry lang="es" key="SECONDARY_KEY_SIZE_LRW">Tamaño de Clave Tweak (Modo LRW)</entry>
     <entry lang="es" key="BITS">bits</entry>
     <entry lang="es" key="BLOCK_SIZE">Tamaño de bloque</entry>
-    <entry lang="es" key="PKCS5_PRF">PKCS-5 PRF</entry>
+    <entry lang="es" key="KDF">KDF</entry>
     <entry lang="es" key="PKCS5_ITERATIONS">Cuenta de iteraciones PKCS-5</entry>
     <entry lang="es" key="VOLUME_CREATE_DATE">Volumen Creado</entry>
     <entry lang="es" key="VOLUME_HEADER_DATE">Última modificación de la cabecera</entry>
@@ -1517,10 +1517,6 @@
     <entry lang="es" key="LINUX_MOUNTET_HINT">El sistema de archivos del dispositivo seleccionado está actualmente montado. Por favor, desmonte '{0}' antes de continuar.</entry>
     <entry lang="es" key="LINUX_HIDDEN_PASS_NO_DIFF">El volumen oculto no puede tener la misma contraseña, PIM y archivos de clave que el volumen externo</entry>
     <entry lang="es" key="LINUX_NOT_FAT_HINT">Tenga en cuenta que el volumen no será formateado con un sistema de archivos FAT y, por lo tanto, puede ser necesario instalar controladores de sistema de archivos adicionales en plataformas distintas a {0}, lo que le permitirá montar el volumen.</entry>
-    <entry lang="es" key="LINUX_ERROR_SIZE_HIDDEN_VOL">Error: El volumen oculto a crear es mayor que {0} TB ({1} GB).\n\nSoluciones posibles:\n- Crear un contenedor/partición menor que {0} TB.\n</entry>
-    <entry lang="es" key="LINUX_MAX_SIZE_HINT">- Utilice una unidad con sectores de 4096 bytes para crear volúmenes ocultos en particiones/dispositivos de hasta 16 TB de tamaño</entry>
-    <entry lang="es" key="LINUX_DOT_LF">.\n</entry>
-    <entry lang="es" key="LINUX_NOT_SUPPORTED"> (no es compatible con los componentes disponibles en esta plataforma).\n</entry>
     <entry lang="es" key="LINUX_KERNEL_OLD">Su sistema utiliza una versión antigua del kernel de Linux.\n\nDebido a un error en el kernel de Linux, su sistema puede dejar de responder al escribir datos en un volumen de VeraCrypt. Este problema se puede resolver actualizando el kernel a la versión 2.6.24 o posterior.</entry>
     <entry lang="es" key="LINUX_VOL_UNMOUNTED">El volumen {0} ha sido desmontado.</entry>
     <entry lang="es" key="LINUX_VOL_MOUNTED">El volumen {0} ha sido montado.</entry>
@@ -1646,6 +1642,48 @@
     <entry lang="es" key="INSECURE_MODE">[MODO INSEGURO]</entry>
     <entry lang="es" key="IDC_DISABLE_SCREEN_PROTECTION">Deshabilitar la protección contra capturas de pantalla y grabación de pantalla</entry>
     <entry lang="es" key="DISABLE_SCREEN_PROTECTION_WARNING">ADVERTENCIA: Deshabilitar la protección de pantalla reduce significativamente la seguridad. Habilite esta opción SOLO si necesita capturar la interfaz de VeraCrypt por un motivo específico. Esto puede exponer datos sensibles a herramientas de captura de pantalla y funciones de grabación de pantalla, como Windows 11 Recall.</entry>
+    <entry lang="es" key="MEMORY_COST">Costo de Memoria</entry>
+    <entry lang="es" key="IDT_KDF_ALGO">Algoritmo KDF</entry>
+    <entry lang="es" key="IDD_PREFERENCES_TAB_GENERAL">General</entry>
+    <entry lang="es" key="IDD_PREFERENCES_TAB_ACTIONS">Acciones</entry>
+    <entry lang="es" key="IDD_PREFERENCES_TAB_PASSWORD">Contraseña</entry>
+    <entry lang="es" key="IDC_SECURE_DESKTOP_ENABLE_IME">Habilitar el editor de métodos de entrada (IME) en el Escritorio seguro</entry>
+    <entry lang="es" key="ENABLE_IME_IN_SECURE_DESKTOP_WARNING">ADVERTENCIA: Habilite esta opción SOLO si encuentra problemas al seleccionar archivos clave (Keyfiles) o tokens en el Escritorio seguro.</entry>
+    <entry lang="es" key="ERR_KEY_DERIVATION_FAILED">La derivación de clave ha fallado. Esto puede deberse a memoria insuficiente o a una operación interrumpida.</entry>
+    <entry lang="es" key="EFI_MS_BOOT_LOADER_RESTORE_FAILED">La partición/unidad del sistema ya está descifrada, pero la ruta del cargador de arranque EFI de Microsoft no se restauró en el Administrador de arranque de Windows. Sólo es necesario reparar los archivos de arranque EFI. Use la opción de reparación del Disco de Rescate de VeraCrypt, o arranque un medio de recuperación de Windows y ejecute 'bcdboot W:\\Windows /s S: /f UEFI' después de reemplazar W: por la letra de unidad del volumen de Windows y S: por la letra de unidad de la partición del sistema EFI. Ruta:</entry>
+    <entry lang="es" key="EFI_FALLBACK_BOOT_LOADER_STILL_VERACRYPT">La partición/unidad del sistema ya está descifrada, pero la ruta alternativa del cargador de arranque EFI todavía contiene el Cargador de Arranque de VeraCrypt. Sólo es necesario reparar los archivos de arranque EFI. Use la opción de reparación del Disco de Rescate de VeraCrypt, o arranque un medio de recuperación de Windows y ejecute 'bcdboot W:\\Windows /s S: /f UEFI' después de reemplazar W: por la letra de unidad del volumen de Windows y S: por la letra de unidad de la partición del sistema EFI. Ruta:</entry>
+    <entry lang="es" key="IDM_REPAIR_EFI_BOOT_LOADER">Reparar Cargador de Arranque EFI...</entry>
+    <entry lang="es" key="CONFIRM_REPAIR_EFI_BOOT_LOADER">VeraCrypt restaurará las rutas del cargador de arranque EFI de Windows y eliminará las entradas y archivos de arranque EFI de VeraCrypt.\n\nUse esta opción sólo después de que la partición/unidad del sistema esté completamente descifrada y Windows pueda arrancar sin cifrado del sistema.\n\n¿Desea continuar?</entry>
+    <entry lang="es" key="EFI_BOOT_LOADER_FILE_READ_FAILED">El fichero del cargador de arranque EFI no pudo leerse por completo:</entry>
+    <entry lang="es" key="EFI_BOOT_LOADER_FILE_TOO_LARGE">El fichero del cargador de arranque EFI es inesperadamente grande y no fue inspeccionado:</entry>
+    <entry lang="es" key="EFI_BOOT_LOADER_NVRAM_CLEANUP_FAILED">La partición/unidad del sistema ya está descifrada y los archivos del cargador de arranque EFI han sido restaurados, pero VeraCrypt no pudo eliminar una o más entradas de arranque VeraCrypt del firmware. Los archivos EFI de VeraCrypt se dejaron en su lugar para que cualquier entrada de firmware restante siga apuntando a un cargador existente. Reinténtelo como administrador o elimine la entrada de arranque de VeraCrypt desde la configuración del firmware después de confirmar que el Administrador de arranque de Windows se inicia normalmente.</entry>
+    <entry lang="es" key="EFI_BOOT_LOADER_REPAIR_BLOCKED">El cargador de arranque EFI no puede repararse mientras el cifrado o descifrado del sistema esté activo o incompleto. Complete o reanude el proceso pendiente de cifrado/descifrado del sistema antes de reintentarlo.</entry>
+    <entry lang="es" key="EFI_BOOT_LOADER_REPAIR_NOT_APPLICABLE">Esta acción de reparación sólo está disponible en sistemas que arrancan en modo UEFI desde una partición del sistema en un disco GPT.</entry>
+    <entry lang="es" key="EFI_BOOT_LOADER_REPAIR_SUCCESS">El cargador de arranque EFI ha sido reparado con éxito.</entry>
+    <entry lang="es" key="PIM_ARGON2_HELP">PIM (Personal Iterations Multiplier) controla los costes de memoria y tiempo usados por la derivación de la clave de cabecera Argon2id de la siguiente forma:\n      Memoria = min(64 MiB + ((PIM - 1) x 32 MiB), 1024 MiB)\n      Iteraciones = 3 + ((PIM - 1) / 3) para PIM 31 o inferior, y luego 13 + (PIM - 31)\n\nCuando se deja en blanco o se pone a 0, VeraCrypt usará el PIM Argon2 predeterminado (12), que utiliza 416 MiB de memoria y 6 iteraciones.\n\nCuando la contraseña es de menos de 20 caracteres, el PIM Argon2 no puede ser inferior a 12 con el fin de mantener un nivel de seguridad mínimo.\nCuando la contraseña es de 20 ó más caracteres, se puede usar cualquier valor de PIM Argon2.\n\nUn PIM Argon2 superior a 12 incrementa el uso de memoria hasta 1024 MiB y luego incrementa las iteraciones. Esto conllevará un proceso de montaje más lento. Un PIM Argon2 pequeño (menor de 12) conllevará un proceso de montaje más rápido, pero podría reducir la seguridad si la contraseña no es suficientemente fuerte.</entry>
+    <entry lang="es" key="PIM_ARGON2_LARGE_WARNING">Ha elegido un valor de PIM Argon2 superior al valor por defecto de VeraCrypt.\nPor favor, sea consciente que esto puede requerir más memoria y conllevar un montaje mucho más lento.</entry>
+    <entry lang="es" key="PIM_ARGON2_SMALL_WARNING">Ha elegido un valor de PIM Argon2 inferior al valor por defecto de VeraCrypt. Por favor, sea consciente que si su contraseña no es lo suficientemente fuerte, podría ver reducido el nivel de seguridad.\n\n¿Está seguro que usa una contraseña fuerte?</entry>
+    <entry lang="es" key="PIM_ARGON2_REQUIRE_LONG_PASSWORD">La contraseña debe contener 20 caracteres o más para usar el PIM Argon2 especificado.\nSólo se pueden usar contraseñas de menor longitud si el PIM Argon2 es 12 ó más.</entry>
+    <entry lang="es" key="LINUX_PREF_MOUNT_NTFS_WITH_KERNEL_DRIVER">Montar volúmenes NTFS con un controlador integrado en el kernel de Linux</entry>
+    <entry lang="es" key="LINUX_PREF_MOUNT_NTFS_WITH_KERNEL_DRIVER_HELP">Sólo Linux. Cuando está habilitado y no se ha suministrado ningún tipo explícito de sistema de archivos, VeraCrypt sondea el dispositivo virtual descifrado con blkid -p y monta los sistemas de archivos NTFS detectados con un controlador NTFS integrado en el kernel disponible, evitando herramientas auxiliares de montaje como ntfs-3g. VeraCrypt usa ntfs cuando se identifica positivamente como un controlador moderno de lectura/escritura o esperado en Linux 7.1 o posterior, y en caso contrario usa ntfs3. Si la detección de NTFS falla, VeraCrypt usa la selección automática normal del sistema de archivos. Si no hay ningún controlador NTFS integrado en el kernel soportado disponible o cargable, el montaje falla. Esta opción, que debe activarse explícitamente, puede evitar bloqueos de suspensión o hibernación causados por sistemas de archivos FUSE de espacio de usuario congelados.</entry>
+    <entry lang="es" key="LINUX_KERNEL_NTFS_DRIVER_UNAVAILABLE">No hay disponible ni se puede cargar ningún controlador NTFS integrado en el kernel que esté soportado. Para usar el soporte NTFS predeterminado del sistema, desactive la preferencia del controlador NTFS del kernel o no solicite NTFS del kernel explícitamente.</entry>
+    <entry lang="es" key="LINUX_EMERGENCY_UNMOUNT_WARNING">El desmontaje normal del volumen {0} falló. Esto puede ocurrir cuando todavía hay aplicaciones con archivos o directorios abiertos en el volumen, o cuando el dispositivo subyacente fue desconectado y el montaje quedó obsoleto.\n\nSi el dispositivo sigue conectado, elija No, cierre las aplicaciones que estén usando el volumen e intente desmontarlo de nuevo.\n\nSi el dispositivo fue desconectado o el montaje quedó obsoleto, VeraCrypt puede intentar una limpieza de emergencia mediante el desmontaje diferido del sistema de archivos y eliminando o programando la eliminación de objetos del kernel de VeraCrypt. Las escrituras pendientes pueden haber fallado, pueden haberse perdido datos y la limpieza puede permanecer pendiente hasta que las aplicaciones cierren los archivos abiertos. Compruebe el sistema de archivos con fsck o con la herramienta de reparación apropiada antes de usarlo de nuevo.\n\n¿Continuar?</entry>
+    <entry lang="es" key="LINUX_EMERGENCY_UNMOUNTED">Se ha iniciado la limpieza de emergencia del volumen {0}. Si el volumen fue desconectado, el montaje quedó obsoleto o había escrituras pendientes, compruebe el sistema de archivos con fsck o con la herramienta de reparación apropiada antes de usarlo de nuevo.</entry>
+    <entry lang="es" key="FORMAT_STAGE_WRITING_DATA">Creando datos del volumen. Por favor, espere.</entry>
+    <entry lang="es" key="FORMAT_STAGE_WRITING_BACKUP_HEADER">Finalizando la creación del volumen: escribiendo la copia de seguridad de la cabecera.</entry>
+    <entry lang="es" key="FORMAT_STAGE_FLUSHING_DATA">Finalizando la creación del volumen: sincronizando los datos con el disco. Esto puede tardar varios minutos en volúmenes grandes o almacenamiento lento/USB.</entry>
+    <entry lang="es" key="FORMAT_STAGE_FINISHED">Finalizando la creación del volumen.</entry>
+    <entry lang="es" key="FORMAT_STAGE_ABORTED">La creación del volumen ha sido abortada.</entry>
+    <entry lang="es" key="FORMAT_STAGE_ERROR">La creación del volumen falló.</entry>
+    <entry lang="es" key="FORMAT_STAGE_PREPARING_TEMP_VOLUME">Finalizando la creación del volumen: montando el volumen temporal.</entry>
+    <entry lang="es" key="FORMAT_STAGE_PREPARING_TEMP_DEVICE">Finalizando la creación del volumen: preparando el dispositivo temporal.</entry>
+    <entry lang="es" key="FORMAT_STAGE_CREATING_FILESYSTEM">Finalizando la creación del volumen: creando el sistema de archivos usando {0}.</entry>
+    <entry lang="es" key="FORMAT_STAGE_DISMOUNTING_TEMP_VOLUME">Finalizando la creación del volumen: desmontando el volumen temporal.</entry>
+    <entry lang="es" key="MACOSX_APFS_SYNTHESIZED_DEVICE">El dispositivo seleccionado '{0}' es un contenedor o volumen APFS sintetizado y no puede usarse como dispositivo anfitrión sin procesar de un volumen VeraCrypt.\n\nSeleccione en su lugar la partición física de almacenamiento APFS{1}.</entry>
+    <entry lang="es" key="MACOSX_DEVICE_SYSTEM_PARTITION">El dispositivo seleccionado '{0}' es una partición de sistema o soporte de macOS y no puede usarse como host de volumen VeraCrypt.</entry>
+    <entry lang="es" key="MACOSX_APFS_SYSTEM_STORE">El almacenamiento físico APFS seleccionado '{0}' contiene el volumen de sistema macOS actualmente montado y no puede usarse como host de volumen VeraCrypt.</entry>
+    <entry lang="es" key="MACOSX_DEVICE_NOT_WRITABLE">macOS informa que el dispositivo seleccionado '{0}' es de sólo lectura. Seleccione una partición física o disco con permiso de escritura.</entry>
+    <entry lang="es" key="MACOSX_APFS_EROFS_HINT">macOS informó que el dispositivo seleccionado es de sólo lectura. Si se trata de un disco APFS, asegúrese de haber seleccionado la partición física de almacenamiento APFS, no un volumen APFS sintetizado. Use la Utilidad de Discos o 'diskutil list' para identificar la partición física y luego reinténtelo.</entry>
 </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

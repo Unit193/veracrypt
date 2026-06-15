@@ -4,17 +4,17 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
 */
 
 #define TC_MAIN_COM_VERSION_MAJOR 2
-#define TC_MAIN_COM_VERSION_MINOR 13
+#define TC_MAIN_COM_VERSION_MINOR 14
 
 #define TC_FORMAT_COM_VERSION_MAJOR 2
-#define TC_FORMAT_COM_VERSION_MINOR 10
+#define TC_FORMAT_COM_VERSION_MINOR 11
 
 #include <atlbase.h>
 #include <comdef.h>

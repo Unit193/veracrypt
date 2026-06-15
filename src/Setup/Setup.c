@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -1441,6 +1441,8 @@ BOOL DoRegUninstall (HWND hwndDlg, BOOL bRemoveDeprecated)
 
 	RegDeleteKeyExW (HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VeraCrypt", KEY_WOW64_32KEY, 0);
 	RegDeleteKeyExW (HKEY_CURRENT_USER, L"Software\\VeraCrypt", KEY_WOW64_32KEY, 0);
+	DeleteRegistryKey (HKEY_LOCAL_MACHINE, L"Software\\VeraCrypt\\Diagnostics\\EfiBootLoader");
+	RegDeleteKey (HKEY_LOCAL_MACHINE, L"Software\\VeraCrypt\\Diagnostics");
 
 	RegDeleteKey (HKEY_LOCAL_MACHINE, L"Software\\Classes\\VeraCryptVolume\\Shell\\open\\command");
 	RegDeleteKey (HKEY_LOCAL_MACHINE, L"Software\\Classes\\VeraCryptVolume\\Shell\\open");
@@ -2025,10 +2027,16 @@ void RemoveLegacyFiles (wchar_t *szDestDir)
 {
 	const wchar_t* 	oldFileNames[] = {
 		L"docs\\html\\en\\BCH_Logo_48x30.png",
+		L"docs\\html\\en\\Donation_Bank.html",
 		L"docs\\html\\en\\LinuxPrepAndBuild.sh",
 		L"docs\\html\\en\\LinuxPrepAndBuild.zip",
 		L"docs\\html\\en\\RIPEMD-160.html",
 		L"docs\\html\\en\\ru\\BCH_Logo_48x30.png",
+		L"docs\\html\\en\\bank_30x30.png",
+		L"docs\\html\\ru\\Donation_Bank.html",
+		L"docs\\html\\ru\\bank_30x30.png",
+		L"docs\\html\\zh-cn\\Donation_Bank.html",
+		L"docs\\html\\zh-cn\\bank_30x30.png",
 		L"Languages\\Language.ru - Copy.xml",
 	};
 	wchar_t szDir[TC_MAX_PATH];

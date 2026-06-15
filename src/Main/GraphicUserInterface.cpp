@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -28,6 +28,9 @@
 #include "Application.h"
 #include "GraphicUserInterface.h"
 #include "FatalErrorHandler.h"
+#ifdef TC_MACOSX
+#include "MacOSXSecureTextFieldHotkeys.h"
+#endif
 #include "Forms/DeviceSelectionDialog.h"
 #include "Forms/KeyfileGeneratorDialog.h"
 #include "Forms/MainFrame.h"
@@ -37,6 +40,78 @@
 
 namespace VeraCrypt
 {
+#ifdef TC_LINUX
+	namespace
+	{
+		bool TryCreatePrivateDirectory (const wxString &dir)
+		{
+			if (dir.empty())
+				return false;
+
+			if (!wxDirExists (dir) && !wxFileName::Mkdir (dir, wxS_IRUSR | wxS_IWUSR | wxS_IXUSR, wxPATH_MKDIR_FULL))
+				return false;
+
+			chmod (string (dir.fn_str()).c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+			return access (string (dir.fn_str()).c_str(), W_OK | X_OK) == 0;
+		}
+
+		wxString GetSingleInstanceCheckerLockDirectory ()
+		{
+			const wxString appDirName = Application::GetName();
+			const wxChar pathSeparator = wxFileName::GetPathSeparator();
+
+			const wxChar *xdgRuntimeDir = wxGetenv (wxT("XDG_RUNTIME_DIR"));
+			if (!wxIsEmpty (xdgRuntimeDir))
+			{
+				wxFileName runtimeDir (xdgRuntimeDir, wxEmptyString);
+				if (runtimeDir.IsAbsolute() && wxDirExists (runtimeDir.GetPath()))
+				{
+					wxString lockDir = runtimeDir.GetPath();
+					if (!lockDir.empty() && lockDir.Last() != pathSeparator)
+						lockDir += pathSeparator;
+					lockDir += appDirName;
+
+					if (TryCreatePrivateDirectory (lockDir))
+						return lockDir;
+				}
+			}
+
+			wxString cacheDir;
+			const wxChar *xdgCacheHome = wxGetenv (wxT("XDG_CACHE_HOME"));
+			if (!wxIsEmpty (xdgCacheHome))
+			{
+				wxFileName xdgCacheDir (xdgCacheHome, wxEmptyString);
+				if (xdgCacheDir.IsAbsolute())
+					cacheDir = xdgCacheDir.GetPath();
+			}
+
+			if (cacheDir.empty())
+			{
+				wxFileName homeDir (wxFileName::GetHomeDir(), wxEmptyString);
+				if (homeDir.IsAbsolute())
+				{
+					cacheDir = homeDir.GetPath();
+					if (!cacheDir.empty() && cacheDir.Last() != pathSeparator)
+						cacheDir += pathSeparator;
+					cacheDir += wxT(".cache");
+				}
+			}
+
+			if (!cacheDir.empty())
+			{
+				if (cacheDir.Last() != pathSeparator)
+					cacheDir += pathSeparator;
+				cacheDir += appDirName;
+
+				if (TryCreatePrivateDirectory (cacheDir))
+					return cacheDir;
+			}
+
+			return wxGetHomeDir();
+		}
+	}
+#endif
+
 	class AdminPasswordGUIRequestHandler : public GetStringFunctor
 	{
 		public:
@@ -97,12 +172,19 @@ namespace VeraCrypt
 #ifdef TC_MACOSX
 		g_customIdCmdV = wxNewId();
 		g_customIdCmdA = wxNewId();
+		InstallMacOSXSecureTextFieldHotkeys();
 		wxApp::s_macHelpMenuTitleName = LangString["MENU_HELP"];
+#endif
+#if wxCHECK_VERSION(3, 1, 6)
+		wxSizerFlags::DisableConsistencyChecks();
 #endif
 	}
 
 	GraphicUserInterface::~GraphicUserInterface ()
 	{
+#ifdef TC_MACOSX
+		UninstallMacOSXSecureTextFieldHotkeys();
+#endif
 		try
 		{
 			if (RandomNumberGenerator::IsRunning())
@@ -738,8 +820,9 @@ namespace VeraCrypt
 	bool GraphicUserInterface::HandlePasswordEntryCustomEvent (wxEvent& event)
 	{
 		bool bHandled = false;
-		if (	(event.GetEventType() == wxEVT_MENU)
-			&&	((event.GetId() == g_customIdCmdV) || (event.GetId() == g_customIdCmdA)))
+		const bool isPasteShortcut = (event.GetId() == g_customIdCmdV) || (event.GetId() == wxID_PASTE);
+		const bool isSelectAllShortcut = (event.GetId() == g_customIdCmdA) || (event.GetId() == wxID_SELECTALL);
+		if ((event.GetEventType() == wxEVT_MENU) && (isPasteShortcut || isSelectAllShortcut))
 		{
 			wxWindow* focusedCtrl = wxWindow::FindFocus();
 			if (focusedCtrl 
@@ -747,9 +830,9 @@ namespace VeraCrypt
 				&& (focusedCtrl->GetWindowStyle() & wxTE_PASSWORD))
 			{
 				wxTextCtrl* passwordCtrl = (wxTextCtrl*) focusedCtrl;
-				if (event.GetId() == g_customIdCmdV)
+				if (isPasteShortcut)
 					passwordCtrl->Paste ();
-				else if (event.GetId() == g_customIdCmdA)
+				else if (isSelectAllShortcut)
 					passwordCtrl->SelectAll ();
 				bHandled = true;
 			}
@@ -999,7 +1082,12 @@ namespace VeraCrypt
 			wxLog::SetLogLevel (wxLOG_Error);
 
 			const wxString instanceCheckerName = wxString (L".") + Application::GetName() + L"-lock-" + wxGetUserId();
+#ifdef TC_LINUX
+			const wxString instanceCheckerLockDirectory = GetSingleInstanceCheckerLockDirectory();
+			SingleInstanceChecker.reset (new wxSingleInstanceChecker (instanceCheckerName, instanceCheckerLockDirectory));
+#else
 			SingleInstanceChecker.reset (new wxSingleInstanceChecker (instanceCheckerName));
+#endif
 
 			wxLog::SetLogLevel (logLevel);
 
@@ -1034,7 +1122,6 @@ namespace VeraCrypt
 					if (write (showFifo, buf, 1) == 1)
 					{
 						close (showFifo);
-						Gui->ShowInfo (LangString["LINUX_VC_RUNNING_ALREADY"]);
 						Application::SetExitCode (0);
 						return false;
 					}
@@ -1051,16 +1138,28 @@ namespace VeraCrypt
 				// This is a false positive as VeraCrypt is not running (pipe not available)
 				// we continue running after cleaning the lock file
 				// and creating a new instance of the checker
+#ifdef TC_LINUX
+				wxString lockFileName = instanceCheckerLockDirectory;
+				if (!lockFileName.empty() && lockFileName.Last() != wxFileName::GetPathSeparator())
+				{
+					lockFileName += wxFileName::GetPathSeparator();
+				}
+#else
 				wxString lockFileName = wxGetHomeDir();
 				if ( lockFileName.Last() != wxT('/') )
 				{
 					lockFileName += wxT('/');
 				}
+#endif
 				lockFileName << instanceCheckerName;
 
 				if (wxRemoveFile (lockFileName))
 				{
+#ifdef TC_LINUX
+					SingleInstanceChecker.reset (new wxSingleInstanceChecker (instanceCheckerName, instanceCheckerLockDirectory));
+#else
 					SingleInstanceChecker.reset (new wxSingleInstanceChecker (instanceCheckerName));
+#endif
 				}
 #else
 
@@ -1869,7 +1968,9 @@ namespace VeraCrypt
 		BackgroundMode = state;
 
 #ifdef HAVE_INDICATORS
-		gtk_menu_item_set_label ((GtkMenuItem*) ((MainFrame*) mMainFrame)->indicator_item_showhide, LangString[Gui->IsInBackgroundMode() ? "SHOW_TC" : "HIDE_TC"].mb_str());
+		MainFrame *mainFrame = (MainFrame*) mMainFrame;
+		if (mainFrame->indicator_item_showhide)
+			gtk_menu_item_set_label ((GtkMenuItem*) mainFrame->indicator_item_showhide, LangString[Gui->IsInBackgroundMode() ? "SHOW_TC" : "HIDE_TC"].mb_str());
 #endif
 	}
 
@@ -2072,8 +2173,12 @@ namespace VeraCrypt
 			{
 				item.SetText (field);
 				listCtrl->SetItem (item);
-				if (item.GetColumn() == 3 || item.GetColumn() == 4)
+				if ((item.GetColumn() == 3 || item.GetColumn() == 4) && !item.GetText().IsEmpty())
 					listCtrl->SetColumnWidth(item.GetColumn(), wxLIST_AUTOSIZE);
+					// SlotListCtrl headers do not automatically move with column widths changing on macOS
+#ifdef TC_MACOSX
+					listCtrl->Update();
+#endif
 				changed = true;
 			}
 		}

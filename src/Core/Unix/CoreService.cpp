@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -20,6 +20,7 @@
 #include "Platform/SystemLog.h"
 #include "Platform/Thread.h"
 #include "Platform/Unix/Poller.h"
+#include "Platform/Unix/Process.h"
 #include "Core/Core.h"
 #include "CoreUnix.h"
 #include "CoreServiceRequest.h"
@@ -27,6 +28,66 @@
 
 namespace VeraCrypt
 {
+#ifdef TC_MACOSX
+	static bool IsMacOSXDevicePathWithPrefix (const string &path, const string &prefix)
+	{
+		if (path.find (prefix) != 0 || path.size() <= prefix.size())
+			return false;
+
+		size_t index = prefix.size();
+		while (index < path.size() && path[index] >= '0' && path[index] <= '9')
+			++index;
+
+		if (index == prefix.size())
+			return false;
+
+		if (index == path.size())
+			return true;
+
+		if (path[index++] != 's')
+			return false;
+
+		size_t sliceStart = index;
+		while (index < path.size() && path[index] >= '0' && path[index] <= '9')
+			++index;
+
+		return index > sliceStart && index == path.size();
+	}
+
+	static bool IsMacOSXFormatterDevicePath (const string &path)
+	{
+		return IsMacOSXDevicePathWithPrefix (path, "/dev/disk")
+			|| IsMacOSXDevicePathWithPrefix (path, "/dev/rdisk");
+	}
+
+	static list <string> BuildMacOSXAPFSFormatterArguments (const ExecuteMacOSXAPFSFormatterRequest &request)
+	{
+		if (!IsMacOSXFormatterDevicePath (request.Device))
+			throw ParameterIncorrect (SRC_POS);
+
+		if (request.OwnerUserId > static_cast <uint64> ((uid_t) -1)
+			|| request.OwnerGroupId > static_cast <uint64> ((gid_t) -1))
+		{
+			throw ParameterIncorrect (SRC_POS);
+		}
+
+		stringstream uid;
+		stringstream gid;
+		list <string> arguments;
+
+		uid << request.OwnerUserId;
+		gid << request.OwnerGroupId;
+
+		arguments.push_back ("-U");
+		arguments.push_back (uid.str());
+		arguments.push_back ("-G");
+		arguments.push_back (gid.str());
+		arguments.push_back (string (request.Device));
+
+		return arguments;
+	}
+#endif
+
 	template <class T>
 	unique_ptr <T> CoreService::GetResponse ()
 	{
@@ -159,6 +220,18 @@ namespace VeraCrypt
 						continue;
 					}
 
+#ifdef TC_LINUX
+					// EmergencyDismountVolumeRequest
+					EmergencyDismountVolumeRequest *emergencyDismountRequest = dynamic_cast <EmergencyDismountVolumeRequest*> (request.get());
+					if (emergencyDismountRequest)
+					{
+						DismountVolumeResponse response;
+						response.DismountedVolumeInfo = Core->EmergencyDismountVolume (emergencyDismountRequest->MountedVolumeInfo);
+						response.Serialize (outputStream);
+						continue;
+					}
+#endif
+
 					// GetDeviceSectorSizeRequest
 					GetDeviceSectorSizeRequest *getDeviceSectorSizeRequest = dynamic_cast <GetDeviceSectorSizeRequest*> (request.get());
 					if (getDeviceSectorSizeRequest)
@@ -188,6 +261,17 @@ namespace VeraCrypt
 						response.Serialize (outputStream);
 						continue;
 					}
+
+#ifdef TC_MACOSX
+					// ExecuteMacOSXAPFSFormatterRequest
+					ExecuteMacOSXAPFSFormatterRequest *executeAPFSFormatterRequest = dynamic_cast <ExecuteMacOSXAPFSFormatterRequest*> (request.get());
+					if (executeAPFSFormatterRequest)
+					{
+						Process::Execute (CoreService::GetMacOSXAPFSFormatterPath(), BuildMacOSXAPFSFormatterArguments (*executeAPFSFormatterRequest));
+						ExecuteMacOSXAPFSFormatterResponse().Serialize (outputStream);
+						continue;
+					}
+#endif
 
 					// MountVolumeRequest
 					MountVolumeRequest *mountRequest = dynamic_cast <MountVolumeRequest*> (request.get());
@@ -252,6 +336,14 @@ namespace VeraCrypt
 		return SendRequest <DismountVolumeResponse> (request)->DismountedVolumeInfo;
 	}
 
+#ifdef TC_LINUX
+	shared_ptr <VolumeInfo> CoreService::RequestEmergencyDismountVolume (shared_ptr <VolumeInfo> mountedVolume)
+	{
+		EmergencyDismountVolumeRequest request (mountedVolume);
+		return SendRequest <DismountVolumeResponse> (request)->DismountedVolumeInfo;
+	}
+#endif
+
 	uint32 CoreService::RequestGetDeviceSectorSize (const DevicePath &devicePath)
 	{
 		GetDeviceSectorSizeRequest request (devicePath);
@@ -269,6 +361,19 @@ namespace VeraCrypt
 		GetHostDevicesRequest request (pathListOnly);
 		return SendRequest <GetHostDevicesResponse> (request)->HostDevices;
 	}
+
+#ifdef TC_MACOSX
+	const char *CoreService::GetMacOSXAPFSFormatterPath ()
+	{
+		return "/sbin/newfs_apfs";
+	}
+
+	void CoreService::RequestExecuteMacOSXAPFSFormatter (const DevicePath &devicePath, uint64 userId, uint64 groupId)
+	{
+		ExecuteMacOSXAPFSFormatterRequest request (devicePath, userId, groupId);
+		SendRequest <ExecuteMacOSXAPFSFormatterResponse> (request);
+	}
+#endif
 
 	shared_ptr <VolumeInfo> CoreService::RequestMountVolume (MountOptions &options)
 	{
@@ -503,9 +608,9 @@ namespace VeraCrypt
 		throw_sys_if (fcntl (outPipe->GetReadFD(), F_SETFL, O_NONBLOCK) == -1);
 		throw_sys_if (fcntl (errPipe.GetReadFD(), F_SETFL, O_NONBLOCK) == -1);
 
-		vector <char> buffer (4096), errOutput (4096);
-		buffer.clear ();
-		errOutput.clear ();
+		char buffer[4096];
+		vector <char> errOutput;
+		errOutput.reserve (4096);
 
 		Poller poller (outPipe->GetReadFD(), errPipe.GetReadFD());
 		int status, waitRes;
@@ -518,10 +623,10 @@ namespace VeraCrypt
 				ssize_t bytesRead = 0;
 				foreach (int fd, poller.WaitForData (timeout))
 				{
-					bytesRead = read (fd, &buffer[0], buffer.capacity());
+					bytesRead = read (fd, buffer, sizeof (buffer));
 					if (bytesRead > 0 && fd == errPipe.GetReadFD())
 					{
-						errOutput.insert (errOutput.end(), buffer.begin(), buffer.begin() + bytesRead);
+						errOutput.insert (errOutput.end(), buffer, buffer + bytesRead);
 
 						if (bytesRead > 5 && bytesRead < 80)  // Short message captured
 							timeout = 200;

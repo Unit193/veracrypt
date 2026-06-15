@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2013-2025 AM Crypto. All rights reserved.
+ Copyright (c) 2013-2026 AM Crypto. All rights reserved.
 
  Governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
@@ -53,6 +53,7 @@ namespace VeraCrypt
 		VC_CONVERT_EXCEPTION (EncryptedSystemRequired);
 		VC_CONVERT_EXCEPTION (HigherFuseVersionRequired);
 		VC_CONVERT_EXCEPTION (KernelCryptoServiceTestFailed);
+		VC_CONVERT_EXCEPTION (KernelNtfsDriverUnavailable);
 		VC_CONVERT_EXCEPTION (LoopDeviceSetupFailed);
 		VC_CONVERT_EXCEPTION (MountPointRequired);
 		VC_CONVERT_EXCEPTION (MountPointUnavailable);
@@ -66,6 +67,7 @@ namespace VeraCrypt
 		VC_CONVERT_EXCEPTION (MissingArgument);
 		VC_CONVERT_EXCEPTION (NoItemSelected);
 		VC_CONVERT_EXCEPTION (StringFormatterException);
+		VC_CONVERT_EXCEPTION (FilesystemDismountFailed);
 		VC_CONVERT_EXCEPTION (ExecutedProcessFailed);
 		VC_CONVERT_EXCEPTION (AlreadyInitialized);
 		VC_CONVERT_EXCEPTION (AssertionFailed);

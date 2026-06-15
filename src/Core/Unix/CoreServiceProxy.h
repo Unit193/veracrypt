@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -44,6 +44,18 @@ namespace VeraCrypt
 
 			return dismountedVolumeInfo;
 		}
+
+#ifdef TC_LINUX
+		virtual shared_ptr <VolumeInfo> EmergencyDismountVolume (shared_ptr <VolumeInfo> mountedVolume)
+		{
+			shared_ptr <VolumeInfo> dismountedVolumeInfo = CoreService::RequestEmergencyDismountVolume (mountedVolume);
+
+			VolumeEventArgs eventArgs (dismountedVolumeInfo);
+			T::VolumeDismountedEvent.Raise (eventArgs);
+
+			return dismountedVolumeInfo;
+		}
+#endif
 
 		virtual uint32 GetDeviceSectorSize (const DevicePath &devicePath) const
 		{

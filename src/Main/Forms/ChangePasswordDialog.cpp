@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -18,6 +18,65 @@
 
 namespace VeraCrypt
 {
+	static bool CheckCustomPimForPassword (VolumePasswordPanel *pimPanel, const shared_ptr <VolumePassword> &password, int pim, const shared_ptr <Pkcs5Kdf> &kdf)
+	{
+		int defaultPim = kdf ? kdf->GetDefaultPim() : 0;
+		if (!password || password->Size() == 0 || pim <= 0 || defaultPim <= 0 || pim >= defaultPim)
+			return true;
+
+		if (password->Size() < VolumePassword::SmallPimPasswordSizeThreshold)
+		{
+			Gui->ShowError (kdf ? kdf->GetPimRequireLongPasswordMessageId() : "PIM_REQUIRE_LONG_PASSWORD");
+			pimPanel->SetFocusToPimTextCtrl();
+			return false;
+		}
+
+		if (!Gui->AskYesNo (LangString [kdf ? kdf->GetPimSmallWarningMessageId() : "PIM_SMALL_WARNING"], false, true))
+		{
+			pimPanel->SetFocusToPimTextCtrl();
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool CheckCustomPimForKdfOnlyChange (VolumePasswordPanel *pimPanel, const shared_ptr <VolumePassword> &password, const shared_ptr <Pkcs5Kdf> &kdf, int currentPim)
+	{
+		int defaultPim = kdf ? kdf->GetDefaultPim() : 0;
+		if (!kdf || !password || password->Size() == 0 || currentPim <= 0 || defaultPim <= 0 || currentPim == defaultPim)
+			return true;
+
+		if (currentPim < defaultPim)
+			return CheckCustomPimForPassword (pimPanel, password, currentPim, kdf);
+
+		Gui->ShowWarning (kdf->GetPimLargeWarningMessageId());
+		return true;
+	}
+
+	static bool CheckPasswordChangeWarnings (VolumePasswordPanel *passwordPanel, const shared_ptr <VolumePassword> &password, int pim, const shared_ptr <Pkcs5Kdf> &kdf)
+	{
+		if (!password || password->Size() == 0)
+			return true;
+
+		if (password->Size() < VolumePassword::WarningSizeThreshold)
+		{
+			if (!CheckCustomPimForPassword (passwordPanel, password, pim, kdf))
+				return false;
+
+			if (!Gui->AskYesNo (LangString ["PASSWORD_LENGTH_WARNING"], false, true))
+			{
+				passwordPanel->SetFocusToPasswordTextCtrl();
+				return false;
+			}
+		}
+		else if (!CheckCustomPimForPassword (passwordPanel, password, pim, kdf))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 #ifdef TC_MACOSX
 
 	bool ChangePasswordDialog::ProcessEvent(wxEvent& event)
@@ -102,11 +161,17 @@ namespace VeraCrypt
 		{
 			shared_ptr <Pkcs5Kdf> currentKdf = CurrentPasswordPanel->GetPkcs5Kdf();
 			int currentPim = CurrentPasswordPanel->GetVolumePim();
+			shared_ptr <Pkcs5Kdf> newKdf = NewPasswordPanel->GetPkcs5Kdf();
 			if (-1 == currentPim)
 			{
 				CurrentPasswordPanel->SetFocusToPimTextCtrl();
 				return;
 			}
+			shared_ptr <VolumePassword> currentPassword = CurrentPasswordPanel->GetPassword();
+			shared_ptr <KeyfileList> currentKeyfiles = CurrentPasswordPanel->GetKeyfiles();
+			bool preserveTimestamps = Gui->GetPreferences().DefaultMountOptions.PreserveTimestamps;
+			bool emvSupportEnabled = Gui->GetPreferences().EMVSupportEnabled;
+			int headerWipeCount = NewPasswordPanel->GetHeaderWipeCount();
 
 			shared_ptr <VolumePassword> newPassword;
 			int newPim = 0;
@@ -128,50 +193,47 @@ namespace VeraCrypt
 					NewPasswordPanel->SetFocusToPimTextCtrl();
 					return;
 				}
-
-				if (newPassword->Size() > 0)
-				{
-					if (newPassword->Size() < VolumePassword::WarningSizeThreshold)
-					{
-						if (newPim > 0 && newPim < 485)
-						{
-							Gui->ShowError ("PIM_REQUIRE_LONG_PASSWORD");
-							return;
-						}
-
-						if (!Gui->AskYesNo (LangString ["PASSWORD_LENGTH_WARNING"], false, true))
-						{
-							NewPasswordPanel->SetFocusToPasswordTextCtrl();
-							return;
-						}
-					}
-					else if (newPim > 0 && newPim < 485)
-					{
-						if (!Gui->AskYesNo (LangString ["PIM_SMALL_WARNING"], false, true))
-						{
-							NewPasswordPanel->SetFocusToPimTextCtrl();
-							return;
-						}
-					}
-				}
 			}
 			else
 			{
-				newPassword = CurrentPasswordPanel->GetPassword();
+				newPassword = currentPassword;
 				newPim = CurrentPasswordPanel->GetVolumePim();
+			}
+
+			if (DialogMode == Mode::ChangePkcs5Prf)
+			{
+				if (!CheckCustomPimForKdfOnlyChange (CurrentPasswordPanel, newPassword, newKdf, currentPim))
+					return;
 			}
 
 			shared_ptr <KeyfileList> newKeyfiles;
 			if (DialogMode == Mode::ChangePasswordAndKeyfiles || DialogMode == Mode::ChangeKeyfiles)
 				newKeyfiles = NewPasswordPanel->GetKeyfiles();
 			else if (DialogMode != Mode::RemoveAllKeyfiles)
-				newKeyfiles = CurrentPasswordPanel->GetKeyfiles();
+				newKeyfiles = currentKeyfiles;
 
-			/* force the display of the random enriching interface */
-			RandomNumberGenerator::SetEnrichedByUserStatus (false);
-			Gui->UserEnrichRandomPool (this, NewPasswordPanel->GetPkcs5Kdf() ? NewPasswordPanel->GetPkcs5Kdf()->GetHash() : shared_ptr <Hash>());
-
+			shared_ptr <Pkcs5Kdf> effectiveNewKdf = newKdf ? newKdf : currentKdf;
+			shared_ptr <Volume> openVolume;
 			bool masterKeyVulnerable = false;
+			// If the unchanged KDF is not known yet, open the header before applying KDF-specific PIM limits.
+			bool needOpenVolumeForKdf = DialogMode == Mode::ChangePasswordAndKeyfiles
+				&& !effectiveNewKdf
+				&& newPassword->Size() > 0
+				&& newPim > 0;
+
+			if (!needOpenVolumeForKdf)
+			{
+				if (DialogMode == Mode::ChangePasswordAndKeyfiles
+					&& !CheckPasswordChangeWarnings (NewPasswordPanel, newPassword, newPim, effectiveNewKdf))
+				{
+					return;
+				}
+
+				/* force the display of the random enriching interface */
+				RandomNumberGenerator::SetEnrichedByUserStatus (false);
+				Gui->UserEnrichRandomPool (this, newKdf ? newKdf->GetHash() : shared_ptr <Hash>());
+			}
+
 			{
 #ifdef TC_UNIX
 				// Temporarily take ownership of a device if the user is not an administrator
@@ -189,12 +251,47 @@ namespace VeraCrypt
 						Core->SetFileOwner (finally_arg, finally_arg2);
 				});
 #endif
-				wxBusyCursor busy;
-				ChangePasswordThreadRoutine routine(Path,	Gui->GetPreferences().DefaultMountOptions.PreserveTimestamps,
-					CurrentPasswordPanel->GetPassword(), CurrentPasswordPanel->GetVolumePim(), CurrentPasswordPanel->GetPkcs5Kdf(), CurrentPasswordPanel->GetKeyfiles(),
-					newPassword, newPim, newKeyfiles, NewPasswordPanel->GetPkcs5Kdf(), NewPasswordPanel->GetHeaderWipeCount(), Gui->GetPreferences().EMVSupportEnabled);
-				Gui->ExecuteWaitThreadRoutine (this, &routine);
-				masterKeyVulnerable = routine.m_masterKeyVulnerable;
+				if (needOpenVolumeForKdf)
+				{
+					wxBusyCursor busy;
+					OpenVolumeThreadRoutine openRoutine(Path, preserveTimestamps, currentPassword, currentPim, currentKdf, currentKeyfiles, emvSupportEnabled);
+					Gui->ExecuteWaitThreadRoutine (this, &openRoutine);
+					openVolume = openRoutine.m_pVolume;
+					if (openVolume)
+						effectiveNewKdf = openVolume->GetPkcs5Kdf();
+					if (!effectiveNewKdf)
+						throw ParameterIncorrect (SRC_POS);
+				}
+
+				if (needOpenVolumeForKdf)
+				{
+					if (!CheckPasswordChangeWarnings (NewPasswordPanel, newPassword, newPim, effectiveNewKdf))
+					{
+						// The volume was opened only to detect its KDF; no header rewrite has started.
+						return;
+					}
+
+					/* force the display of the random enriching interface */
+					RandomNumberGenerator::SetEnrichedByUserStatus (false);
+					Gui->UserEnrichRandomPool (this, newKdf ? newKdf->GetHash() : shared_ptr <Hash>());
+				}
+
+				if (openVolume)
+				{
+					wxBusyCursor busy;
+					ChangePasswordThreadRoutine routine(openVolume, newPassword, newPim, newKeyfiles, newKdf, headerWipeCount, emvSupportEnabled);
+					Gui->ExecuteWaitThreadRoutine (this, &routine);
+					masterKeyVulnerable = routine.m_masterKeyVulnerable;
+				}
+				else
+				{
+					wxBusyCursor busy;
+					ChangePasswordThreadRoutine routine(Path, preserveTimestamps,
+						currentPassword, currentPim, currentKdf, currentKeyfiles,
+						newPassword, newPim, newKeyfiles, newKdf, headerWipeCount, emvSupportEnabled);
+					Gui->ExecuteWaitThreadRoutine (this, &routine);
+					masterKeyVulnerable = routine.m_masterKeyVulnerable;
+				}
 			}
 
 			switch (DialogMode)

@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -128,6 +128,26 @@ namespace VeraCrypt
 		MountedVolumeInfo->Serialize (stream);
 	}
 
+#ifdef TC_LINUX
+	// EmergencyDismountVolumeRequest
+	void EmergencyDismountVolumeRequest::Deserialize (shared_ptr <Stream> stream)
+	{
+		CoreServiceRequest::Deserialize (stream);
+		MountedVolumeInfo = Serializable::DeserializeNew <VolumeInfo> (stream);
+	}
+
+	bool EmergencyDismountVolumeRequest::RequiresElevation () const
+	{
+		return !Core->HasAdminPrivileges();
+	}
+
+	void EmergencyDismountVolumeRequest::Serialize (shared_ptr <Stream> stream) const
+	{
+		CoreServiceRequest::Serialize (stream);
+		MountedVolumeInfo->Serialize (stream);
+	}
+#endif
+
 	// GetDeviceSectorSizeRequest
 	void GetDeviceSectorSizeRequest::Deserialize (shared_ptr <Stream> stream)
 	{
@@ -198,6 +218,32 @@ namespace VeraCrypt
 	{
 		CoreServiceRequest::Serialize (stream);
 	}
+
+#ifdef TC_MACOSX
+	// ExecuteMacOSXAPFSFormatterRequest
+	void ExecuteMacOSXAPFSFormatterRequest::Deserialize (shared_ptr <Stream> stream)
+	{
+		CoreServiceRequest::Deserialize (stream);
+		Serializer sr (stream);
+		Device = sr.DeserializeWString ("Device");
+		sr.Deserialize ("OwnerGroupId", OwnerGroupId);
+		sr.Deserialize ("OwnerUserId", OwnerUserId);
+	}
+
+	bool ExecuteMacOSXAPFSFormatterRequest::RequiresElevation () const
+	{
+		return !Core->HasAdminPrivileges();
+	}
+
+	void ExecuteMacOSXAPFSFormatterRequest::Serialize (shared_ptr <Stream> stream) const
+	{
+		CoreServiceRequest::Serialize (stream);
+		Serializer sr (stream);
+		sr.Serialize ("Device", wstring (Device));
+		sr.Serialize ("OwnerGroupId", OwnerGroupId);
+		sr.Serialize ("OwnerUserId", OwnerUserId);
+	}
+#endif
 
 	// MountVolumeRequest
 	void MountVolumeRequest::Deserialize (shared_ptr <Stream> stream)
@@ -270,7 +316,13 @@ namespace VeraCrypt
 	TC_SERIALIZER_FACTORY_ADD_CLASS (CheckFilesystemRequest);
 	TC_SERIALIZER_FACTORY_ADD_CLASS (DismountFilesystemRequest);
 	TC_SERIALIZER_FACTORY_ADD_CLASS (DismountVolumeRequest);
+#ifdef TC_LINUX
+	TC_SERIALIZER_FACTORY_ADD_CLASS (EmergencyDismountVolumeRequest);
+#endif
 	TC_SERIALIZER_FACTORY_ADD_CLASS (ExitRequest);
+#ifdef TC_MACOSX
+	TC_SERIALIZER_FACTORY_ADD_CLASS (ExecuteMacOSXAPFSFormatterRequest);
+#endif
 	TC_SERIALIZER_FACTORY_ADD_CLASS (GetDeviceSectorSizeRequest);
 	TC_SERIALIZER_FACTORY_ADD_CLASS (GetDeviceSizeRequest);
 	TC_SERIALIZER_FACTORY_ADD_CLASS (GetHostDevicesRequest);

@@ -22,6 +22,9 @@
 #define IDD_FAVORITE_VOLUMES            117
 #define IDD_DEFAULT_MOUNT_PARAMETERS    118
 #define IDD_EFI_SYSENC_SETTINGS         119
+#define IDD_PREFERENCES_TAB_GENERAL     120
+#define IDD_PREFERENCES_TAB_ACTIONS     121
+#define IDD_PREFERENCES_TAB_PASSWORD    122
 #define IDC_PREF_MOUNT_READONLY         1000
 #define IDC_PREF_MOUNT_REMOVABLE        1001
 #define IDC_VERIFY                      1002
@@ -158,7 +161,7 @@
 #define IDC_FAVORITES_HELP_LINK         1135
 #define IDC_FAV_VOL_OPTIONS_GLOBAL_SETTINGS_BOX 1136
 #define IDC_PREF_UNMOUNT_SESSION_LOCKED 1137
-#define IDT_NEW_PKCS5_PRF               1138
+#define IDT_NEW_KDF                     1138
 #define IDC_PKCS5_OLD_PRF_ID            1139
 #define IDC_PREF_TEMP_CACHE_ON_MULTIPLE_MOUNT 1141
 #define IDT_OLD_PIM                     1142
@@ -201,6 +204,8 @@
 #define IDC_ENABLE_EMV_SUPPORT          1179
 #define IDT_EMV_OPTIONS                 1180
 #define IDC_DISABLE_SCREEN_PROTECTION   1181
+#define IDC_PREF_TAB                    1182
+#define IDC_SECURE_DESKTOP_ENABLE_IME   1183
 #define IDM_HELP                        40001
 #define IDM_ABOUT                       40002
 #define IDM_UNMOUNT_VOLUME              40003
@@ -270,15 +275,16 @@
 #define IDM_DECRYPT_NONSYS_VOL          40067
 #define IDM_VERIFY_RESCUE_DISK_ISO      40068
 #define IDM_MOUNIT_NO_CACHE             40069
+#define IDM_REPAIR_EFI_BOOT_LOADER      40070
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        120
-#define _APS_NEXT_COMMAND_VALUE         40070
-#define _APS_NEXT_CONTROL_VALUE         1182
+#define _APS_NEXT_RESOURCE_VALUE        123
+#define _APS_NEXT_COMMAND_VALUE         40071
+#define _APS_NEXT_CONTROL_VALUE         1184
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

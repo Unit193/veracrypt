@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -220,8 +220,10 @@ namespace VeraCrypt
 				throw;
 			}
 
-			for(const CK_OBJECT_HANDLE & dataHandle: GetObjects(slotId, CKO_DATA))
+			vector <CK_OBJECT_HANDLE> dataHandles = GetObjects(slotId, CKO_DATA);
+			for (vector <CK_OBJECT_HANDLE>::const_iterator dataHandleIt = dataHandles.begin(); dataHandleIt != dataHandles.end(); ++dataHandleIt)
 			{
+				const CK_OBJECT_HANDLE &dataHandle = *dataHandleIt;
 				SecurityTokenKeyfile keyfile;
 				keyfile.Handle = dataHandle;
 				keyfile.Token->SlotId = slotId;

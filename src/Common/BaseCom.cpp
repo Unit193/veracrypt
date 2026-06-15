@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -419,6 +419,33 @@ DWORD BaseCom::GetSecureBootConfig (BOOL* pSecureBootEnabled, BOOL *pVeraCryptKe
 	{
 		BootEncryption bootEnc (NULL);
 		bootEnc.GetSecureBootConfig (pSecureBootEnabled, pVeraCryptKeysLoaded);
+	}
+	catch (SystemException &)
+	{
+		return GetLastError();
+	}
+	catch (Exception &e)
+	{
+		e.Show (NULL);
+		return ERROR_EXCEPTION_IN_SERVICE;
+	}
+	catch (...)
+	{
+		return ERROR_EXCEPTION_IN_SERVICE;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+DWORD BaseCom::GetEfiBootLoaderSigningSupport (BOOL* pMicrosoft2023UefiCAsSupported)
+{
+	if (!pMicrosoft2023UefiCAsSupported)
+		return ERROR_INVALID_PARAMETER;
+
+	try
+	{
+		BootEncryption bootEnc (NULL);
+		bootEnc.GetEfiBootLoaderSigningSupport (pMicrosoft2023UefiCAsSupported);
 	}
 	catch (SystemException &)
 	{

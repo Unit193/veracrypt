@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -17,13 +17,14 @@
 #ifdef TC_WINDOWS
 #include "Main/resource.h"
 #else
-#ifdef TC_MACOSX
 #include "Application.h"
-#endif
 #include "Platform/File.h"
 #include "Platform/StringConverter.h"
 #include <stdio.h>
 #include "UserPreferences.h"
+#if defined(TC_LINUX)
+#include "Platform/Unix/Process.h"
+#endif
 #endif
 
 namespace VeraCrypt
@@ -66,6 +67,14 @@ namespace VeraCrypt
 		string filenamePrefix = StringConverter::ToSingle (Application::GetExecutableDirectory()) + "/../Resources/languages/Language.";
 #else
 		string filenamePrefix("/usr/share/veracrypt/languages/Language.");
+#if defined(TC_LINUX)
+		if (Process::IsRunningUnderAppImage (StringConverter::ToSingle (wstring (Application::GetExecutablePath()))))
+		{
+			const char* appDirEnv = getenv ("APPDIR");
+			if (appDirEnv)
+				filenamePrefix = string (appDirEnv) + "/usr/share/veracrypt/languages/Language.";
+		}
+#endif
 #endif
 		string filenamePost(".xml");
 		string filename = filenamePrefix + defaultLang + filenamePost;

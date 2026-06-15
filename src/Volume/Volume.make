@@ -41,7 +41,11 @@ endif
 
 ifeq "$(ENABLE_WOLFCRYPT)" "0"
 ifeq "$(PLATFORM)" "MacOSX"
-ifneq "$(COMPILE_ASM)" "false"
+ifeq "$(LOCAL_DEVELOPMENT_BUILD):$(CPU_ARCH)" "true:arm64"
+	OBJARMV8CRYPTO += ../Crypto/Aes_hw_armv8.oarmv8crypto
+	OBJS += ../Crypto/Aescrypt.o
+	OBJARMV8CRYPTO += ../Crypto/sha256_armv8.oarmv8crypto
+else ifneq "$(COMPILE_ASM)" "false"
 	OBJSEX += ../Crypto/Aes_asm.oo
 	OBJS += ../Crypto/Aes_hw_cpu.o
 	OBJSEX += ../Crypto/Aes_hw_armv8.oo
@@ -58,6 +62,8 @@ ifneq "$(COMPILE_ASM)" "false"
 	OBJSEX += ../Crypto/sha512_avx1.oo
 	OBJSEX += ../Crypto/sha512_avx2.oo
 	OBJSEX += ../Crypto/sha512_sse4.oo
+else
+	OBJS += ../Crypto/Aescrypt.o
 endif
 else ifeq "$(CPU_ARCH)" "x86"
 	OBJS += ../Crypto/Aes_x86.o
@@ -101,6 +107,11 @@ ifeq "$(GCC_GTEQ_500)" "1"
 else
 	OBJS += ../Crypto/Sha2Intel.o
 endif
+ifeq "$(GCC_GTEQ_470)" "1"
+	OBJSAVX2 += ../Crypto/Argon2/src/opt_avx2.oavx2
+else
+	OBJS += ../Crypto/Argon2/src/opt_avx2.o
+endif
 else
 OBJS += ../Crypto/wolfCrypt.o
 endif
@@ -119,6 +130,13 @@ OBJS += ../Crypto/Camellia.o
 OBJS += ../Crypto/Streebog.o
 OBJS += ../Crypto/kuznyechik.o
 OBJS += ../Crypto/kuznyechik_simd.o
+OBJS += ../Crypto/Argon2/src/blake2/blake2b.o
+OBJS += ../Crypto/Argon2/src/argon2.o
+OBJS += ../Crypto/Argon2/src/core.o
+OBJS += ../Crypto/Argon2/src/argon2.o
+OBJS += ../Crypto/Argon2/src/opt_sse2.o
+OBJS += ../Crypto/Argon2/src/ref.o
+OBJS += ../Crypto/Argon2/src/selftest.o
 OBJS += ../Common/Pkcs5.o
 endif
 

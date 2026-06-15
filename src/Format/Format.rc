@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,26,24,0
- PRODUCTVERSION 1,26,24,0
+ FILEVERSION 1,26,29,3
+ PRODUCTVERSION 1,26,29,3
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -46,11 +46,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AM Crypto"
             VALUE "FileDescription", "VeraCrypt Format"
-            VALUE "FileVersion", "1.26.24"
+            VALUE "FileVersion", "1.26.29"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCrypt Format.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.26.24"
+            VALUE "ProductVersion", "1.26.29"
         END
     END
     BLOCK "VarFileInfo"
@@ -105,7 +105,7 @@ BEGIN
     COMBOBOX        IDC_COMBO_BOX_HASH_ALGO,7,169,95,126,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "",IDC_BOX_HELP,7,40,266,78
     GROUPBOX        "Encryption Algorithm",IDT_ENCRYPTION_ALGO,0,10,273,131
-    GROUPBOX        "Hash Algorithm",IDT_HASH_ALGO,0,156,273,35
+    GROUPBOX        "KDF Algorithm",IDT_KDF_ALGO,0,156,273,35
     LTEXT           "More information",IDC_LINK_MORE_INFO_ABOUT_CIPHER,7,124,176,10,SS_NOTIFY
     LTEXT           "Information on hash algorithms",IDC_LINK_HASH_INFO,121,171,148,8,SS_NOTIFY
 END
@@ -230,13 +230,13 @@ BEGIN
     EDITTEXT        IDC_PASSWORD_DIRECT,75,2,198,14,ES_PASSWORD | ES_AUTOHSCROLL
     COMBOBOX        IDC_PKCS5_PRF_ID,75,17,131,90,CBS_DROPDOWNLIST | WS_TABSTOP
     EDITTEXT        IDC_PIM,75,32,42,14,ES_RIGHT | ES_PASSWORD | ES_AUTOHSCROLL | ES_NUMBER | NOT WS_VISIBLE
-    LTEXT           "(Empty or 0 for default iterations)",IDC_PIM_HELP,121,34,152,8,NOT WS_VISIBLE
+    LTEXT           "(Empty or 0 for defaults)",IDC_PIM_HELP,121,34,152,8,NOT WS_VISIBLE
     CONTROL         "&Display password",IDC_SHOW_PASSWORD_SINGLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,75,46,109,11,WS_EX_TRANSPARENT
     CONTROL         "U&se keyfiles",IDC_KEYFILES_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,75,57,106,11
     PUSHBUTTON      "&Keyfiles...",IDC_KEY_FILES,188,54,85,14
     LTEXT           "",IDC_BOX_HELP,0,74,273,119
     RTEXT           "Password:",IDT_PASSWORD,0,6,71,8
-    RTEXT           "PKCS-5 PRF:",IDT_PKCS5_PRF,0,19,71,8
+    RTEXT           "KDF:",IDT_KDF,0,19,71,8
     RTEXT           "Volume PIM:",IDT_PIM,0,35,71,8,NOT WS_VISIBLE
     CONTROL         "Use P&IM",IDC_PIM_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,75,35,97,10
 END
@@ -449,7 +449,7 @@ BEGIN
     CONTROL         "Display PIM",IDC_SHOW_PIM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,74,17,196,10
     LTEXT           "",IDC_BOX_HELP,0,32,273,142
     RTEXT           "Volume PIM:",IDT_PIM,1,3,69,8
-    LTEXT           "(Empty or 0 for default iterations)",IDC_PIM_HELP,120,3,153,8
+    LTEXT           "(Empty or 0 for defaults)",IDC_PIM_HELP,120,3,153,8
     LTEXT           "Information on PIM",IDC_LINK_PIM_INFO,0,179,273,8,SS_NOTIFY
 END
 

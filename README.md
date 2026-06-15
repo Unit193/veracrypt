@@ -29,7 +29,7 @@ called 'TrueCrypt' or 'VeraCrypt'
 ## Requirements for Building VeraCrypt for Windows:
 
 A detailed guide on how to build VeraCrypt on Windows can be found in
-the [documentation](./doc/html/CompilingGuidelineWin.html) in the repository and
+the [documentation](./doc/html/en/CompilingGuidelineWin.html) in the repository and
 it is also available [online](https://veracrypt.jp/en/CompilingGuidelineWin.html) or on the [mirror](https://veracrypt.io/en/CompilingGuidelineWin.html).
 
 IMPORTANT:
@@ -78,7 +78,7 @@ For build instructions, please refer to the file src\Boot\EFI\Readme.txt.
 # II. Linux and Mac OS X
 
 A detailed guide on how to build VeraCrypt on Linux can be found in
-the [documentation](./doc/html/CompilingGuidelineLinux.html) in the repository and
+the [documentation](./doc/html/en/CompilingGuidelineLinux.html) in the repository and
 it is also available [online](https://veracrypt.jp/en/CompilingGuidelineLinux.html) or on the [mirror](https://veracrypt.io/en/CompilingGuidelineLinux.html).
 
 ## Requirements for Building VeraCrypt for Linux and Mac OS X:
@@ -119,6 +119,16 @@ it is also available [online](https://veracrypt.jp/en/CompilingGuidelineLinux.ht
 4. If successful, the VeraCrypt executable should be located in the directory
    'Main'.
 
+Reproducible build note: when `SOURCE_DATE_EPOCH` is not set, a build from a
+git checkout uses the HEAD commit timestamp, while a build from a release
+tarball uses the release date in `src/Common/Tcdefs.h` at 00:00 UTC. To
+reproduce official release artifacts from a git checkout, set
+`SOURCE_DATE_EPOCH` explicitly or build from the release tarball. Vendored
+VeraCrypt sources tracked in another git checkout are treated the same way and
+use that checkout's HEAD timestamp.
+
+Both the generated `.deb` and `.rpm` packages are reproducible, including on older rpm (e.g. CentOS/RHEL 7) that lacks the `SOURCE_DATE_EPOCH`/`_buildhost` build macros.
+
 By default, a universal executable supporting both graphical and text user
 interface (through the switch --text) is built.
 On Linux, a console-only executable, which requires no GUI library, can be
@@ -127,6 +137,15 @@ built using the 'NOGUI' parameter:
 `$ make NOGUI=1 WXSTATIC=1 WX_ROOT=/usr/src/wxWidgets wxbuild`
 
 `$ make NOGUI=1 WXSTATIC=1`
+
+## Arch Linux package build:
+
+Arch Linux users can build and install a package from the current checkout with
+makepkg:
+
+`$ cd src/Build/Packaging/arch`
+
+`$ makepkg -si`
 
 On MacOSX, building a console-only executable is not supported.
 
@@ -208,10 +227,10 @@ https://veracrypt.io/ (mirror)
 ## Copyright Information
 
 This software as a whole:  
-Copyright (c) 2025 AM Crypto. All rights reserved.  
+Copyright (c) 2026 AM Crypto. All rights reserved.  
 
 Portions of this software:  
-Copyright (c) 2025 AM Crypto. All rights reserved.
+Copyright (c) 2026 AM Crypto. All rights reserved.  
 Copyright (c) 2013-2025 IDRIX. All rights reserved.  
 Copyright (c) 2003-2012 TrueCrypt Developers Association. All rights reserved.  
 Copyright (c) 1998-2000 Paul Le Roux. All rights reserved.  

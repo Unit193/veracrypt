@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -144,11 +144,26 @@ namespace VeraCrypt
 	{
 	public:
 
+		struct ProgressStage
+		{
+			enum Enum
+			{
+				NotStarted = 0,
+				WritingData,
+				WritingBackupHeader,
+				FlushingData,
+				Finished,
+				Aborted,
+				Error
+			};
+		};
+
 		struct ProgressInfo
 		{
 			bool CreationInProgress;
 			uint64 TotalSize;
 			uint64 SizeDone;
+			ProgressStage::Enum Stage;
 		};
 
 		struct KeyInfo
@@ -180,6 +195,7 @@ namespace VeraCrypt
 		shared_ptr <VolumeLayout> Layout;
 		shared_ptr <File> VolumeFile;
 		SharedVal <uint64> SizeDone;
+		SharedVal <int> Stage;
 		uint64 WriteOffset;
 		ProgressInfo mProgressInfo;
 
