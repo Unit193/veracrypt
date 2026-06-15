@@ -1,0 +1,21 @@
+Description: Fallback to fuse3.
+Author: Unit 193 <unit193@unit193.net>
+Forwarded: not-needed
+
+---
+ src/Makefile |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -572,6 +573,10 @@ else
+ 		endif
+ 	else
+ 		VC_FUSE_PACKAGE := fuse
++		FUSE_FOUND := $(shell $(PKG_CONFIG) --exists $(VC_FUSE_PACKAGE) >/dev/null 2>&1 && echo 1 || echo 0)
++		ifeq ($(FUSE_FOUND),0)
++			VC_FUSE_PACKAGE := fuse3
++		endif
+ 	endif
+ endif
+ 
