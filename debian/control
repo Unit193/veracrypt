@@ -1,6 +1,5 @@
 Source: veracrypt
 Section: non-free/utils
-Priority: optional
 Maintainer: Unit 193 <unit193@unit193.net>
 Build-Depends: debhelper-compat (= 13),
  libayatana-appindicator3-dev,
@@ -9,7 +8,6 @@ Build-Depends: debhelper-compat (= 13),
  libwxgtk3.2-dev | libwxgtk3.0-gtk3-dev,
  pkgconf,
  yasm [any-i386 any-amd64]
-Rules-Requires-Root: no
 Standards-Version: 4.7.2
 Homepage: https://veracrypt.fr/
 
