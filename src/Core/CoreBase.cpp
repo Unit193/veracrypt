@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -53,7 +53,7 @@ namespace VeraCrypt
 		RandomNumberGenerator::SetHash (newPkcs5Kdf->GetHash());
 
 		SecureBuffer newSalt (openVolume->GetSaltSize());
-		SecureBuffer newHeaderKey (VolumeHeader::GetLargestSerializedKeySize());
+		SecureBuffer newHeaderKey (VolumeHeader::GetHeaderKeyDerivationSize (newPkcs5Kdf));
 
 		shared_ptr <VolumePassword> password (Keyfile::ApplyListToPassword (newKeyfiles, newPassword, emvSupportEnabled));
 
@@ -67,7 +67,9 @@ namespace VeraCrypt
 				else
 					RandomNumberGenerator::GetDataFast (newSalt);
 
-				newPkcs5Kdf->DeriveKey (newHeaderKey, *password, newPim, newSalt);
+				int derivationResult = newPkcs5Kdf->DeriveKey (newHeaderKey, *password, newPim, newSalt);
+				if (derivationResult != 0)
+					throw ExternalException (SRC_POS, newPkcs5Kdf->GetDerivationFailureMessage (derivationResult));
 
 				openVolume->ReEncryptHeader (backupHeader, newSalt, newHeaderKey, newPkcs5Kdf);
 				openVolume->GetFile()->Flush();
@@ -284,12 +286,14 @@ namespace VeraCrypt
 		RandomNumberGenerator::SetHash (pkcs5Kdf->GetHash());
 
 		SecureBuffer newSalt (header->GetSaltSize());
-		SecureBuffer newHeaderKey (VolumeHeader::GetLargestSerializedKeySize());
+		SecureBuffer newHeaderKey (VolumeHeader::GetHeaderKeyDerivationSize (pkcs5Kdf));
 
 		shared_ptr <VolumePassword> passwordKey (Keyfile::ApplyListToPassword (keyfiles, password, emvSupportEnabled));
 
 		RandomNumberGenerator::GetData (newSalt);
-		pkcs5Kdf->DeriveKey (newHeaderKey, *passwordKey, pim, newSalt);
+		int derivationResult = pkcs5Kdf->DeriveKey (newHeaderKey, *passwordKey, pim, newSalt);
+		if (derivationResult != 0)
+			throw ExternalException (SRC_POS, pkcs5Kdf->GetDerivationFailureMessage (derivationResult));
 
 		header->EncryptNew (newHeaderBuffer, newSalt, newHeaderKey, pkcs5Kdf);
 	}

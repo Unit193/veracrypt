@@ -1,6 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.24">
+  <localization prog-version="1.26.29">
     <language langid="sv" name="Svenska" en-name="Swedish" version="1.0.0" translators="Peter Runesson" />
     <font lang="sv" class="normal" size="11" face="default" />
     <font lang="sv" class="bold" size="13" face="Arial" />
@@ -47,7 +47,7 @@
     <entry lang="sv" key="IDC_KEY_FILES">N&amp;yckelfiler...</entry>
     <entry lang="sv" key="IDC_LINK_HASH_INFO">Information om hashalgoritmer</entry>
     <entry lang="sv" key="IDC_LINK_MORE_INFO_ABOUT_CIPHER">Mer information</entry>
-    <entry lang="sv" key="IDC_LINK_PIM_INFO">Information on PIM</entry>
+    <entry lang="sv" key="IDC_LINK_PIM_INFO">Information om PIM</entry>
     <entry lang="sv" key="IDC_MB">&amp;MiB</entry>
     <entry lang="sv" key="IDC_MORE_INFO_ON_CONTAINERS">Mer information</entry>
     <entry lang="sv" key="IDC_MORE_INFO_ON_SYS_ENCRYPTION">Mer information om systemkryptering</entry>
@@ -194,13 +194,13 @@
     <entry lang="sv" key="IDD_PERFORMANCE_SETTINGS">VeraCrypt - Prestanda och drivrutinsalternativ</entry>
     <entry lang="sv" key="IDD_PREFERENCES_DLG">VeraCrypt - Preferenser</entry>
     <entry lang="sv" key="IDD_SYSENC_SETTINGS">VeraCrypt - Systemkrypteringsinställningar</entry>
-    <entry lang="sv" key="IDD_TOKEN_PREFERENCES">VeraCrypt - Säkerhetstokenpreferenser</entry>
+    <entry lang="sv" key="IDD_TOKEN_PREFERENCES">VeraCrypt - Preferenser för säkerhetstoken</entry>
     <entry lang="sv" key="IDD_TRAVELER_DLG">VeraCrypt Resenär-diskinställning</entry>
     <entry lang="sv" key="IDD_VOLUME_PROPERTIES">VeraCrypt-volymegenskaper</entry>
     <entry lang="sv" key="IDM_ABOUT">Om</entry>
     <entry lang="sv" key="IDM_ADD_REMOVE_VOL_KEYFILES">Lägg till/ta bort nyckelfiler till/från volym...</entry>
     <entry lang="sv" key="IDM_ADD_VOLUME_TO_FAVORITES">Lägg till monterad volym till favoriter...</entry>
-    <entry lang="sv" key="IDM_ADD_VOLUME_TO_SYSTEM_FAVORITES">Lägg till monterad volym till favoriter...</entry>
+    <entry lang="sv" key="IDM_ADD_VOLUME_TO_SYSTEM_FAVORITES">Lägg till monterad volym till systemfavoriter...</entry>
     <entry lang="sv" key="IDM_ANALYZE_SYSTEM_CRASH">Analysera en systemkrasch...</entry>
     <entry lang="sv" key="IDM_BACKUP_VOL_HEADER">Säkerhetskopiera volymhuvud...</entry>
     <entry lang="sv" key="IDM_BENCHMARK">Prestandamätning...</entry>
@@ -291,8 +291,8 @@
     <entry lang="sv" key="IDT_NEW_PASSWORD">Lösenord:</entry>
     <entry lang="sv" key="IDT_PARALLELIZATION_OPTIONS">Trådbaserad parallellism</entry>
     <entry lang="sv" key="IDT_PKCS11_LIB_PATH">PKCS #11-bibliotekssökväg</entry>
-    <entry lang="sv" key="IDT_PKCS5_PRF">PKCS-5 PRF:</entry>
-    <entry lang="sv" key="IDT_NEW_PKCS5_PRF">PKCS-5 PRF:</entry>
+    <entry lang="sv" key="IDT_KDF">KDF:</entry>
+    <entry lang="sv" key="IDT_NEW_KDF">KDF:</entry>
     <entry lang="sv" key="IDT_PW_CACHE_OPTIONS">Lösenordscache</entry>
     <entry lang="sv" key="IDT_SECURITY_OPTIONS">Säkerhetsalternativ</entry>
     <entry lang="sv" key="IDT_EMV_OPTIONS">EMV-alternativ</entry>
@@ -447,7 +447,7 @@
     <entry lang="sv" key="DISK_FREE_PB">Ledigt utrymme på enheten %s är %.2f PiB</entry>
     <entry lang="sv" key="DRIVELETTERS">Det gick inte att hämta tillgängliga enhetsbokstäver.</entry>
     <entry lang="sv" key="DRIVER_NOT_FOUND">Fel: VeraCrypt-drivrutinen hittades inte.\n\nKopiera filerna "veracrypt.sys" och "veracrypt-x64.sys" till mappen där huvudapplikationen VeraCrypt (VeraCrypt.exe) finns.</entry>
-    <entry lang="sv" key="DRIVER_VERSION">Fel: En inkompatibel version av VeraCrypt-drivrutinen körs för närvarande.\n\nOm du försöker köra VeraCrypt i portabelt läge (dvs. utan att installera det) och en annan version av VeraCrypt redan är installerad måste du avinstallera den först (eller uppgradera) den med VeraCrypt-installationsprogrammet). För att avinstallera det, följ dessa steg: I Windows Vista eller senare, välj "Start-meny" &gt; Dator > "Avinstallera eller ändra ett program" &gt; VeraCrypt > Avinstallera; i Windows XP, välj "Start-meny" &gt; Inställningar > "Kontrollpanelen" &gt; "Lägg till eller ta bort program" &gt; VeraCrypt > Ta bort.\n\nPå liknande sätt, om du försöker köra VeraCrypt i portabelt läge (dvs. utan att installera det) och en annan version av VeraCrypt körs redan i portabelt läge, måste du starta om systemet först och sedan köra endast denna nya version.</entry>
+    <entry lang="sv" key="DRIVER_VERSION">Fel: En inkompatibel version av VeraCrypt-drivrutinen körs för närvarande.\n\nOm du försöker köra VeraCrypt i portabelt läge (dvs. utan att installera det) och en annan version av VeraCrypt redan är installerad måste du först avinstallera den, eller uppgradera den med hjälp av VeraCrypt-installationsprogrammet. För att avinstallera det, följ dessa steg: I Windows Vista eller senare, välj "Start-meny" &gt; Dator > "Avinstallera eller ändra ett program" &gt; VeraCrypt > Avinstallera; i Windows XP, välj "Start-meny" &gt; Inställningar > "Kontrollpanelen" &gt; "Lägg till eller ta bort program" &gt; VeraCrypt > Ta bort.\n\nPå liknande sätt, om du försöker köra VeraCrypt i portabelt läge (dvs. utan att installera det) och en annan version av VeraCrypt körs redan i portabelt läge, måste du starta om systemet först och sedan köra endast denna nya version.</entry>
     <entry lang="sv" key="ERR_CIPHER_INIT_FAILURE">Fel: Chifferinitieringsfel.</entry>
     <entry lang="sv" key="ERR_CIPHER_INIT_WEAK_KEY">Fel: En svag eller en potentiellt svag nyckel har upptäckts. Nyckeln kommer att kasseras. Försök igen.</entry>
     <entry lang="sv" key="EXCEPTION_REPORT">Ett kritiskt fel har uppstått och VeraCrypt måste avslutas. Om detta orsakas av ett fel i VeraCrypt vill vi åtgärda det. För att hjälpa oss kan du skicka oss en automatiskt genererad felrapport som innehåller följande:\n\n- Programversion\n- Operativsystemversion\n- CPU-typ\n- VeraCrypt-komponentens namn\n- Den körbara filens kontrollsumma\n- Symboliskt namn på dialogfönstret\n- Felkategori\n- Feladress\n- VeraCrypt-anropsstack\n\nOm du väljer "Ja" kommer följande URL (som innehåller hela felrapporten) att öppnas i din standardwebbläsare.\n\n%hs\n\nVill du skicka ovanstående felrapport till oss?</entry>
@@ -627,13 +627,13 @@
     <entry lang="sv" key="PASSWORD_HIDDENVOL_HOST_DIRECT_HELP">Ange lösenordet för volymen där du vill skapa en dold volym.\n\nNär du klickar på Nästa kommer VeraCrypt att försöka montera volymen. Så snart volymen är monterad, skannas dess klusterbitmapp för att bestämma storleken på det oavbrutna området med ledigt utrymme (om det finns något) vars ände är i linje med slutet av volymen. Detta område kommer att rymma den dolda volymen och begränsar därför dess maximala storlek. Klusterbitmappsskanning är nödvändig för att säkerställa att inga data på den yttre volymen kommer att skrivas över av den dolda volymen.</entry>
     <entry lang="sv" key="PASSWORD_HIDDENVOL_HOST_HELP">\nVälj ett lösenord för den yttre volymen. Detta kommer att vara lösenordet som du kommer att kunna avslöja för en motståndare om du blir ombedd eller tvingad att göra det.\n\nVIKTIGT: Lösenordet måste skilja sig väsentligt från det du väljer för den dolda volymen.\n\nObs: Den maximala lösenordslängden är 128 tecken.</entry>
     <entry lang="sv" key="PASSWORD_SYSENC_OUTERVOL_HELP">Välj ett lösenord för den yttre volymen. Detta kommer att vara lösenordet som du kommer att kunna avslöja för alla som tvingar dig att avslöja lösenordet för den första partitionen bakom systempartitionen, där både den yttre volymen och den dolda volymen (som innehåller det dolda operativsystemet) kommer att finnas. Existensen av den dolda volymen (och det dolda operativsystemet) kommer att förbli hemlig. Observera att det här lösenordet inte är för skenoperativsystemet.\n\nVIKTIGT: Lösenordet måste skilja sig väsentligt från det du väljer för den dolda volymen (dvs. för det dolda operativsystemet).</entry>
-    <entry lang="sv" key="PASSWORD_HIDVOL_HOST_TITLE">Outer Volume Password</entry>
+    <entry lang="sv" key="PASSWORD_HIDVOL_HOST_TITLE">Lösenord för yttre volym</entry>
     <entry lang="sv" key="PASSWORD_HIDVOL_TITLE">Lösenord för dold volym</entry>
     <entry lang="sv" key="PASSWORD_HIDDEN_OS_TITLE">Lösenord för dolt operativsystem</entry>
     <entry lang="sv" key="PASSWORD_LENGTH_WARNING">VARNING: Korta lösenord är enkla att knäcka med hjälp av uttömmande attacktekniker (brute force)!\n\nVi rekommenderar att du väljer ett lösenord som består av minst 20 tecken. Är du säker på att du vill använda ett kort lösenord?</entry>
     <entry lang="sv" key="PASSWORD_TITLE">Volymlösenord</entry>
     <entry lang="sv" key="PASSWORD_WRONG">Operationen misslyckades på grund av ett eller flera av följande:\n - Felaktigt lösenord.\n - Felaktigt volym PIM-nummer.\n - Felaktig PRF (hash).\n - Inte en giltig volym.</entry>
-    <entry lang="sv" key="PASSWORD_OR_KEYFILE_WRONG">Operationen misslyckades på grund av ett eller flera av följande:\n - Felaktig nyckelfil/felaktiga nyckelfiler.\n - Felaktigt lösenord.\n - Felaktigt volym-PIM-nummer.\n - Felaktig PRF (hash).\n - Inte en giltig volym .</entry>
+    <entry lang="sv" key="PASSWORD_OR_KEYFILE_WRONG">Operationen misslyckades på grund av ett eller flera av följande:\n - Felaktig nyckelfil/felaktiga nyckelfiler.\n - Felaktigt lösenord.\n - Felaktigt volym-PIM-nummer.\n - Felaktig PRF (hash).\n - Inte en giltig volym.</entry>
     <entry lang="sv" key="PASSWORD_OR_MODE_WRONG">Operationen misslyckades på grund av ett eller flera av följande:\n - Fel monteringsläge.\n - Felaktigt lösenord.\n - Felaktigt volym-PIM-nummer.\n - Felaktig PRF (hash).\n - Inte en giltig volym.</entry>
     <entry lang="sv" key="PASSWORD_OR_KEYFILE_OR_MODE_WRONG">Operationen misslyckades på grund av ett eller flera av följande:\n - Fel monteringsläge.\n - Felaktig nyckelfil/felaktiga nyckelfiler.\n - Felaktigt lösenord.\n - Felaktigt volym-PIM-nummer.\n - Felaktig PRF (hash). \n - Inte en giltig volym.</entry>
     <entry lang="sv" key="PASSWORD_WRONG_AUTOMOUNT">Automatisk montering misslyckades på grund av ett eller flera av följande:\n - Felaktigt lösenord.\n - Felaktigt volym-PIM-nummer.\n - Felaktig PRF (hash).\n - Ingen giltig volym hittades.</entry>
@@ -813,7 +813,7 @@
     <entry lang="sv" key="SECONDARY_KEY_SIZE_LRW">Justera nyckelstorlek (LRW-läge)</entry>
     <entry lang="sv" key="BITS">bitar</entry>
     <entry lang="sv" key="BLOCK_SIZE">Blockstorlek</entry>
-    <entry lang="sv" key="PKCS5_PRF">PKCS-5 PRF</entry>
+    <entry lang="sv" key="KDF">KDF</entry>
     <entry lang="sv" key="PKCS5_ITERATIONS">PKCS-5 iterationsantal</entry>
     <entry lang="sv" key="VOLUME_CREATE_DATE">Volym skapad</entry>
     <entry lang="sv" key="VOLUME_HEADER_DATE">Huvudet senast ändrat</entry>
@@ -1256,7 +1256,7 @@
     <entry lang="sv" key="BOOT_LOADER_UPGRADE_OK">VeraCrypt-startinläsaren har uppgraderats.\n\nDet rekommenderas starkt att du skapar en ny VeraCrypt-återställningsdisk (som kommer att innehålla den nya versionen av VeraCrypt-startinläsaren) genom att välja "System" &gt; "Skapa återställningsdisk" efter att du har startat om din dator.</entry>
     <entry lang="sv" key="BOOT_LOADER_UPGRADE_OK_HIDDEN_OS">VeraCrypt-startinläsaren har uppgraderats.\n\nDet rekommenderas starkt att du startar skenoperativsystemet och sedan skapar en ny VeraCrypt-återställningsdisk (som kommer att innehålla den nya versionen av VeraCrypt-startinläsaren) genom att välja "System" &gt; "Skapa återställningsdisk".</entry>
     <entry lang="sv" key="BOOT_LOADER_UPGRADE_FAILED">Det gick inte att uppgradera VeraCrypt-startinläsaren.</entry>
-    <entry lang="sv" key="SYS_DRIVE_SIZE_PROBE_TIMEOUT">VeraCrypt kunde inte avgöra systemenhetens verkliga storlek och kommer därför att använda den storlek som rapporteras av operativsystemet. Observera även att detta är inte är ett fel i VeraCrypt.</entry>
+    <entry lang="sv" key="SYS_DRIVE_SIZE_PROBE_TIMEOUT">VeraCrypt kunde inte avgöra systemenhetens verkliga storlek och kommer därför att använda den storlek som rapporteras av operativsystemet. Observera även att detta inte är något fel i VeraCrypt.</entry>
     <entry lang="sv" key="HIDDEN_SECTOR_DETECTION_FAILED_PREVIOUSLY">VARNING: Det verkar som att VeraCrypt redan har försökt identifiera dolda sektorer på denna systemenhet. Om fel uppstod under den föregående identifieringsprocessen kan du undvika dem genom att denna gång hoppa över identifieringen av dolda sektorer. Observera att VeraCrypt då kommer att använda sig av den storlek som rapporteras av operativsystemet, vilken kan vara mindre än enhetens verkliga storlek.\n\nObservera att detta inte orsakas av ett fel i VeraCrypt.</entry>
     <entry lang="sv" key="SKIP_HIDDEN_SECTOR_DETECTION">Hoppa över identifieringen av dolda sektorer (använd storleken som rapporteras av operativsystemet)</entry>
     <entry lang="sv" key="RETRY_HIDDEN_SECTOR_DETECTION">Försök identifiera dolda sektorer igen</entry>
@@ -1427,7 +1427,7 @@
     <entry lang="sv" key="PASSWORD_MAXLENGTH_REACHED">Lösenordet har redan nått sin maximala längd på %d tecken.\nInga ytterligare tecken är tillåtna.</entry>
     <entry lang="sv" key="IDC_SELECT_LANGUAGE_LABEL">Välj vilket språk som ska användas under installationen:</entry>
     <entry lang="sv" key="VOLUME_TOO_LARGE_FOR_HOST">FEL: Storleken på filbehållaren är större än det tillgängliga lediga utrymmet på disken.</entry>
-    <entry lang="sv" key="IDC_ALLOW_WINDOWS_DEFRAG">Tillåt Windows-diskdefragmenterare att defragmentera icke-systempartition/enhet</entry>    
+    <entry lang="sv" key="IDC_ALLOW_WINDOWS_DEFRAG">Tillåt Windows-diskdefragmenterare att defragmentera icke-systempartition/enhet</entry>
     <entry lang="sv" key="CONFIRM_ALLOW_WINDOWS_DEFRAG">VARNING: Defragmentering av icke-systempartitioner/enheter kan läcka metadata om deras innehåll eller orsaka problem med dolda volymer som de kan innehålla.\n\nFortsätt?</entry>
     <entry lang="sv" key="VIRTUAL_DEVICE">Virtuell enhet</entry>
     <entry lang="sv" key="MOUNTED_VOLUME_NOT_ASSOCIATED">Den valda monterade volymen är inte associerad med dess enhetsbokstav i Windows och kan därför inte öppnas i Windows Utforskaren.</entry>
@@ -1517,10 +1517,6 @@
     <entry lang="sv" key="LINUX_MOUNTET_HINT">Filsystemet för den valda enheten är för närvarande monterat. Demontera "{0}" innan du fortsätter.</entry>
     <entry lang="sv" key="LINUX_HIDDEN_PASS_NO_DIFF">Den dolda volymen kan inte ha samma lösenord, PIM och nyckelfiler som den yttre volymen</entry>
     <entry lang="sv" key="LINUX_NOT_FAT_HINT">Observera att volymen inte kommer att formateras med ett FAT-filsystem och därför kan du behöva installera ytterligare filsystemdrivrutiner på andra plattformar än {0}, vilket gör att du kan montera volymen.</entry>
-    <entry lang="sv" key="LINUX_ERROR_SIZE_HIDDEN_VOL">Fel: Den dolda volymen som ska skapas är större än {0} TB ({1} GB).\n\nMöjliga lösningar:\n- Skapa en behållare/partition som är mindre än {0} TB.\n</entry>
-    <entry lang="sv" key="LINUX_MAX_SIZE_HINT">- Använd en enhet med 4096-byte sektorer för att kunna skapa partitions-/enhetsvärdade dolda volymer upp till 16 TB i storlek</entry>
-    <entry lang="sv" key="LINUX_DOT_LF">.\n</entry>
-    <entry lang="sv" key="LINUX_NOT_SUPPORTED"> (stöds inte av komponenter tillgängliga på den här plattformen).\n</entry>
     <entry lang="sv" key="LINUX_KERNEL_OLD">Ditt system använder en gammal version av Linux-kärnan.\n\nPå grund av ett fel i Linux-kärnan kan ditt system sluta svara när du skriver data till en VeraCrypt-volym. Detta problem kan lösas genom att uppgradera kärnan till version 2.6.24 eller senare.</entry>
     <entry lang="sv" key="LINUX_VOL_UNMOUNTED">Volymen {0} har demonterats.</entry>
     <entry lang="sv" key="LINUX_VOL_MOUNTED">Volymen {0} har monterats.</entry>
@@ -1646,6 +1642,48 @@
     <entry lang="sv" key="INSECURE_MODE">[OSÄKERT]</entry>
     <entry lang="sv" key="IDC_DISABLE_SCREEN_PROTECTION">Inaktivera skydd mot skärmdumpar och skärminspelning</entry>
     <entry lang="sv" key="DISABLE_SCREEN_PROTECTION_WARNING">VARNING: Att inaktivera skärmskydd minskar säkerheten avsevärt. Aktivera det här alternativet ENDAST om du har ett specifikt behov av att fånga VeraCrypts gränssnitt. Detta kan exponera känslig information för skärmdumpsverktyg och skärminspelningsfunktioner, såsom Windows 11 Recall.</entry>
+    <entry lang="sv" key="MEMORY_COST">Minnesåtgång</entry>
+    <entry lang="sv" key="IDT_KDF_ALGO">KDF-algoritmen</entry>
+    <entry lang="sv" key="IDD_PREFERENCES_TAB_GENERAL">Allmänt</entry>
+    <entry lang="sv" key="IDD_PREFERENCES_TAB_ACTIONS">Åtgärder</entry>
+    <entry lang="sv" key="IDD_PREFERENCES_TAB_PASSWORD">Lösenord</entry>
+    <entry lang="en" key="IDC_SECURE_DESKTOP_ENABLE_IME">Enable Input Method Editor (IME) in Secure Desktop</entry>
+    <entry lang="en" key="ENABLE_IME_IN_SECURE_DESKTOP_WARNING">WARNING: Enable this option only if you are encountering issues when selecting Keyfiles/Tokens under Secure Desktop.</entry>
+    <entry lang="en" key="ERR_KEY_DERIVATION_FAILED">Key derivation failed. This may be caused by insufficient memory or an interrupted operation.</entry>
+    <entry lang="en" key="EFI_MS_BOOT_LOADER_RESTORE_FAILED">The system partition/drive is already decrypted, but the EFI Microsoft boot loader path was not restored to the Windows Boot Manager. Only the EFI boot files need repair. Use the VeraCrypt Rescue Disk repair option, or boot Windows recovery media and run 'bcdboot W:\\Windows /s S: /f UEFI' after replacing W: with the Windows volume drive letter and S: with the EFI System Partition drive letter. Path:</entry>
+    <entry lang="en" key="EFI_FALLBACK_BOOT_LOADER_STILL_VERACRYPT">The system partition/drive is already decrypted, but the EFI fallback boot loader path still contains the VeraCrypt Boot Loader. Only the EFI boot files need repair. Use the VeraCrypt Rescue Disk repair option, or boot Windows recovery media and run 'bcdboot W:\\Windows /s S: /f UEFI' after replacing W: with the Windows volume drive letter and S: with the EFI System Partition drive letter. Path:</entry>
+    <entry lang="en" key="IDM_REPAIR_EFI_BOOT_LOADER">Repair EFI Boot Loader...</entry>
+    <entry lang="en" key="CONFIRM_REPAIR_EFI_BOOT_LOADER">VeraCrypt will restore the Windows EFI boot loader paths and remove VeraCrypt EFI boot entries and files.\n\nUse this only after the system partition/drive is fully decrypted and Windows can boot without system encryption.\n\nDo you want to continue?</entry>
+    <entry lang="en" key="EFI_BOOT_LOADER_FILE_READ_FAILED">The EFI boot loader file could not be read completely:</entry>
+    <entry lang="en" key="EFI_BOOT_LOADER_FILE_TOO_LARGE">The EFI boot loader file is unexpectedly large and was not inspected:</entry>
+    <entry lang="en" key="EFI_BOOT_LOADER_NVRAM_CLEANUP_FAILED">The system partition/drive is already decrypted and the EFI boot loader files were restored, but VeraCrypt could not remove one or more VeraCrypt firmware boot entries. The VeraCrypt EFI files were left in place so any remaining firmware entry still points to an existing loader. Retry as Administrator or remove the VeraCrypt boot entry from firmware setup after confirming Windows Boot Manager starts normally.</entry>
+    <entry lang="en" key="EFI_BOOT_LOADER_REPAIR_BLOCKED">The EFI boot loader cannot be repaired while system encryption or decryption is active or incomplete. Complete or resume the pending system encryption/decryption process before retrying.</entry>
+    <entry lang="en" key="EFI_BOOT_LOADER_REPAIR_NOT_APPLICABLE">This repair action is available only on systems booting in UEFI mode from a GPT system partition.</entry>
+    <entry lang="en" key="EFI_BOOT_LOADER_REPAIR_SUCCESS">The EFI boot loader has been repaired successfully.</entry>
+    <entry lang="en" key="PIM_ARGON2_HELP">PIM (Personal Iterations Multiplier) controls the memory and time costs used by Argon2id header key derivation as follows:\n      Memory = min(64 MiB + ((PIM - 1) x 32 MiB), 1024 MiB)\n      Iterations = 3 + ((PIM - 1) / 3) for PIM 31 or lower, then 13 + (PIM - 31)\n\nWhen left empty or set to 0, VeraCrypt will use the default Argon2 PIM (12), which uses 416 MiB of memory and 6 iterations.\n\nWhen the password is less than 20 characters, Argon2 PIM can't be smaller than 12 in order to maintain a minimal security level.\nWhen the password is 20 characters or more, Argon2 PIM can be set to any value.\n\nAn Argon2 PIM larger than 12 increases memory usage up to 1024 MiB and then increases iterations. This will lead to slower mounting. A small Argon2 PIM (less than 12) will lead to quicker mounting but it can reduce security if the password is not strong enough.</entry>
+    <entry lang="en" key="PIM_ARGON2_LARGE_WARNING">You have chosen an Argon2 PIM value that is larger than VeraCrypt default value.\nPlease note that this can require more memory and lead to much slower mounting.</entry>
+    <entry lang="en" key="PIM_ARGON2_SMALL_WARNING">You have chosen an Argon2 PIM value that is smaller than the default VeraCrypt value. Please note that if your password is not strong enough, this could lead to weaker security.\n\nDo you confirm that you are using a strong password?</entry>
+    <entry lang="en" key="PIM_ARGON2_REQUIRE_LONG_PASSWORD">Password must contain 20 or more characters in order to use the specified Argon2 PIM.\nShorter passwords can only be used if the Argon2 PIM is 12 or greater.</entry>
+    <entry lang="en" key="LINUX_PREF_MOUNT_NTFS_WITH_KERNEL_DRIVER">Mount NTFS volumes with an in-kernel Linux driver</entry>
+    <entry lang="en" key="LINUX_PREF_MOUNT_NTFS_WITH_KERNEL_DRIVER_HELP">Linux only. When enabled and no explicit filesystem type was supplied, VeraCrypt probes the decrypted virtual device with blkid -p and mounts detected NTFS filesystems with an available in-kernel NTFS driver, bypassing mount helpers such as ntfs-3g. VeraCrypt uses ntfs when it is positively identified as a modern read/write driver or expected on Linux 7.1 or later, and otherwise uses ntfs3. If NTFS detection fails, VeraCrypt uses the normal automatic filesystem selection. If no supported in-kernel NTFS driver is available or loadable, mounting fails. This opt-in option can avoid suspend or hibernate hangs caused by frozen user-space FUSE filesystems.</entry>
+    <entry lang="en" key="LINUX_KERNEL_NTFS_DRIVER_UNAVAILABLE">No supported in-kernel NTFS driver is available or loadable. To use the system default NTFS backend, disable the NTFS kernel-driver preference or do not request kernel NTFS explicitly.</entry>
+    <entry lang="en" key="LINUX_EMERGENCY_UNMOUNT_WARNING">Normal unmount of volume {0} failed. This can happen when applications still have files or directories open on the volume, or when the backing device was disconnected and the mount became stale.\n\nIf the device is still connected, choose No, close applications using the volume, and try unmounting again.\n\nIf the device was disconnected or the mount is stale, VeraCrypt can attempt emergency cleanup by lazy-detaching the filesystem and removing or scheduling removal of VeraCrypt kernel objects. Pending writes may have failed, data may be lost, and cleanup may remain pending until applications close open files. Check the filesystem with fsck or the appropriate repair tool before using it again.\n\nContinue?</entry>
+    <entry lang="en" key="LINUX_EMERGENCY_UNMOUNTED">Emergency cleanup for volume {0} has been initiated. If the volume was disconnected, the mount was stale, or there were pending writes, check the filesystem with fsck or the appropriate repair tool before using it again.</entry>
+    <entry lang="en" key="FORMAT_STAGE_WRITING_DATA">Creating volume data. Please wait.</entry>
+    <entry lang="en" key="FORMAT_STAGE_WRITING_BACKUP_HEADER">Finalizing volume creation: writing backup header.</entry>
+    <entry lang="en" key="FORMAT_STAGE_FLUSHING_DATA">Finalizing volume creation: flushing data to disk. This can take several minutes on large volumes or slow/USB storage.</entry>
+    <entry lang="en" key="FORMAT_STAGE_FINISHED">Finalizing volume creation.</entry>
+    <entry lang="en" key="FORMAT_STAGE_ABORTED">Volume creation has been aborted.</entry>
+    <entry lang="en" key="FORMAT_STAGE_ERROR">Volume creation failed.</entry>
+    <entry lang="en" key="FORMAT_STAGE_PREPARING_TEMP_VOLUME">Finalizing volume creation: mounting temporary volume.</entry>
+    <entry lang="en" key="FORMAT_STAGE_PREPARING_TEMP_DEVICE">Finalizing volume creation: preparing temporary device.</entry>
+    <entry lang="en" key="FORMAT_STAGE_CREATING_FILESYSTEM">Finalizing volume creation: creating filesystem using {0}.</entry>
+    <entry lang="en" key="FORMAT_STAGE_DISMOUNTING_TEMP_VOLUME">Finalizing volume creation: dismounting temporary volume.</entry>
+    <entry lang="en" key="MACOSX_APFS_SYNTHESIZED_DEVICE">The selected device '{0}' is an APFS synthesized container or volume and cannot be used as a raw VeraCrypt volume host.\n\nSelect the physical APFS store partition{1} instead.</entry>
+    <entry lang="en" key="MACOSX_DEVICE_SYSTEM_PARTITION">The selected device '{0}' is a macOS system/support partition and cannot be used as a VeraCrypt volume host.</entry>
+    <entry lang="en" key="MACOSX_APFS_SYSTEM_STORE">The selected APFS physical store '{0}' contains the currently mounted macOS system volume and cannot be used as a VeraCrypt volume host.</entry>
+    <entry lang="en" key="MACOSX_DEVICE_NOT_WRITABLE">macOS reports the selected device '{0}' as read-only. Select a writable physical partition or disk.</entry>
+    <entry lang="en" key="MACOSX_APFS_EROFS_HINT">macOS reported the selected device as read-only. If this is an APFS disk, make sure you selected the physical APFS store partition, not an APFS synthesized volume. Use Disk Utility or 'diskutil list' to identify the physical partition, then retry.</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

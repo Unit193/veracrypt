@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -46,7 +46,7 @@ namespace VeraCrypt
 
 		// Default system directories to search for executables
 #ifdef TC_MACOSX
-		const char* defaultDirs[] = {"/usr/local/bin", "/usr/bin", "/bin", "/user/sbin", "/sbin"};
+		const char* defaultDirs[] = {"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"};
 #elif TC_FREEBSD
 		const char* defaultDirs[] = {"/sbin", "/bin", "/usr/sbin", "/usr/bin", "/usr/local/sbin", "/usr/local/bin"};
 #elif TC_OPENBSD
@@ -280,16 +280,23 @@ namespace VeraCrypt
 		if (appImageEnv && appDirEnv)
 		{
 			string appDirString = appDirEnv;
-			string appImageFileString = appImageEnv;
-			const string appImageMountPrefix1 = "/tmp/.mount_Veracr";
-			const string appImageMountPrefix2 = "/tmp/.mount_VeraCr";
+			const std::string appImageMountPrefix = "/tmp/.mount_";
+			const std::string appImageMountSuffixPattern = "veracr"; // Lowercase for case-insensitive comparison
 
 			if (!appDirString.empty() &&
 				executablePath.rfind(appDirString, 0) == 0 &&
-				(appDirString.rfind(appImageMountPrefix1, 0) == 0 || appDirString.rfind(appImageMountPrefix2, 0) == 0))
+				appDirString.rfind(appImageMountPrefix, 0) == 0)
 			{
-				// All conditions met, this is the AppImage scenario.
-				return true;
+				// Ensure appDirString has enough room for appImageMountPrefix and appImageMountSuffixPattern
+				if (appDirString.length() > appImageMountPrefix.length() + appImageMountSuffixPattern.length())
+				{
+					std::string actualSuffixPart = appDirString.substr(appImageMountPrefix.length(), appImageMountSuffixPattern.length());
+					if (StringConverter::ToLower(actualSuffixPart) == appImageMountSuffixPattern)
+					{
+						// All conditions met, this is the AppImage scenario.
+						return true;
+					}
+				}
 			}
 		}
 		return false;

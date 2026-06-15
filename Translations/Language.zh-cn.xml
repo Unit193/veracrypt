@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <VeraCrypt>
-  <localization prog-version= "1.26.24">
+  <localization prog-version="1.26.29">
     <language langid="zh-cn" name="简体中文" en-name="Chinese (Simplified)" version="1.0.3" translators="Barney Li, Zhangjintao, Nkh0472, 风之暇想" />
     <font lang="zh-cn" class="normal" size="12" face="Microsoft YaHei" />
     <font lang="zh-cn" class="bold" size="14" face="Microsoft YaHei" />
@@ -292,8 +292,8 @@
     <entry lang="zh-cn" key="IDT_NEW_PASSWORD">密码：</entry>
     <entry lang="zh-cn" key="IDT_PARALLELIZATION_OPTIONS">基于线程的并行计算</entry>
     <entry lang="zh-cn" key="IDT_PKCS11_LIB_PATH">PKCS #11 运行库路径</entry>
-    <entry lang="zh-cn" key="IDT_PKCS5_PRF">PKCS-5 PRF：</entry>
-    <entry lang="zh-cn" key="IDT_NEW_PKCS5_PRF">PKCS-5 PRF：</entry>
+    <entry lang="zh-cn" key="IDT_KDF">KDF：</entry>
+    <entry lang="zh-cn" key="IDT_NEW_KDF">KDF：</entry>
     <entry lang="zh-cn" key="IDT_PW_CACHE_OPTIONS">密码缓存</entry>
     <entry lang="zh-cn" key="IDT_SECURITY_OPTIONS">安全选项</entry>
     <entry lang="zh-cn" key="IDT_EMV_OPTIONS">EMV选项</entry>
@@ -814,7 +814,7 @@
     <entry lang="zh-cn" key="SECONDARY_KEY_SIZE_LRW">调整密钥大小（LRW 模式）</entry>
     <entry lang="zh-cn" key="BITS">位</entry>
     <entry lang="zh-cn" key="BLOCK_SIZE">块大小</entry>
-    <entry lang="zh-cn" key="PKCS5_PRF">PKCS-5 PRF</entry>
+    <entry lang="zh-cn" key="KDF">KDF</entry>
     <entry lang="zh-cn" key="PKCS5_ITERATIONS">PKCS-5 迭代次数</entry>
     <entry lang="zh-cn" key="VOLUME_CREATE_DATE">加密卷创建时间</entry>
     <entry lang="zh-cn" key="VOLUME_HEADER_DATE">头信息上次修改时间</entry>
@@ -1518,10 +1518,6 @@
     <entry lang="zh-cn" key="LINUX_MOUNTET_HINT">所选设备的文件系统当前已挂载。在继续之前请卸载'{0}'。</entry>
     <entry lang="zh-cn" key="LINUX_HIDDEN_PASS_NO_DIFF">隐藏卷不能与外部卷有相同的密码、PIM和密钥文件</entry>
     <entry lang="zh-cn" key="LINUX_NOT_FAT_HINT">请注意，该卷将不会被格式化为FAT文件系统，因此，您可能需要在{0}以外的平台上安装额外的文件系统驱动程序，这将使您能够挂载该卷。</entry>
-    <entry lang="zh-cn" key="LINUX_ERROR_SIZE_HIDDEN_VOL">错误：要创建的隐藏卷大于 {0} TB ({1} GB)。\n\n可能的解决方式：\n- 创建一个小于 {0} TB的容器/分区。\n</entry>
-    <entry lang="zh-cn" key="LINUX_MAX_SIZE_HINT">- 使用具有4096字节扇区的驱动器，能够创建分区/设备托管的隐藏卷尺寸可达 16 TB</entry>
-    <entry lang="zh-cn" key="LINUX_DOT_LF">.\n</entry>
-    <entry lang="zh-cn" key="LINUX_NOT_SUPPORTED"> (此平台上可用的组件不支持)。\n</entry>
     <entry lang="zh-cn" key="LINUX_KERNEL_OLD">您的系统使用的是旧版本Linux内核。\n\n由于Linux内核中的错误，在将数据写入VeraCrypt卷时，系统可能会停止响应。这个问题可以通过将内核升级到2.6.24或更高版本来解决。</entry>
     <entry lang="zh-cn" key="LINUX_VOL_UNMOUNTED">卷{0}已卸载。</entry>
     <entry lang="zh-cn" key="LINUX_VOL_MOUNTED">卷{0}已装载。</entry>
@@ -1647,6 +1643,48 @@
     <entry lang="zh-cn" key="INSECURE_MODE">[不安全模式]</entry>
     <entry lang="zh-cn" key="IDC_DISABLE_SCREEN_PROTECTION">禁用屏幕截图与录屏保护</entry>
     <entry lang="zh-cn" key="DISABLE_SCREEN_PROTECTION_WARNING">警告：禁用屏幕截图与录屏保护会显著降低安全性。仅当您有特定需求捕获 VeraCrypt 界面时，才需启用此选项。这可能会使敏感数据暴露给屏幕截图工具和 Windows 11 Recall 等录屏功能。</entry>
+    <entry lang="zh-cn" key="MEMORY_COST">内存成本</entry>
+    <entry lang="zh-cn" key="IDT_KDF_ALGO">KDF算法</entry>
+    <entry lang="zh-cn" key="IDD_PREFERENCES_TAB_GENERAL">常规</entry>
+    <entry lang="zh-cn" key="IDD_PREFERENCES_TAB_ACTIONS">动作</entry>
+    <entry lang="zh-cn" key="IDD_PREFERENCES_TAB_PASSWORD">密码</entry>
+    <entry lang="zh-cn" key="IDC_SECURE_DESKTOP_ENABLE_IME">在安全桌面中启用输入法编辑器（IME）</entry>
+    <entry lang="zh-cn" key="ENABLE_IME_IN_SECURE_DESKTOP_WARNING">警告：仅当您在安全桌面下选择密钥文件/令牌时遇到问题时，才启用此选项。</entry>
+    <entry lang="zh-cn" key="ERR_KEY_DERIVATION_FAILED">密钥派生失败。这可能由内存不足或操作被中断导致。</entry>
+    <entry lang="zh-cn" key="EFI_MS_BOOT_LOADER_RESTORE_FAILED">系统分区/驱动器已解密，但 EFI Microsoft 引导加载程序路径未恢复到 Windows 启动管理器。仅需修复 EFI 引导文件。请使用 VeraCrypt 救援盘修复选项，或启动 Windows 恢复介质，运行 'bcdboot W:\\Windows /s S: /f UEFI'（将 W: 替换为 Windows 卷的驱动器号，S: 替换为 EFI 系统分区的驱动器号）。路径：</entry>
+    <entry lang="zh-cn" key="EFI_FALLBACK_BOOT_LOADER_STILL_VERACRYPT">系统分区/驱动器已解密，但 EFI 回退引导加载程序路径中仍包含 VeraCrypt 引导加载程序。仅需修复 EFI 引导文件。请使用 VeraCrypt 救援盘修复选项，或启动 Windows 恢复介质，运行 'bcdboot W:\\Windows /s S: /f UEFI'（将 W: 替换为 Windows 卷的驱动器号，S: 替换为 EFI 系统分区的驱动器号）。路径：</entry>
+    <entry lang="zh-cn" key="IDM_REPAIR_EFI_BOOT_LOADER">修复 EFI 引导加载程序...</entry>
+    <entry lang="zh-cn" key="CONFIRM_REPAIR_EFI_BOOT_LOADER">VeraCrypt 将还原 Windows EFI 引导加载程序路径，并移除 VeraCrypt EFI 引导项和文件。\n\n仅在系统分区/驱动器已完全解密且 Windows 无需系统加密即可启动后使用。\n\n是否继续？</entry>
+    <entry lang="zh-cn" key="EFI_BOOT_LOADER_FILE_READ_FAILED">无法完整读取 EFI 引导加载程序文件：</entry>
+    <entry lang="zh-cn" key="EFI_BOOT_LOADER_FILE_TOO_LARGE">EFI 引导加载程序文件意外过大，未进行检查：</entry>
+    <entry lang="zh-cn" key="EFI_BOOT_LOADER_NVRAM_CLEANUP_FAILED">系统分区/驱动器已解密且 EFI 引导文件已还原，但 VeraCrypt 无法移除一个或多个 VeraCrypt 固件引导项。VeraCrypt EFI 文件已保留，因此任何剩余的固件项仍指向现有的加载程序。请以管理员身份重试，或在确认 Windows 启动管理器正常启动后从固件设置中移除 VeraCrypt 引导项。</entry>
+    <entry lang="zh-cn" key="EFI_BOOT_LOADER_REPAIR_BLOCKED">系统加密或解密正在进行或未完成时，无法修复 EFI 引导加载程序。请先完成或继续挂起的系统加密/解密过程，然后再重试。</entry>
+    <entry lang="zh-cn" key="EFI_BOOT_LOADER_REPAIR_NOT_APPLICABLE">此修复操作仅适用于从 GPT 系统分区以 UEFI 模式启动的系统。</entry>
+    <entry lang="zh-cn" key="EFI_BOOT_LOADER_REPAIR_SUCCESS">EFI 引导加载程序已成功修复。</entry>
+    <entry lang="zh-cn" key="PIM_ARGON2_HELP">PIM（个人迭代乘数）控制 Argon2id 头部密钥派生所使用的内存和时间开销，规则如下：\n      内存 = min(64 MiB + ((PIM - 1) x 32 MiB), 1024 MiB)\n      迭代次数 = 当 PIM ≤ 31 时，为 3 + ((PIM - 1) / 3)；当 PIM > 31 时，为 13 + (PIM - 31)\n\n当留空或设为 0 时，VeraCrypt 将使用默认的 Argon2 PIM（12），此时占用 416 MiB 内存并执行 6 次迭代。\n\n当密码长度不足 20 个字符时，为了维持最低安全级别，Argon2 PIM 不能小于 12。\n当密码长度达到 20 个或更多字符时，Argon2 PIM 可以设为任意值。\n\n大于 12 的 Argon2 PIM 会增加内存占用（最高 1024 MiB），然后增加迭代次数，这会导致挂载变慢。较小的 Argon2 PIM（小于 12）会加快挂载速度，但如果密码强度不够，会降低安全性。</entry>
+    <entry lang="zh-cn" key="PIM_ARGON2_LARGE_WARNING">您选择的 Argon2 PIM 值大于 VeraCrypt 的默认值。\n请注意，这可能需要更多内存，并导致挂载速度显著变慢。</entry>
+    <entry lang="zh-cn" key="PIM_ARGON2_SMALL_WARNING">您选择的 Argon2 PIM 值小于 VeraCrypt 的默认值。请注意，如果您的密码强度不够，这可能导致安全性降低。\n\n您确认正在使用强密码吗？</entry>
+    <entry lang="zh-cn" key="PIM_ARGON2_REQUIRE_LONG_PASSWORD">密码必须包含 20 个或更多字符，才能使用指定的 Argon2 PIM。\n较短的密码只有在 Argon2 PIM 大于或等于 12 时才能使用。</entry>
+    <entry lang="zh-cn" key="LINUX_PREF_MOUNT_NTFS_WITH_KERNEL_DRIVER">使用 Linux 内核驱动程序挂载 NTFS 卷</entry>
+    <entry lang="zh-cn" key="LINUX_PREF_MOUNT_NTFS_WITH_KERNEL_DRIVER_HELP">仅限 Linux。启用后，如果未提供明确的文件系统类型，VeraCrypt 会使用 blkid -p 探测已解密的虚拟设备，并使用可用的 Linux 内核 NTFS 驱动程序挂载检测到的 NTFS 文件系统，从而绕过 ntfs-3g 等挂载辅助程序。当 ntfs 明确对应现代读写驱动程序，或预计在 Linux 内核 7.1 或更高版本中可用时，VeraCrypt 使用 ntfs；否则使用 ntfs3。如果 NTFS 检测失败，VeraCrypt 将使用正常的自动文件系统选择。如果没有可用的或可加载的支持 Linux 内核 NTFS 驱动程序，则挂载失败。启用此选项可以避免因冻结的用户空间 FUSE 文件系统而导致的挂起或休眠无响应。</entry>
+    <entry lang="zh-cn" key="LINUX_KERNEL_NTFS_DRIVER_UNAVAILABLE">没有可用的或可加载的支持 Linux 内核 NTFS 驱动程序。要使用系统默认的 NTFS 后端，请禁用 NTFS 内核驱动程序首选项，或者不要显式请求内核 NTFS。</entry>
+    <entry lang="zh-cn" key="LINUX_EMERGENCY_UNMOUNT_WARNING">卷 {0} 的正常卸载失败。当应用程序仍在卷上打开文件或目录，或者后端设备已断开连接导致挂载状态失效时，可能会发生这种情况。\n\n如果设备仍处于连接状态，请选择“否”，关闭使用该卷的应用程序，然后再次尝试卸载。\n\n如果设备已断开连接或挂载状态已失效，VeraCrypt 可以尝试执行紧急清理：惰性脱离文件系统，并移除或安排移除 VeraCrypt 内核对象。待处理的写入可能已失败，数据可能丢失，并且清理操作可能保持挂起状态，直到应用程序关闭打开的文件。再次使用前，请使用 fsck 或相应的修复工具检查文件系统。\n\n继续？</entry>
+    <entry lang="zh-cn" key="LINUX_EMERGENCY_UNMOUNTED">已对卷 {0} 启动紧急清理。如果卷已断开连接、挂载状态失效或存在待处理的写入操作，请在再次使用前使用 fsck 或相应的修复工具检查文件系统。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_WRITING_DATA">正在创建卷数据。请稍候。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_WRITING_BACKUP_HEADER">正在完成卷创建：写入备份卷头信息。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_FLUSHING_DATA">正在完成卷创建：将数据刷新到磁盘。对于大型卷或慢速/USB 存储设备，这可能需要几分钟时间。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_FINISHED">正在完成卷创建。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_ABORTED">卷创建已中止。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_ERROR">卷创建失败。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_PREPARING_TEMP_VOLUME">正在完成卷创建：挂载临时卷。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_PREPARING_TEMP_DEVICE">正在完成卷创建：准备临时设备。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_CREATING_FILESYSTEM">正在完成卷创建：使用 {0} 创建文件系统。</entry>
+    <entry lang="zh-cn" key="FORMAT_STAGE_DISMOUNTING_TEMP_VOLUME">正在完成卷创建：卸载临时卷。</entry>
+    <entry lang="zh-cn" key="MACOSX_APFS_SYNTHESIZED_DEVICE">所选设备 '{0}' 是 APFS 合成容器或卷，不能作为原始 VeraCrypt 卷的承载设备使用。\n\n请改选物理 APFS 存储分区{1}。</entry>
+    <entry lang="zh-cn" key="MACOSX_DEVICE_SYSTEM_PARTITION">所选设备 '{0}' 是 macOS 系统/支持分区，无法作为 VeraCrypt 卷主机使用。</entry>
+    <entry lang="zh-cn" key="MACOSX_APFS_SYSTEM_STORE">所选 APFS 物理存储 '{0}' 包含当前挂载的 macOS 系统卷，无法作为 VeraCrypt 卷主机使用。</entry>
+    <entry lang="zh-cn" key="MACOSX_DEVICE_NOT_WRITABLE">macOS 报告所选设备 '{0}' 为只读。请选择可写的物理分区或磁盘。</entry>
+    <entry lang="zh-cn" key="MACOSX_APFS_EROFS_HINT">macOS 报告所选设备为只读。如果这是 APFS 磁盘，请确保您选择的是物理 APFS 存储分区，而不是 APFS 合成卷。请使用“磁盘工具”或 'diskutil list' 来识别物理分区，然后重试。</entry>
   </localization>
   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="VeraCrypt">

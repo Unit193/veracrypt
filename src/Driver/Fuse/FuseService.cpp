@@ -4,16 +4,31 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
 */
 
 #ifdef TC_OPENBSD
-#define FUSE_USE_VERSION  26
+# define FUSE_USE_VERSION 26
 #else
-#define FUSE_USE_VERSION  25
+# ifndef VC_FUSE_VERSION
+#  define VC_FUSE_VERSION 2
+# endif
+# if VC_FUSE_VERSION < 3
+#  define FUSE_USE_VERSION 25
+# else
+#  define FUSE_USE_VERSION 301
+#  define VC_FUSE3 1
+# endif
+#endif
+
+
+#ifdef VC_FUSE3
+#define VC_FUSE_FILL_DIR(filler, buf, name, st, off) filler(buf, name, st, off, (enum fuse_fill_dir_flags)0)
+#else
+#define VC_FUSE_FILL_DIR(filler, buf, name, st, off) filler(buf, name, st, off)
 #endif
 
 #include <errno.h>
@@ -25,7 +40,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#ifdef TC_OPENBSD
+#include <pwd.h>
+#endif
 #include <sys/mman.h>
+#include <sys/statvfs.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 
@@ -41,6 +60,67 @@
 
 namespace VeraCrypt
 {
+	static const ino_t VC_FUSE_INODE_ROOT = 1;
+	static const ino_t VC_FUSE_INODE_VOLUME = 2;
+	static const ino_t VC_FUSE_INODE_CONTROL = 3;
+	static const ino_t VC_FUSE_INODE_AUX_DEVICE_INFO = 4;
+	static const uint64 VC_FUSE_BLOCK_SIZE = 4096;
+	static const uint64 VC_FUSE_METADATA_SIZE = 64 * 1024;
+	static const uint64 VC_FUSE_STAT_BLOCK_SIZE = 512;
+
+#ifdef TC_OPENBSD
+	static bool fuse_service_get_doas_user_ids (uid_t *uid, gid_t *gid)
+	{
+		const char *env = getenv ("DOAS_USER");
+		if (!env || !env[0])
+			return false;
+
+		struct passwd *pw = getpwnam (env);
+		if (!pw)
+			return false;
+
+		if (uid)
+			*uid = pw->pw_uid;
+		if (gid)
+			*gid = pw->pw_gid;
+
+		return true;
+	}
+#endif
+
+	static uint64 fuse_service_ceil_div (uint64 value, uint64 divisor)
+	{
+		return (value / divisor) + ((value % divisor) ? 1 : 0);
+	}
+
+	static void fuse_service_set_stat_blocks (struct stat *statData)
+	{
+		statData->st_blksize = VC_FUSE_BLOCK_SIZE;
+		statData->st_blocks = fuse_service_ceil_div ((uint64) statData->st_size, VC_FUSE_STAT_BLOCK_SIZE);
+	}
+
+	static shared_ptr <Buffer> fuse_service_get_control_info (struct fuse_file_info *fi)
+	{
+		if (fi && fi->fh)
+			return *reinterpret_cast <shared_ptr <Buffer> *> (fi->fh);
+
+		return FuseService::GetVolumeInfo();
+	}
+
+	static int fuse_service_fill_dir_entry (void *buf, fuse_fill_dir_t filler, const char *name, mode_t mode, ino_t ino, off_t nextOff)
+	{
+		struct stat st;
+		Memory::Zero (&st, sizeof (st));
+		st.st_mode = mode;
+		st.st_nlink = S_ISDIR (mode) ? 2 : 1;
+		st.st_uid = FuseService::GetUserId();
+		st.st_gid = FuseService::GetGroupId();
+		st.st_ino = ino;
+		fuse_service_set_stat_blocks (&st);
+
+		return VC_FUSE_FILL_DIR (filler, buf, name, &st, nextOff);
+	}
+
 	static int fuse_service_access (const char *path, int mask)
 	{
 		try
@@ -56,11 +136,7 @@ namespace VeraCrypt
 		return 0;
 	}
 
-#ifdef TC_OPENBSD
-	static void *fuse_service_init (struct fuse_conn_info *)
-#else
-	static void *fuse_service_init ()
-#endif
+	static void *fuse_service_init_common ()
 	{
 		try
 		{
@@ -88,6 +164,34 @@ namespace VeraCrypt
 		return nullptr;
 	}
 
+#if defined(VC_FUSE3)
+	static void *fuse_service_init (struct fuse_conn_info *conn, struct fuse_config *cfg)
+	{
+		if (cfg)
+		{
+			cfg->set_uid = 1;
+			cfg->set_gid = 1;
+			cfg->uid = FuseService::GetUserId();
+			cfg->gid = FuseService::GetGroupId();
+
+			cfg->use_ino = 1;
+		}
+
+		return fuse_service_init_common ();
+	}
+#elif defined(TC_OPENBSD) || (FUSE_USE_VERSION >= 26)
+	static void *fuse_service_init (struct fuse_conn_info *conn)
+	{
+		(void) conn;
+		return fuse_service_init_common ();
+	}
+#else
+	static void *fuse_service_init ()
+	{
+		return fuse_service_init_common ();
+	}
+#endif
+
 	static void fuse_service_destroy (void *userdata)
 	{
 		try
@@ -104,7 +208,7 @@ namespace VeraCrypt
 		}
 	}
 
-	static int fuse_service_getattr (const char *path, struct stat *statData)
+	static int fuse_service_getattr_impl (const char *path, struct stat *statData)
 	{
 		try
 		{
@@ -115,34 +219,90 @@ namespace VeraCrypt
 			statData->st_atime = time (NULL);
 			statData->st_ctime = time (NULL);
 			statData->st_mtime = time (NULL);
+			statData->st_blksize = VC_FUSE_BLOCK_SIZE;
 
 			if (strcmp (path, "/") == 0)
 			{
 				statData->st_mode = S_IFDIR | 0500;
 				statData->st_nlink = 2;
+				statData->st_ino = VC_FUSE_INODE_ROOT;
 			}
 			else
 			{
 				if (!FuseService::CheckAccessRights())
 					return -EACCES;
 
-				if (strcmp (path, FuseService::GetVolumeImagePath()) == 0)
+				if (strcmp (path, FuseService::GetAuxDeviceInfoPath()) == 0)
+				{
+					statData->st_mode = S_IFREG | 0600;
+					statData->st_nlink = 1;
+					statData->st_size = VC_FUSE_METADATA_SIZE;
+					statData->st_ino = VC_FUSE_INODE_AUX_DEVICE_INFO;
+					fuse_service_set_stat_blocks (statData);
+				}
+				else if (strcmp (path, FuseService::GetVolumeImagePath()) == 0)
 				{
 					statData->st_mode = S_IFREG | 0600;
 					statData->st_nlink = 1;
 					statData->st_size = FuseService::GetVolumeSize();
+					statData->st_ino = VC_FUSE_INODE_VOLUME;
+					fuse_service_set_stat_blocks (statData);
 				}
 				else if (strcmp (path, FuseService::GetControlPath()) == 0)
 				{
 					statData->st_mode = S_IFREG | 0600;
 					statData->st_nlink = 1;
-					statData->st_size = FuseService::GetVolumeInfo()->Size();
+					statData->st_size = VC_FUSE_METADATA_SIZE;
+					statData->st_ino = VC_FUSE_INODE_CONTROL;
+					fuse_service_set_stat_blocks (statData);
 				}
 				else
 				{
 					return -ENOENT;
 				}
 			}
+		}
+		catch (...)
+		{
+			return FuseService::ExceptionToErrorCode();
+		}
+
+		return 0;
+	}
+
+#if defined(VC_FUSE3)
+	static int fuse_service_getattr (const char *path, struct stat *statData, struct fuse_file_info *fi)
+	{
+		(void) fi;
+		return fuse_service_getattr_impl (path, statData);
+	}
+#else
+	static int fuse_service_getattr (const char *path, struct stat *statData)
+	{
+		return fuse_service_getattr_impl (path, statData);
+	}
+#endif
+
+	static int fuse_service_statfs (const char *path, struct statvfs *statData)
+	{
+		try
+		{
+			(void) path;
+
+			uint64 blockCount = fuse_service_ceil_div (FuseService::GetVolumeSize(), VC_FUSE_BLOCK_SIZE);
+			if (blockCount == 0)
+				blockCount = 1;
+
+			Memory::Zero (statData, sizeof (*statData));
+			statData->f_bsize = VC_FUSE_BLOCK_SIZE;
+			statData->f_frsize = VC_FUSE_BLOCK_SIZE;
+			statData->f_blocks = blockCount;
+			statData->f_bfree = blockCount;
+			statData->f_bavail = blockCount;
+			statData->f_files = 4;
+			statData->f_ffree = 0;
+			statData->f_favail = 0;
+			statData->f_namemax = 255;
 		}
 		catch (...)
 		{
@@ -180,8 +340,15 @@ namespace VeraCrypt
 			if (strcmp (path, FuseService::GetVolumeImagePath()) == 0)
 				return 0;
 
+			if (strcmp (path, FuseService::GetAuxDeviceInfoPath()) == 0)
+			{
+				fi->direct_io = 1;
+				return 0;
+			}
+
 			if (strcmp (path, FuseService::GetControlPath()) == 0)
 			{
+				fi->fh = reinterpret_cast <uint64> (new shared_ptr <Buffer> (FuseService::GetVolumeInfo()));
 				fi->direct_io = 1;
 				return 0;
 			}
@@ -240,7 +407,22 @@ namespace VeraCrypt
 
 			if (strcmp (path, FuseService::GetControlPath()) == 0)
 			{
-				shared_ptr <Buffer> infoBuf = FuseService::GetVolumeInfo();
+				shared_ptr <Buffer> infoBuf = fuse_service_get_control_info (fi);
+				BufferPtr outBuf ((uint8 *)buf, size);
+
+				if (offset >= (off_t) infoBuf->Size())
+					return 0;
+
+				if (offset + size > infoBuf->Size())
+					size = infoBuf->Size () - offset;
+
+				outBuf.CopyFrom (infoBuf->GetRange (offset, size));
+				return size;
+			}
+
+			if (strcmp (path, FuseService::GetAuxDeviceInfoPath()) == 0)
+			{
+				shared_ptr <Buffer> infoBuf = FuseService::GetAuxDeviceInfo();
 				BufferPtr outBuf ((uint8 *)buf, size);
 
 				if (offset >= (off_t) infoBuf->Size())
@@ -261,20 +443,15 @@ namespace VeraCrypt
 		return -ENOENT;
 	}
 
-	static int fuse_service_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+	static int fuse_service_release (const char *path, struct fuse_file_info *fi)
 	{
 		try
 		{
-			if (!FuseService::CheckAccessRights())
-				return -EACCES;
-
-			if (strcmp (path, "/") != 0)
-				return -ENOENT;
-
-			filler (buf, ".", NULL, 0);
-			filler (buf, "..", NULL, 0);
-			filler (buf, FuseService::GetVolumeImagePath() + 1, NULL, 0);
-			filler (buf, FuseService::GetControlPath() + 1, NULL, 0);
+			if (strcmp (path, FuseService::GetControlPath()) == 0 && fi && fi->fh)
+			{
+				delete reinterpret_cast <shared_ptr <Buffer> *> (fi->fh);
+				fi->fh = 0;
+			}
 		}
 		catch (...)
 		{
@@ -283,6 +460,52 @@ namespace VeraCrypt
 
 		return 0;
 	}
+
+	static int fuse_service_readdir_impl (const char *path, void *buf, fuse_fill_dir_t filler, struct fuse_file_info *fi)
+	{
+		(void) fi;
+
+		try
+		{
+			if (!FuseService::CheckAccessRights())
+				return -EACCES;
+
+			if (strcmp (path, "/") != 0)
+				return -ENOENT;
+
+			if (fuse_service_fill_dir_entry (buf, filler, ".", S_IFDIR | 0500, VC_FUSE_INODE_ROOT, 0) != 0)
+				return 0;
+			if (fuse_service_fill_dir_entry (buf, filler, "..", S_IFDIR | 0500, VC_FUSE_INODE_ROOT, 0) != 0)
+				return 0;
+			if (fuse_service_fill_dir_entry (buf, filler, FuseService::GetVolumeImagePath() + 1, S_IFREG | 0600, VC_FUSE_INODE_VOLUME, 0) != 0)
+				return 0;
+			if (fuse_service_fill_dir_entry (buf, filler, FuseService::GetControlPath() + 1, S_IFREG | 0600, VC_FUSE_INODE_CONTROL, 0) != 0)
+				return 0;
+			if (fuse_service_fill_dir_entry (buf, filler, FuseService::GetAuxDeviceInfoPath() + 1, S_IFREG | 0600, VC_FUSE_INODE_AUX_DEVICE_INFO, 0) != 0)
+				return 0;
+		}
+		catch (...)
+		{
+			return FuseService::ExceptionToErrorCode();
+		}
+
+		return 0;
+	}
+
+#if defined(VC_FUSE3)
+	static int fuse_service_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi, enum fuse_readdir_flags flags)
+	{
+		(void) offset;
+		(void) flags;
+		return fuse_service_readdir_impl (path, buf, filler, fi);
+	}
+#else
+	static int fuse_service_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+	{
+		(void) offset;
+		return fuse_service_readdir_impl (path, buf, filler, fi);
+	}
+#endif
 
 	static int fuse_service_write (const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 	{
@@ -297,12 +520,12 @@ namespace VeraCrypt
 				return size;
 			}
 
-			if (strcmp (path, FuseService::GetControlPath()) == 0)
+			if (strcmp (path, FuseService::GetAuxDeviceInfoPath()) == 0)
 			{
 				if (FuseService::AuxDeviceInfoReceived())
 					return -EACCES;
 
-				FuseService::ReceiveAuxDeviceInfo (ConstBufferPtr ((const uint8 *)buf, size));
+				FuseService::ReceiveAuxDeviceInfo (ConstBufferPtr ((const uint8 *) buf, size));
 				return size;
 			}
 		}
@@ -384,13 +607,32 @@ namespace VeraCrypt
 		catch (std::exception &e)
 		{
 			SystemLog::WriteException (e);
-			return -EINTR;
+			return -EIO;
 		}
 		catch (...)
 		{
 			SystemLog::WriteException (UnknownException (SRC_POS));
-			return -EINTR;
+			return -EIO;
 		}
+	}
+
+	shared_ptr <Buffer> FuseService::GetAuxDeviceInfo ()
+	{
+		shared_ptr <Stream> stream (new MemoryStream);
+		Serializer sr (stream);
+
+		{
+			ScopeLock lock (OpenVolumeInfoMutex);
+
+			sr.Serialize ("VirtualDevice", string (OpenVolumeInfo.VirtualDevice));
+			sr.Serialize ("LoopDevice", string (OpenVolumeInfo.LoopDevice));
+		}
+
+		ConstBufferPtr infoBuf = dynamic_cast <MemoryStream&> (*stream);
+		shared_ptr <Buffer> outBuf (new Buffer (infoBuf.Size()));
+		outBuf->CopyFrom (infoBuf);
+
+		return outBuf;
 	}
 
 	shared_ptr <Buffer> FuseService::GetVolumeInfo ()
@@ -442,12 +684,29 @@ namespace VeraCrypt
 		args.push_back ("-o");
 		args.push_back ("nobrowse");
 
+#ifdef VC_MACOSX_FUSET
+		// Use FUSE-T's SMB backend for the auxiliary mount. The default NFS
+		// backend can be affected by macOS Network Volumes privacy state.
+		args.push_back ("-o");
+		args.push_back ("backend=smb");
+		args.push_back ("-o");
+		args.push_back ("nonamedattr");
+		args.push_back ("-o");
+		args.push_back ("rwsize=262144");
+#endif
+
 		if (getuid() == 0 || geteuid() == 0)
 #endif
 		{
 			args.push_back ("-o");
 			args.push_back ("allow_other");
 		}
+
+#if defined(TC_LINUX) && !defined(VC_FUSE3)
+		// FUSE2 has no fuse_config init hook; pass the mount option instead.
+		args.push_back ("-o");
+		args.push_back ("use_ino");
+#endif
 
 		ExecFunctor execFunctor (openVolume, slotNumber);
 		Process::Execute ("fuse", args, -1, &execFunctor);
@@ -461,11 +720,13 @@ namespace VeraCrypt
 			}
 			catch (...)
 			{
-				if (t > 50)
-					throw;
-
-				Thread::Sleep (100);
+				// Ignore exceptions since we will retry
 			}
+
+			if (t > 50)
+				throw TimeOut (SRC_POS);
+
+			Thread::Sleep (100);
 		}
 	}
 
@@ -481,16 +742,18 @@ namespace VeraCrypt
 	{
 		shared_ptr <Stream> stream (new MemoryStream (buffer));
 		Serializer sr (stream);
+		DevicePath virtualDevice = sr.DeserializeString ("VirtualDevice");
+		DevicePath loopDevice = sr.DeserializeString ("LoopDevice");
 
 		ScopeLock lock (OpenVolumeInfoMutex);
-		OpenVolumeInfo.VirtualDevice = sr.DeserializeString ("VirtualDevice");
-		OpenVolumeInfo.LoopDevice = sr.DeserializeString ("LoopDevice");
+		OpenVolumeInfo.VirtualDevice = virtualDevice;
+		OpenVolumeInfo.LoopDevice = loopDevice;
 	}
 
 	void FuseService::SendAuxDeviceInfo (const DirectoryPath &fuseMountPoint, const DevicePath &virtualDevice, const DevicePath &loopDevice)
 	{
 		File fuseServiceControl;
-		fuseServiceControl.Open (string (fuseMountPoint) + GetControlPath(), File::OpenWrite);
+		fuseServiceControl.Open (string (fuseMountPoint) + GetAuxDeviceInfoPath(), File::OpenWrite);
 
 		shared_ptr <Stream> stream (new MemoryStream);
 		Serializer sr (stream);
@@ -498,6 +761,7 @@ namespace VeraCrypt
 		sr.Serialize ("VirtualDevice", string (virtualDevice));
 		sr.Serialize ("LoopDevice", string (loopDevice));
 		fuseServiceControl.Write (dynamic_cast <MemoryStream&> (*stream));
+		fuseServiceControl.Close();
 	}
 
 	void FuseService::WriteVolumeSectors (const ConstBufferPtr &buffer, uint64 byteOffset)
@@ -549,6 +813,18 @@ namespace VeraCrypt
 			}
 			catch (...) { }
 		}
+#ifdef TC_OPENBSD
+		else
+		{
+			uid_t doasUid;
+			gid_t doasGid;
+			if (fuse_service_get_doas_user_ids (&doasUid, &doasGid))
+			{
+				FuseService::UserId = doasUid;
+				FuseService::GroupId = doasGid;
+			}
+		}
+#endif
 
 		static fuse_operations fuse_service_oper;
 
@@ -560,6 +836,8 @@ namespace VeraCrypt
 		fuse_service_oper.opendir = fuse_service_opendir;
 		fuse_service_oper.read = fuse_service_read;
 		fuse_service_oper.readdir = fuse_service_readdir;
+		fuse_service_oper.release = fuse_service_release;
+		fuse_service_oper.statfs = fuse_service_statfs;
 		fuse_service_oper.write = fuse_service_write;
 
 		// Create a new session
@@ -592,7 +870,9 @@ namespace VeraCrypt
 
 		SignalHandlerPipe->GetWriteFD();
 
-#ifdef TC_OPENBSD
+#ifdef VC_FUSE3
+		_exit (fuse_main (argc, argv, &fuse_service_oper, nullptr));
+#elif defined(TC_OPENBSD)
 		_exit (fuse_main (argc, argv, &fuse_service_oper, NULL));
 #else
 		_exit (fuse_main (argc, argv, &fuse_service_oper));

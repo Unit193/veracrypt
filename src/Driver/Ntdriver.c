@@ -6,7 +6,7 @@
  Encryption for the Masses 2.02a, which is Copyright (c) 1998-2000 Paul Le Roux
  and which is governed by the 'License Agreement for Encryption for the Masses'
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages. */
@@ -122,6 +122,8 @@
 PDRIVER_OBJECT TCDriverObject;
 PDEVICE_OBJECT RootDeviceObject = NULL;
 static KMUTEX RootDeviceControlMutex;
+static KMUTEX MountCancelContextMutex;
+static MOUNT_CANCEL_CONTEXT ActiveMountCancelContext;
 BOOL DriverShuttingDown = FALSE;
 BOOL SelfTestsPassed;
 int LastUniqueVolumeId;
@@ -570,6 +572,9 @@ NTSTATUS TCDispatchQueueIRP (PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		{
 			if (irpSp->MajorFunction == IRP_MJ_DEVICE_CONTROL)
 			{
+				if (irpSp->Parameters.DeviceIoControl.IoControlCode == TC_IOCTL_ABORT_MOUNT_VOLUME)
+					return ProcessMainDeviceControlIrp (DeviceObject, Extension, Irp);
+
 				NTSTATUS status = KeWaitForMutexObject (&RootDeviceControlMutex, Executive, KernelMode, FALSE, NULL);
 				if (!NT_SUCCESS (status))
 					return status;
@@ -621,7 +626,18 @@ NTSTATUS TCDispatchQueueIRP (PDEVICE_OBJECT DeviceObject, PIRP Irp)
 			return STATUS_PENDING;
 
 		case IRP_MJ_FLUSH_BUFFERS:
-			return TCCompleteDiskIrp (Irp, STATUS_SUCCESS, 0);
+			if (Extension->hDeviceFile == NULL || Extension->bReadOnly)
+				return TCCompleteDiskIrp (Irp, STATUS_SUCCESS, 0);
+
+			if (!EncryptedIoQueueIsRunning (&Extension->Queue))
+				return TCCompleteDiskIrp (Irp, STATUS_SUCCESS, 0);
+
+			ntStatus = EncryptedIoQueueAddIrp (&Extension->Queue, Irp);
+
+			if (ntStatus != STATUS_PENDING)
+				TCCompleteDiskIrp (Irp, ntStatus, 0);
+
+			return ntStatus;
 		}
 
 		break;
@@ -683,6 +699,7 @@ NTSTATUS TCCreateRootDeviceObject (PDRIVER_OBJECT DriverObject)
 	*bRootExtension = TRUE;
 
 	KeInitializeMutex (&RootDeviceControlMutex, 0);
+	KeInitializeMutex (&MountCancelContextMutex, 0);
 
 	ntStatus = IoCreateSymbolicLink (&Win32NameString, &ntUnicodeString);
 
@@ -787,6 +804,177 @@ BOOL RootDeviceControlMutexAcquireNoWait ()
 void RootDeviceControlMutexRelease ()
 {
 	KeReleaseMutex (&RootDeviceControlMutex, FALSE);
+}
+
+
+static void RegisterMountCancelContext (PEXTENSION Extension, int nDosDriveNo)
+{
+	if (!NT_SUCCESS (KeWaitForMutexObject (&MountCancelContextMutex, Executive, KernelMode, FALSE, NULL)))
+		return;
+
+	ActiveMountCancelContext.nDosDriveNo = nDosDriveNo;
+	ActiveMountCancelContext.UserSidLength = 0;
+	InterlockedExchange (&ActiveMountCancelContext.UserSidValid, 0);
+	InterlockedExchange (&ActiveMountCancelContext.UserAbortRequested, 0);
+	InterlockedExchange (&ActiveMountCancelContext.KeyDerivationAbort, 0);
+	InterlockedIncrement (&ActiveMountCancelContext.SequenceNumber);
+	Extension->MountCancelContext = &ActiveMountCancelContext;
+	InterlockedExchange (&ActiveMountCancelContext.Active, 1);
+
+	KeReleaseMutex (&MountCancelContextMutex, FALSE);
+}
+
+
+static void SetMountCancelContextUserSid (PEXTENSION Extension, PSID userSid)
+{
+	ULONG sidLength;
+
+	if (!userSid || Extension->MountCancelContext != &ActiveMountCancelContext)
+		return;
+
+	sidLength = RtlLengthSid (userSid);
+	if (sidLength > sizeof (ActiveMountCancelContext.UserSid))
+		return;
+
+	if (!NT_SUCCESS (KeWaitForMutexObject (&MountCancelContextMutex, Executive, KernelMode, FALSE, NULL)))
+		return;
+
+	if (Extension->MountCancelContext == &ActiveMountCancelContext
+		&& InterlockedExchangeAdd (&ActiveMountCancelContext.Active, 0) != 0
+		&& NT_SUCCESS (RtlCopySid (sizeof (ActiveMountCancelContext.UserSid), ActiveMountCancelContext.UserSid, userSid)))
+	{
+		ActiveMountCancelContext.UserSidLength = sidLength;
+		InterlockedExchange (&ActiveMountCancelContext.UserSidValid, 1);
+	}
+
+	KeReleaseMutex (&MountCancelContextMutex, FALSE);
+}
+
+
+static void UnregisterMountCancelContext (PEXTENSION Extension)
+{
+	if (!NT_SUCCESS (KeWaitForMutexObject (&MountCancelContextMutex, Executive, KernelMode, FALSE, NULL)))
+		return;
+
+	if (Extension->MountCancelContext == &ActiveMountCancelContext)
+	{
+		InterlockedExchange (&ActiveMountCancelContext.Active, 0);
+		InterlockedExchange (&ActiveMountCancelContext.KeyDerivationAbort, 1);
+		InterlockedExchange (&ActiveMountCancelContext.UserSidValid, 0);
+		ActiveMountCancelContext.UserSidLength = 0;
+		Extension->MountCancelContext = NULL;
+	}
+
+	KeReleaseMutex (&MountCancelContextMutex, FALSE);
+}
+
+
+static BOOL CurrentUserMatchesSid (PSID userSid)
+{
+	SECURITY_SUBJECT_CONTEXT subContext;
+	PACCESS_TOKEN accessToken;
+	PTOKEN_USER tokenUser;
+	BOOL result = FALSE;
+
+	if (!userSid)
+		return FALSE;
+
+	SeCaptureSubjectContext (&subContext);
+	SeLockSubjectContext(&subContext);
+	if (subContext.ClientToken && subContext.ImpersonationLevel >= SecurityImpersonation)
+		accessToken = subContext.ClientToken;
+	else
+		accessToken = subContext.PrimaryToken;
+
+	if (!accessToken)
+		goto ret;
+
+	if (SeTokenIsAdmin (accessToken))
+	{
+		result = TRUE;
+		goto ret;
+	}
+
+	if (!NT_SUCCESS (SeQueryInformationToken (accessToken, TokenUser, &tokenUser)))
+		goto ret;
+
+	result = RtlEqualSid (userSid, tokenUser->User.Sid);
+	ExFreePool (tokenUser);		// Documented in newer versions of WDK
+
+ret:
+	SeUnlockSubjectContext(&subContext);
+	SeReleaseSubjectContext (&subContext);
+	return result;
+}
+
+
+static BOOL CurrentUserCanAbortPendingMount (PSID userSid, BOOL userSidValid)
+{
+	if (IoIsSystemThread (PsGetCurrentThread()))
+		return TRUE;
+
+	if (UserCanAccessDriveDevice())
+		return TRUE;
+
+	return userSidValid && CurrentUserMatchesSid (userSid);
+}
+
+
+static NTSTATUS AbortPendingMount (MOUNT_ABORT_STRUCT *abortRequest)
+{
+	UCHAR userSid[SECURITY_MAX_SID_SIZE];
+	ULONG userSidLength = 0;
+	LONG sequenceNumber = 0;
+	BOOL userSidValid = FALSE;
+	BOOL activeMountMatches = FALSE;
+
+	if (!NT_SUCCESS (KeWaitForMutexObject (&MountCancelContextMutex, Executive, KernelMode, FALSE, NULL)))
+		return STATUS_UNSUCCESSFUL;
+
+	if (InterlockedExchangeAdd (&ActiveMountCancelContext.Active, 0) != 0
+		&& (abortRequest->nDosDriveNo < 0 || abortRequest->nDosDriveNo == ActiveMountCancelContext.nDosDriveNo))
+	{
+		activeMountMatches = TRUE;
+		sequenceNumber = InterlockedExchangeAdd (&ActiveMountCancelContext.SequenceNumber, 0);
+		userSidValid = InterlockedExchangeAdd (&ActiveMountCancelContext.UserSidValid, 0) != 0;
+		userSidLength = ActiveMountCancelContext.UserSidLength;
+		if (userSidValid && userSidLength <= sizeof (userSid))
+			memcpy (userSid, ActiveMountCancelContext.UserSid, userSidLength);
+		else
+			userSidValid = FALSE;
+	}
+
+	KeReleaseMutex (&MountCancelContextMutex, FALSE);
+
+	if (!activeMountMatches)
+	{
+		abortRequest->nReturnCode = ERR_DRIVE_NOT_FOUND;
+		return STATUS_SUCCESS;
+	}
+
+	if (!CurrentUserCanAbortPendingMount (userSidValid ? (PSID) userSid : NULL, userSidValid))
+	{
+		abortRequest->nReturnCode = ERR_ACCESS_DENIED;
+		return STATUS_ACCESS_DENIED;
+	}
+
+	if (!NT_SUCCESS (KeWaitForMutexObject (&MountCancelContextMutex, Executive, KernelMode, FALSE, NULL)))
+		return STATUS_UNSUCCESSFUL;
+
+	if (InterlockedExchangeAdd (&ActiveMountCancelContext.Active, 0) != 0
+		&& sequenceNumber == InterlockedExchangeAdd (&ActiveMountCancelContext.SequenceNumber, 0)
+		&& (abortRequest->nDosDriveNo < 0 || abortRequest->nDosDriveNo == ActiveMountCancelContext.nDosDriveNo))
+	{
+		InterlockedExchange (&ActiveMountCancelContext.UserAbortRequested, 1);
+		InterlockedExchange (&ActiveMountCancelContext.KeyDerivationAbort, 1);
+		abortRequest->nReturnCode = ERR_USER_ABORT;
+		KeReleaseMutex (&MountCancelContextMutex, FALSE);
+		return STATUS_SUCCESS;
+	}
+
+	abortRequest->nReturnCode = ERR_DRIVE_NOT_FOUND;
+	KeReleaseMutex (&MountCancelContextMutex, FALSE);
+	return STATUS_SUCCESS;
 }
 
 /*
@@ -1344,11 +1532,14 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 			HRESULT hResult;
 			ULONGLONG ullStartingOffset, ullNewOffset, ullEndOffset;
 			PVERIFY_INFORMATION pVerifyInformation;
+			ULONGLONG volumeOffset = Extension->cryptoInfo->hiddenVolume
+				? Extension->cryptoInfo->hiddenVolumeOffset
+				: Extension->cryptoInfo->volDataAreaOffset;
 			pVerifyInformation = (PVERIFY_INFORMATION) Irp->AssociatedIrp.SystemBuffer;
 
 			ullStartingOffset = (ULONGLONG) pVerifyInformation->StartingOffset.QuadPart;
 			hResult = ULongLongAdd(ullStartingOffset,
-				(ULONGLONG) Extension->cryptoInfo->hiddenVolume ? Extension->cryptoInfo->hiddenVolumeOffset : Extension->cryptoInfo->volDataAreaOffset,
+				volumeOffset,
 				&ullNewOffset);
 			if (hResult != S_OK)
 				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
@@ -1640,7 +1831,14 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 				ULONG ulNewInputLength = 0;
 				BOOL bForwardIoctl = FALSE;
 
-				if (((ULONGLONG) inputLength) >= minSizeGeneric && ((ULONGLONG) inputLength) >= minSizedataSet && ((ULONGLONG) inputLength) >= minSizeParameter)
+				if ( (pInputAttrs->DataSetRangesLength > 0)
+					&& (pInputAttrs->DataSetRangesLength % sizeof(DEVICE_DATA_SET_RANGE) != 0) )
+				{
+					Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+					Irp->IoStatus.Information = 0;
+					break;
+				}
+				else if (((ULONGLONG) inputLength) >= minSizeGeneric && ((ULONGLONG) inputLength) >= minSizedataSet && ((ULONGLONG) inputLength) >= minSizeParameter)
 				{
 					if (bEntireSet)
 					{
@@ -1665,10 +1863,12 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 									if (pNewSetAttrs)
 									{
 										PDEVICE_DATA_SET_RANGE pRange = (PDEVICE_DATA_SET_RANGE) (((unsigned char*) pNewSetAttrs) + dwDataSetOffset);
-
+										ULONGLONG volumeOffset = Extension->cryptoInfo->hiddenVolume
+											? Extension->cryptoInfo->hiddenVolumeOffset
+											: Extension->cryptoInfo->volDataAreaOffset;
 										memcpy (pNewSetAttrs, pInputAttrs, inputLength);
 
-										pRange->StartingOffset = (ULONGLONG) Extension->cryptoInfo->hiddenVolume ? Extension->cryptoInfo->hiddenVolumeOffset : Extension->cryptoInfo->volDataAreaOffset;
+										pRange->StartingOffset = volumeOffset;
 										pRange->LengthInBytes = Extension->DiskLength;
 
 										pNewSetAttrs->Size = sizeof(DEVICE_MANAGE_DATA_SET_ATTRIBUTES);
@@ -1713,25 +1913,39 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 							PDEVICE_DATA_SET_RANGE pNewRanges = (PDEVICE_DATA_SET_RANGE) (((unsigned char*) pNewSetAttrs) + pInputAttrs->DataSetRangesOffset);
 							PDEVICE_DATA_SET_RANGE pInputRanges = (PDEVICE_DATA_SET_RANGE) (((unsigned char*) pInputAttrs) + pInputAttrs->DataSetRangesOffset);
 							DWORD dwInputRangesCount = 0, dwNewRangesCount = 0, i;
-							ULONGLONG ullStartingOffset, ullNewOffset, ullEndOffset;
+							ULONGLONG volumeOffset, ullStartingOffset, ullNewOffset, ullEndOffset;
 							HRESULT hResult;
 
 							memcpy (pNewSetAttrs, pInputAttrs, inputLength);
 
 							dwInputRangesCount = pInputAttrs->DataSetRangesLength / sizeof(DEVICE_DATA_SET_RANGE);
 
+							volumeOffset = Extension->cryptoInfo->hiddenVolume ? Extension->cryptoInfo->hiddenVolumeOffset : Extension->cryptoInfo->volDataAreaOffset;
+
 							for (i = 0; i < dwInputRangesCount; i++)
 							{
+								// Sanity check the input range
+								if ( pInputRanges[i].LengthInBytes == 0
+									|| (pInputRanges[i].LengthInBytes % Extension->BytesPerSector) != 0
+									|| (pInputRanges[i].StartingOffset % Extension->BytesPerSector) != 0)
+								{
+									continue;
+								}
+
 								ullStartingOffset = (ULONGLONG) pInputRanges[i].StartingOffset;
+								
+								// Validate that the range is within the virtual volume boundaries
+								hResult = ULongLongAdd(ullStartingOffset, (ULONGLONG) pInputRanges[i].LengthInBytes, &ullEndOffset);
+								if (hResult != S_OK || ullEndOffset > (ULONGLONG) Extension->DiskLength)
+									continue;
+
+								// Translate the offset to the physical volume
 								hResult = ULongLongAdd(ullStartingOffset,
-									(ULONGLONG) Extension->cryptoInfo->hiddenVolume ? Extension->cryptoInfo->hiddenVolumeOffset : Extension->cryptoInfo->volDataAreaOffset,
+									volumeOffset,
 									&ullNewOffset);
 								if (hResult != S_OK)
 									continue;
-								else if (S_OK != ULongLongAdd(ullStartingOffset, (ULONGLONG) pInputRanges[i].LengthInBytes, &ullEndOffset))
-									continue;
-								else if (ullEndOffset > (ULONGLONG) Extension->DiskLength)
-									continue;
+
 								else if (ullNewOffset > 0)
 								{
 									pNewRanges[dwNewRangesCount].StartingOffset = (LONGLONG) ullNewOffset;
@@ -1844,7 +2058,7 @@ NTSTATUS ProcessVolumeDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION 
 				return TCCompleteIrp (Irp, STATUS_INVALID_DEVICE_REQUEST, 0);
 			}
 
-#if defined(DEBUG) || defined (DEBG_TRACE)
+#if defined(DEBUG) || defined (DEBUG_TRACE)
 	if (!NT_SUCCESS (Irp->IoStatus.Status))
 	{
 		Dump ("IOCTL error 0x%08x (0x%x %d)\n",
@@ -2568,6 +2782,23 @@ NTSTATUS ProcessMainDeviceControlIrp (PDEVICE_OBJECT DeviceObject, PEXTENSION Ex
 		}
 		break;
 
+	case TC_IOCTL_ABORT_MOUNT_VOLUME:
+		if (ValidateIOBufferSize (Irp, sizeof (MOUNT_ABORT_STRUCT), ValidateInputOutput))
+		{
+			MOUNT_ABORT_STRUCT *abortRequest = (MOUNT_ABORT_STRUCT *) Irp->AssociatedIrp.SystemBuffer;
+
+			if (irpSp->Parameters.DeviceIoControl.InputBufferLength != sizeof (MOUNT_ABORT_STRUCT))
+			{
+				Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
+				Irp->IoStatus.Information = 0;
+				break;
+			}
+
+			Irp->IoStatus.Status = AbortPendingMount (abortRequest);
+			Irp->IoStatus.Information = sizeof (MOUNT_ABORT_STRUCT);
+		}
+		break;
+
 	case TC_IOCTL_MOUNT_VOLUME:
 		if (ValidateIOBufferSize (Irp, sizeof (MOUNT_STRUCT), ValidateInputOutput))
 		{
@@ -2992,21 +3223,13 @@ void TCStopVolumeThread (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension)
 
 
 // Suspend current thread for a number of milliseconds
-void TCSleep (int milliSeconds)
+// Must be called at IRQL <= APC_LEVEL
+VOID TCSleep(ULONG milliSeconds)
 {
-	PKTIMER timer = (PKTIMER) TCalloc (sizeof (KTIMER));
-	LARGE_INTEGER duetime;
-
-	if (!timer)
-		return;
-
-	duetime.QuadPart = (__int64) milliSeconds * -10000;
-	KeInitializeTimerEx(timer, NotificationTimer);
-	KeSetTimerEx(timer, duetime, 0, NULL);
-
-	KeWaitForSingleObject (timer, Executive, KernelMode, FALSE, NULL);
-
-	TCfree (timer);
+    LARGE_INTEGER interval;
+    interval.QuadPart = -(LONGLONG)milliSeconds * 10000; // 100 ns units
+    ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
+    (void)KeDelayExecutionThread(KernelMode, FALSE, &interval);
 }
 
 BOOL IsDeviceName(wchar_t wszVolume[TC_MAX_PATH])
@@ -3066,6 +3289,7 @@ VOID VolumeThreadProc (PVOID Context)
 	{
 		KeSetEvent (&Extension->keCreateEvent, 0, FALSE);
 		PsTerminateSystemThread (STATUS_SUCCESS);
+		return; /* Make static analyzer happy */
 	}
 
 	// Start IO queue
@@ -3105,6 +3329,7 @@ VOID VolumeThreadProc (PVOID Context)
 		pThreadBlock->mount->nReturnCode = ERR_OS_ERROR;
 		KeSetEvent (&Extension->keCreateEvent, 0, FALSE);
 		PsTerminateSystemThread (STATUS_SUCCESS);
+		return; /* Make static analyzer happy */
 	}
 
 	KeSetEvent (&Extension->keCreateEvent, 0, FALSE);
@@ -3142,6 +3367,7 @@ VOID VolumeThreadProc (PVOID Context)
 
 			TCCloseVolume (DeviceObject, Extension);
 			PsTerminateSystemThread (STATUS_SUCCESS);
+			return; /* Make static analyzer happy */
 		}
 	}
 }
@@ -3184,6 +3410,7 @@ LPWSTR TCTranslateCode (ULONG ulCode)
 	{
 #define TC_CASE_RET_NAME(CODE) case CODE : return L###CODE
 
+		TC_CASE_RET_NAME (TC_IOCTL_ABORT_MOUNT_VOLUME);
 		TC_CASE_RET_NAME (TC_IOCTL_ABORT_BOOT_ENCRYPTION_SETUP);
 		TC_CASE_RET_NAME (TC_IOCTL_ABORT_DECOY_SYSTEM_WIPE);
 		TC_CASE_RET_NAME (TC_IOCTL_BOOT_ENCRYPTION_SETUP);
@@ -3335,23 +3562,7 @@ void TCDeleteDeviceObject (PDEVICE_OBJECT DeviceObject, PEXTENSION Extension)
 
 		if (Extension->SecurityClientContextValid)
 		{
-            typedef VOID (*PsDereferenceImpersonationTokenDType) (PACCESS_TOKEN ImpersonationToken);
-
-            PsDereferenceImpersonationTokenDType PsDereferenceImpersonationTokenD;
-			UNICODE_STRING name;
-			RtlInitUnicodeString (&name, L"PsDereferenceImpersonationToken");
-
-			PsDereferenceImpersonationTokenD = (PsDereferenceImpersonationTokenDType) MmGetSystemRoutineAddress (&name);
-			if (!PsDereferenceImpersonationTokenD)
-				TC_BUG_CHECK (STATUS_NOT_IMPLEMENTED);
-
-#			define PsDereferencePrimaryToken
-#			define PsDereferenceImpersonationToken PsDereferenceImpersonationTokenD
-
 			SeDeleteClientSecurity (&Extension->SecurityClientContext);
-
-#			undef PsDereferencePrimaryToken
-#			undef PsDereferenceImpersonationToken
 		}
 
 		VirtualVolumeDeviceObjects[Extension->nDosDriveNo] = NULL;
@@ -3841,9 +4052,12 @@ static NTSTATUS UpdateFsVolumeInformation (MOUNT_STRUCT* mount, PEXTENSION NewEx
 {
 	HANDLE volumeHandle;
 	PFILE_OBJECT volumeFileObject;
-	ULONG labelLen = (ULONG) wcslen (mount->wszLabel);
+	ULONG labelLen;
 	BOOL bIsNTFS = FALSE;
 	ULONG labelMaxLen, labelEffectiveLen;
+
+	EnsureNullTerminatedString (mount->wszLabel, sizeof (mount->wszLabel));
+	labelLen = (ULONG) wcslen (mount->wszLabel);
 
 	if ((KeGetCurrentIrql() >= APC_LEVEL) || KeAreAllApcsDisabled())
 	{
@@ -3912,8 +4126,8 @@ static NTSTATUS UpdateFsVolumeInformation (MOUNT_STRUCT* mount, PEXTENSION NewEx
 				labelEffectiveLen = labelLen > labelMaxLen? labelMaxLen : labelLen;
 
 				// correct the label in the device
-				memset (&NewExtension->wszLabel[labelEffectiveLen], 0, 33 - labelEffectiveLen);
-				memcpy (mount->wszLabel, NewExtension->wszLabel, 33);
+				memset (&NewExtension->wszLabel[labelEffectiveLen], 0, (33 - labelEffectiveLen) * sizeof (WCHAR));
+				memcpy (mount->wszLabel, NewExtension->wszLabel, 33 * sizeof (WCHAR));
 
 				// set the volume label
 				__try
@@ -3923,6 +4137,7 @@ static NTSTATUS UpdateFsVolumeInformation (MOUNT_STRUCT* mount, PEXTENSION NewEx
 					FILE_FS_LABEL_INFORMATION* labelInfo = (FILE_FS_LABEL_INFORMATION*) TCalloc (labelInfoSize);
 					if (labelInfo)
 					{
+						RtlZeroMemory(labelInfo, labelInfoSize);
 						labelInfo->VolumeLabelLength = labelEffectiveLen * sizeof(WCHAR);
 						memcpy (labelInfo->VolumeLabel, mount->wszLabel, labelInfo->VolumeLabelLength);
 
@@ -3993,6 +4208,8 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 		SECURITY_SUBJECT_CONTEXT subContext;
 		PACCESS_TOKEN accessToken;
 
+		RegisterMountCancelContext (NewExtension, mount->nDosDriveNo);
+
 		SeCaptureSubjectContext (&subContext);
 		SeLockSubjectContext(&subContext);
 		if (subContext.ClientToken && subContext.ImpersonationLevel >= SecurityImpersonation)
@@ -4013,6 +4230,8 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 			{
 				ULONG sidLength = RtlLengthSid (tokenUser->User.Sid);
 
+				SetMountCancelContextUserSid (NewExtension, tokenUser->User.Sid);
+
 				NewExtension->UserSid = TCalloc (sidLength);
 				if (!NewExtension->UserSid)
 					ntStatus = STATUS_INSUFFICIENT_RESOURCES;
@@ -4028,6 +4247,8 @@ NTSTATUS MountDevice (PDEVICE_OBJECT DeviceObject, MOUNT_STRUCT *mount)
 
 		if (NT_SUCCESS (ntStatus))
 			ntStatus = TCStartVolumeThread (NewDeviceObject, NewExtension, mount);
+
+		UnregisterMountCancelContext (NewExtension);
 
 		if (!NT_SUCCESS (ntStatus))
 		{
@@ -4428,7 +4649,7 @@ USHORT GetCpuGroup (size_t index)
 	for (i = 0; i < groupCount; i++)
 	{
 		cpuCount += (size_t) KeQueryActiveProcessorCountEx (i);
-		if (cpuCount >= index)
+		if (cpuCount > index)
 		{
 			return i;
 		}
@@ -4439,10 +4660,15 @@ USHORT GetCpuGroup (size_t index)
 
 void SetThreadCpuGroupAffinity (USHORT index)
 {
+	GROUP_AFFINITY oldAffinity;
 	GROUP_AFFINITY groupAffinity = {0};
-	groupAffinity.Mask = ~0ULL;
+	ULONG count = KeQueryActiveProcessorCountEx(index);
+	KAFFINITY mask = (count >= 64) ? ~0ULL : ((1ULL << count) - 1);
+	if (count == 0) return; // invalid group index: nothing to do
+
+	groupAffinity.Mask = mask;
 	groupAffinity.Group = index;
-	KeSetSystemGroupAffinityThread (&groupAffinity, NULL);
+	KeSetSystemGroupAffinityThread (&groupAffinity, &oldAffinity);
 }
 
 void EnsureNullTerminatedString (wchar_t *str, size_t maxSizeInBytes)
@@ -4689,6 +4915,8 @@ NTSTATUS ReadRegistryConfigFlags (BOOL driverEntry)
 			EncryptionFragmentSize = 8 * TC_ENC_IO_QUEUE_MAX_FRAGMENT_SIZE;
 
 		if (EncryptionMaxWorkItems == 0)
+			EncryptionMaxWorkItems = VC_MAX_WORK_ITEMS;
+		else if (EncryptionMaxWorkItems < 0 || EncryptionMaxWorkItems > VC_MAX_WORK_ITEMS)
 			EncryptionMaxWorkItems = VC_MAX_WORK_ITEMS;
 		
 		

@@ -4,17 +4,19 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file) 
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
 */
 
+// Keep these in sync with MainCom.idl and FormatCom.idl. MSI unregister targets these
+// exact typelib versions before removing older versions.
 #define TC_MAIN_COM_VERSION_MAJOR 2
-#define TC_MAIN_COM_VERSION_MINOR 11
+#define TC_MAIN_COM_VERSION_MINOR 14
 
 #define TC_FORMAT_COM_VERSION_MAJOR 2
-#define TC_FORMAT_COM_VERSION_MINOR 9
+#define TC_FORMAT_COM_VERSION_MINOR 11
 
 #include <atlbase.h>
 #include <comdef.h>
@@ -52,9 +54,9 @@ extern "C" BOOL RegisterComServers (wchar_t *modulePath)
 	UnRegisterTypeLib (LIBID_TrueCryptMainCom, TC_MAIN_COM_VERSION_MAJOR, TC_MAIN_COM_VERSION_MINOR, 0, SYS_WIN32);
 	UnRegisterTypeLib (LIBID_TrueCryptFormatCom, TC_FORMAT_COM_VERSION_MAJOR, TC_FORMAT_COM_VERSION_MINOR, 0, SYS_WIN32);
 	// unregister older versions that may still exist
-	for (WORD i = 7; i >= 1; i--)
+	for (WORD i = 9; i >= 1; i--)
 		UnRegisterTypeLib (LIBID_TrueCryptMainCom, TC_MAIN_COM_VERSION_MAJOR, TC_MAIN_COM_VERSION_MINOR-i, 0, SYS_WIN32);
-	for (WORD i = 5; i >= 1; i--)
+	for (WORD i = 6; i >= 1; i--)
 		UnRegisterTypeLib (LIBID_TrueCryptFormatCom, TC_FORMAT_COM_VERSION_MAJOR, TC_FORMAT_COM_VERSION_MINOR-i, 0, SYS_WIN32);
 
 	CRegObject ro;
@@ -95,9 +97,9 @@ extern "C" BOOL UnregisterComServers (wchar_t *modulePath)
 		return FALSE;
 
 	// unregister older versions that may still exist
-	for (WORD i = 7; i >= 1; i--)
+	for (WORD i = 9; i >= 1; i--)
 		UnRegisterTypeLib (LIBID_TrueCryptMainCom, TC_MAIN_COM_VERSION_MAJOR, TC_MAIN_COM_VERSION_MINOR-i, 0, SYS_WIN32);
-	for (WORD i = 5; i >= 1; i--)
+	for (WORD i = 6; i >= 1; i--)
 		UnRegisterTypeLib (LIBID_TrueCryptFormatCom, TC_FORMAT_COM_VERSION_MAJOR, TC_FORMAT_COM_VERSION_MINOR-i, 0, SYS_WIN32);
 
 	wchar_t module[1024];

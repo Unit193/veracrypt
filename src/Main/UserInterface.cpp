@@ -4,13 +4,16 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
 */
 
 #include "System.h"
+#ifdef TC_LINUX
+#include <algorithm>
+#endif
 #include <set>
 #include <typeinfo>
 #include <wx/apptrait.h>
@@ -157,8 +160,11 @@ namespace VeraCrypt
 		DismountVolumes (volumes, ignoreOpenFiles, interactive);
 	}
 
-	void UserInterface::DismountVolumes (VolumeInfoList volumes, bool ignoreOpenFiles, bool interactive) const
+	void UserInterface::DismountVolumes (VolumeInfoList volumes, bool ignoreOpenFiles, bool interactive, bool emergencyCleanupRequested) const
 	{
+#ifndef TC_LINUX
+		(void) emergencyCleanupRequested;
+#endif
 		BusyScope busy (this);
 
 		volumes.sort (VolumeInfo::FirstVolumeMountedAfterSecond);
@@ -180,6 +186,7 @@ namespace VeraCrypt
 			VolumeInfoList volumesLeft;
 			foreach (shared_ptr <VolumeInfo> volume, volumes)
 			{
+				bool emergencyCleanupPerformed = false;
 				try
 				{
 					BusyScope busy (this);
@@ -207,6 +214,42 @@ namespace VeraCrypt
 							throw UserAbort (SRC_POS);
 					}
 				}
+#ifdef TC_LINUX
+				catch (FilesystemDismountFailed&)
+				{
+					if (twoPassMode && firstPass)
+					{
+						volumesLeft.push_back (volume);
+						continue;
+					}
+
+					if (emergencyCleanupRequested)
+					{
+						{
+							BusyScope busy (this);
+							volume = Core->EmergencyDismountVolume (volume);
+						}
+						emergencyCleanupPerformed = true;
+						ShowWarning (StringFormatter (LangString["LINUX_EMERGENCY_UNMOUNTED"], wstring (volume->Path)));
+					}
+					else if (interactive)
+					{
+						if (AskYesNo (StringFormatter (LangString["LINUX_EMERGENCY_UNMOUNT_WARNING"], wstring (volume->Path)), false, true))
+						{
+							{
+								BusyScope busy (this);
+								volume = Core->EmergencyDismountVolume (volume);
+							}
+							emergencyCleanupPerformed = true;
+							ShowWarning (StringFormatter (LangString["LINUX_EMERGENCY_UNMOUNTED"], wstring (volume->Path)));
+						}
+						else
+							throw UserAbort (SRC_POS);
+					}
+					else
+						throw;
+				}
+#endif
 				catch (...)
 				{
 					if (twoPassMode && firstPass)
@@ -220,9 +263,12 @@ namespace VeraCrypt
 
 				if (Preferences.Verbose)
 				{
-					if (!message.IsEmpty())
-						message += L'\n';
-					message += StringFormatter (LangString["LINUX_VOL_UNMOUNTED"], wstring (volume->Path));
+					if (!emergencyCleanupPerformed)
+					{
+						if (!message.IsEmpty())
+							message += L'\n';
+						message += StringFormatter (LangString["LINUX_VOL_UNMOUNTED"], wstring (volume->Path));
+					}
 				}
 			}
 
@@ -290,7 +336,7 @@ namespace VeraCrypt
 
 			prop << LangString["BLOCK_SIZE"] << L": " << blockSize.str() + L" " + LangString ["BITS"] << L'\n';
 			prop << LangString["MODE_OF_OPERATION"] << L": " << volume.EncryptionModeName << L'\n';
-			prop << LangString["PKCS5_PRF"] << L": " << volume.Pkcs5PrfName << L'\n';
+			prop << LangString["KDF"] << L": " << volume.Pkcs5PrfName << L'\n';
 
 			prop << LangString["VOLUME_FORMAT_VERSION"] << L": " << (volume.MinRequiredProgramVersion < 0x10b ? 1 : 2) << L'\n';
 			prop << LangString["BACKUP_HEADER"] << L": " << LangString[volume.MinRequiredProgramVersion >= 0x10b ? "UISTR_YES" : "UISTR_NO"] << L'\n';
@@ -483,6 +529,7 @@ namespace VeraCrypt
 		EX2MSG (InvalidSecurityTokenKeyfilePath,	LangString["INVALID_TOKEN_KEYFILE_PATH"]);
 		EX2MSG (HigherVersionRequired,				LangString["NEW_VERSION_REQUIRED"]);
 		EX2MSG (KernelCryptoServiceTestFailed,		LangString["LINUX_EX2MSG_KERNELCRYPTOSERVICETESTFAILED"]);
+		EX2MSG (KernelNtfsDriverUnavailable,		LangString["LINUX_KERNEL_NTFS_DRIVER_UNAVAILABLE"]);
 		EX2MSG (KeyfilePathEmpty,					LangString["ERR_KEYFILE_PATH_EMPTY"]);
 		EX2MSG (LoopDeviceSetupFailed,				LangString["LINUX_EX2MSG_LOOPDEVICESETUPFAILED"]);
 		EX2MSG (MissingArgument,					LangString["LINUX_EX2MSG_MISSINGARGUMENT"]);
@@ -883,6 +930,64 @@ namespace VeraCrypt
 	}
 
 #if !defined(TC_WINDOWS) && !defined(TC_MACOSX)
+#ifdef TC_LINUX
+	static bool OpenExplorerWindowUnderWsl (const string &mountPoint)
+	{
+		if (mountPoint.empty() || mountPoint[0] != '/'
+			|| !Process::IsExecutable ("/usr/bin/wslinfo")
+			|| !Process::IsExecutable ("/usr/bin/wslpath"))
+			return false;
+
+		try
+		{
+			list <string> args;
+			args.push_back ("-aw");
+			args.push_back ("/");
+
+			// Build from the WSL root UNC so /mnt/<drive> mount points stay in the WSL VFS overlay
+			string windowsPath = StringConverter::Trim (Process::Execute ("/usr/bin/wslpath", args, 2000));
+			if (windowsPath.size() < 2 || windowsPath[0] != '\\' || windowsPath[1] != '\\')
+				return false;
+
+			if (windowsPath[windowsPath.size() - 1] == '\\' || windowsPath[windowsPath.size() - 1] == '/')
+				windowsPath.resize (windowsPath.size() - 1);
+
+			string windowsMountPoint = mountPoint;
+			std::replace (windowsMountPoint.begin(), windowsMountPoint.end(), '/', '\\');
+			windowsPath += windowsMountPoint;
+
+			args.clear();
+			args.push_back ("-u");
+			args.push_back ("C:\\Windows\\explorer.exe");
+
+			string explorerPath = StringConverter::Trim (Process::Execute ("/usr/bin/wslpath", args, 2000));
+			if (explorerPath.empty() || !FilesystemPath (explorerPath).IsFile())
+				return false;
+
+			args.clear();
+			args.push_back (windowsPath);
+
+			try
+			{
+				Process::Execute (explorerPath, args, 5000);
+				return true;
+			}
+			catch (TimeOut&)
+			{
+				return true;
+			}
+			catch (ExecutedProcessFailed &e)
+			{
+				return e.GetExitCode () == 1 && StringConverter::Trim (e.GetErrorOutput()).empty();
+			}
+		}
+		catch (exception&)
+		{
+			return false;
+		}
+	}
+#endif // TC_LINUX
+
 // Define file manager structures with their required parameters
 struct FileManager {
 	const char* name;
@@ -934,6 +1039,11 @@ const FileManager fileManagers[] = {
 
 #else
 		string directoryPath = string(path);
+#ifdef TC_LINUX
+		if (OpenExplorerWindowUnderWsl (directoryPath))
+			return;
+#endif
+
 		// Primary attempt: Use xdg-open
 		string errorMsg;
 		string binPath = Process::FindSystemBinary("xdg-open", errorMsg);
@@ -1010,7 +1120,7 @@ const FileManager fileManagers[] = {
 				cmdLine.ArgMountOptions.SharedAccessAllowed = cmdLine.ArgForce;
 				if (cmdLine.ArgHash)
 				{
-					cmdLine.ArgMountOptions.Kdf = Pkcs5Kdf::GetAlgorithm (*cmdLine.ArgHash);
+					cmdLine.ArgMountOptions.Kdf = cmdLine.ArgHash;
 				}
 
 
@@ -1108,8 +1218,8 @@ const FileManager fileManagers[] = {
 
 				if (cmdLine.ArgHash)
 				{
-					options->VolumeHeaderKdf = Pkcs5Kdf::GetAlgorithm (*cmdLine.ArgHash);
-					RandomNumberGenerator::SetHash (cmdLine.ArgHash);
+					options->VolumeHeaderKdf = cmdLine.ArgHash;
+					RandomNumberGenerator::SetHash (cmdLine.ArgHash->GetHash());
 				}
 
 				options->EA = cmdLine.ArgEncryptionAlgorithm;
@@ -1133,7 +1243,11 @@ const FileManager fileManagers[] = {
 			return true;
 
 		case CommandId::DismountVolumes:
-			DismountVolumes (cmdLine.ArgVolumes, cmdLine.ArgForce, !Preferences.NonInteractive);
+			DismountVolumes (cmdLine.ArgVolumes, cmdLine.ArgForce, !Preferences.NonInteractive
+#ifdef TC_LINUX
+				, cmdLine.ArgEmergencyUnmount
+#endif
+				);
 			return true;
 
 		case CommandId::DisplayVersion:
@@ -1171,7 +1285,7 @@ const FileManager fileManagers[] = {
 					" Inexperienced users should use the graphical user interface to create a hidden\n"
 					" volume. When using the text user interface, the following procedure must be\n"
 					" followed to create a hidden volume:\n"
-					"  1) Create an outer volume with no filesystem.\n"
+					"  1) Create an outer volume with no filesystem and without --quick.\n"
 					"  2) Create a hidden volume within the outer volume.\n"
 					"  3) Mount the outer volume using hidden volume protection.\n"
 					"  4) Create a filesystem on the virtual device of the outer volume.\n"
@@ -1184,7 +1298,7 @@ const FileManager fileManagers[] = {
 					"\n"
 					"-C, --change [VOLUME_PATH]\n"
 					" Change a password and/or keyfile(s) of a volume. Most options are requested\n"
-					" from the user if not specified on command line. PKCS-5 PRF HMAC hash\n"
+					" from the user if not specified on command line. KDF hash\n"
 					" algorithm can be changed with option --hash. See also options -k,\n"
 					" --new-keyfiles, --new-password, -p, --random-source.\n"
 					"\n"
@@ -1259,20 +1373,51 @@ const FileManager fileManagers[] = {
 					" with option -t. Default type is 'auto'. When creating a new volume, this\n"
 					" option specifies the filesystem to be created on the new volume.\n"
 					" Filesystem type 'none' disables mounting or creating a filesystem.\n"
+#ifdef TC_LINUX
+					" On Linux, filesystem type 'ntfs3' mounts with the in-kernel ntfs3\n"
+					" driver and bypasses mount helpers. Filesystem type 'kernel-ntfs'\n"
+					" mounts an NTFS volume using an available in-kernel NTFS driver.\n"
+					" These Linux driver selectors are mount-only; use filesystem type\n"
+					" 'NTFS' when creating a new NTFS volume.\n"
+					" VeraCrypt uses ntfs when it is positively identified as a modern\n"
+					" read/write driver or expected on Linux 7.1 or later;\n"
+					" otherwise it selects ntfs3.\n"
+					" The Linux preference \"Mount NTFS volumes with an in-kernel Linux\n"
+					" driver\" is disabled by default. When enabled, VeraCrypt probes the\n"
+					" decrypted virtual device with blkid -p and uses an available in-kernel\n"
+					" NTFS driver only when NTFS is detected and no explicit filesystem type\n"
+					" was supplied. The mount option -m kernelntfs enables the same detected\n"
+					" NTFS selection for the current mount; use --filesystem=kernel-ntfs to\n"
+					" force kernel-driver selection. If no supported in-kernel NTFS driver is\n"
+					" available, mounting fails instead of falling back to ntfs-3g. If\n"
+					" detection fails, VeraCrypt uses the normal automatic filesystem\n"
+					" selection. This can avoid suspend or hibernate hangs caused by frozen\n"
+					" user-space FUSE filesystems during kernel filesystem sync; use findmnt\n"
+					" to verify the actual mounted filesystem type.\n"
+#endif
 					"\n"
 					"--force\n"
 					" Force mounting of a volume in use, unmounting of a volume in use, or\n"
 					" overwriting a file. Note that this option has no effect on some platforms.\n"
 					"\n"
+#ifdef TC_LINUX
+					"--emergency-unmount\n"
+					" When used with --unmount on Linux, attempt emergency cleanup if normal\n"
+					" unmount fails. This recovery operation lazy-detaches the filesystem and\n"
+					" removes or schedules removal of VeraCrypt kernel objects. Pending writes may\n"
+					" already have failed, data may be lost, and cleanup may remain pending until\n"
+					" applications close open files. Use only for stale or removed-device states.\n"
+					"\n"
+#endif
 					"--fs-options=OPTIONS\n"
 					" Filesystem mount options. The OPTIONS argument is passed to mount(8)\n"
 					" command with option -o when a filesystem on a VeraCrypt volume is mounted.\n"
 					" This option is not available on some platforms.\n"
 					"\n"
 					"--hash=HASH\n"
-					" Use specified hash algorithm when creating a new volume or changing password\n"
-					" and/or keyfiles. This option also specifies the mixing PRF of the random\n"
-					" number generator.\n"
+					" Use specified header key derivation algorithm when creating a new volume\n"
+					" or changing password and/or keyfiles. This option also specifies the\n"
+					" mixing hash of the random number generator.\n"
 					"\n"
 					"-k, --keyfiles=KEYFILE1[,KEYFILE2,KEYFILE3,...]\n"
 					" Use specified keyfiles when mounting a volume or when changing password\n"
@@ -1300,6 +1445,10 @@ const FileManager fileManagers[] = {
 					"   is unmounted (note that the operating system under certain circumstances\n"
 					"   does not alter host-file timestamps, which may be mistakenly interpreted\n"
 					"   to mean that this option does not work).\n"
+#ifdef TC_LINUX
+					"  kernelntfs: Use an available in-kernel NTFS driver when NTFS is\n"
+					"   detected and no filesystem type was supplied.\n"
+#endif
 					" See also option --fs-options.\n"
 					"\n"
 					"--new-keyfiles=KEYFILE1[,KEYFILE2,KEYFILE3,...]\n"
@@ -1345,8 +1494,12 @@ const FileManager fileManagers[] = {
 					" See also options -p and --protect-hidden.\n"
 					"\n"
 					"--quick\n"
-					" Do not encrypt free space when creating a device-hosted volume. This option\n"
-					" must not be used when creating an outer volume.\n"
+					" Do not encrypt free space when creating a normal file-hosted or\n"
+					" device-hosted volume. This option must not be used when creating an outer\n"
+					" volume; text mode cannot infer that a normal volume will later be\n"
+					" used as an outer volume. For file containers, Quick Format may create sparse\n"
+					" or unwritten host regions; actual disk savings depend on host filesystem\n"
+					" sparse-file support, and later writes can fail if host space runs out.\n"
 					"\n"
 					"--random-source=FILE\n"
 					" Use FILE as a source of random data (e.g., when creating a volume) instead\n"
@@ -1398,6 +1551,11 @@ const FileManager fileManagers[] = {
 					"Mount a volume prompting only for its password:\n"
 					"veracrypt -t -k \"\" --pim=0 --protect-hidden=no volume.hc /media/veracrypt1\n"
 					"\n"
+#ifdef TC_LINUX
+					"Mount an NTFS volume using a Linux in-kernel NTFS driver:\n"
+					"veracrypt -t --filesystem=kernel-ntfs volume.hc /media/veracrypt1\n"
+					"\n"
+#endif
 					"Unmount a volume:\n"
 					"veracrypt -u volume.hc\n"
 					"\n"
@@ -1688,6 +1846,7 @@ const FileManager fileManagers[] = {
 		VC_CONVERT_EXCEPTION (EncryptedSystemRequired);
 		VC_CONVERT_EXCEPTION (HigherFuseVersionRequired);
 		VC_CONVERT_EXCEPTION (KernelCryptoServiceTestFailed);
+		VC_CONVERT_EXCEPTION (KernelNtfsDriverUnavailable);
 		VC_CONVERT_EXCEPTION (LoopDeviceSetupFailed);
 		VC_CONVERT_EXCEPTION (MountPointRequired);
 		VC_CONVERT_EXCEPTION (MountPointUnavailable);
@@ -1701,6 +1860,7 @@ const FileManager fileManagers[] = {
 		VC_CONVERT_EXCEPTION (MissingArgument);
 		VC_CONVERT_EXCEPTION (NoItemSelected);
 		VC_CONVERT_EXCEPTION (StringFormatterException);
+		VC_CONVERT_EXCEPTION (FilesystemDismountFailed);
 		VC_CONVERT_EXCEPTION (ExecutedProcessFailed);
 		VC_CONVERT_EXCEPTION (AlreadyInitialized);
 		VC_CONVERT_EXCEPTION (AssertionFailed);

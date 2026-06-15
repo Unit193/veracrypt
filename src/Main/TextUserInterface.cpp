@@ -4,7 +4,7 @@
  by the TrueCrypt License 3.0.
 
  Modifications and additions to the original source code (contained in this file)
- and all other portions of this file are Copyright (c) 2013-2025 AM Crypto
+ and all other portions of this file are Copyright (c) 2013-2026 AM Crypto
  and are governed by the Apache License 2.0 the full text of which is
  contained in the file License.txt included in VeraCrypt binary and source
  code distribution packages.
@@ -26,10 +26,37 @@
 #include "Common/EMVToken.h"
 #include "Core/RandomNumberGenerator.h"
 #include "Application.h"
+#ifdef TC_MACOSX
+#include "Main/MacOSXFormatterDevice.h"
+#endif
 #include "TextUserInterface.h"
 
 namespace VeraCrypt
 {
+	static bool CheckCustomPimForPassword (const TextUserInterface *ui, const shared_ptr <VolumePassword> &password, int pim, const shared_ptr <Pkcs5Kdf> &kdf, bool interactive)
+	{
+		int defaultPim = kdf ? kdf->GetDefaultPim() : 0;
+		if (!password || password->Size() == 0 || pim <= 0 || defaultPim <= 0 || pim >= defaultPim)
+			return true;
+
+		if (password->Size() < VolumePassword::SmallPimPasswordSizeThreshold)
+		{
+			const char *messageId = kdf ? kdf->GetPimRequireLongPasswordMessageId() : "PIM_REQUIRE_LONG_PASSWORD";
+			if (interactive)
+			{
+				ui->ShowError (messageId);
+				return false;
+			}
+
+			throw_err (LangString [messageId]);
+		}
+
+		if (interactive && !ui->AskYesNo (LangString [kdf ? kdf->GetPimSmallWarningMessageId() : "PIM_SMALL_WARNING"], false, true))
+			return false;
+
+		return true;
+	}
+
 	class AdminPasswordTextRequestHandler : public GetStringFunctor
 	{
 		public:
@@ -295,11 +322,7 @@ namespace VeraCrypt
 
 		ShowInfo ("EXTERNAL_VOL_HEADER_BAK_FIRST_INFO");
 
-		shared_ptr <Pkcs5Kdf> kdf;
-		if (CmdLine->ArgHash)
-		{
-			kdf = Pkcs5Kdf::GetAlgorithm (*CmdLine->ArgHash);
-		}
+		shared_ptr <Pkcs5Kdf> kdf = CmdLine->ArgHash;
 
 		shared_ptr <Volume> normalVolume;
 		shared_ptr <Volume> hiddenVolume;
@@ -468,7 +491,7 @@ namespace VeraCrypt
 			ShowWarning ("ERR_XTS_MASTERKEY_VULNERABLE");
 	}
 
-	void TextUserInterface::ChangePassword (shared_ptr <VolumePath> volumePath, shared_ptr <VolumePassword> password, int pim, shared_ptr <Hash> currentHash, shared_ptr <KeyfileList> keyfiles, shared_ptr <VolumePassword> newPassword, int newPim, shared_ptr <KeyfileList> newKeyfiles, shared_ptr <Hash> newHash) const
+	void TextUserInterface::ChangePassword (shared_ptr <VolumePath> volumePath, shared_ptr <VolumePassword> password, int pim, shared_ptr <Pkcs5Kdf> currentKdf, shared_ptr <KeyfileList> keyfiles, shared_ptr <VolumePassword> newPassword, int newPim, shared_ptr <KeyfileList> newKeyfiles, shared_ptr <Pkcs5Kdf> newKdf) const
 	{
 		shared_ptr <Volume> volume;
 
@@ -487,11 +510,7 @@ namespace VeraCrypt
 		bool passwordInteractive = !password.get();
 		bool keyfilesInteractive = !keyfiles.get();
 
-		shared_ptr<Pkcs5Kdf> kdf;
-		if (currentHash)
-		{
-			kdf = Pkcs5Kdf::GetAlgorithm (*currentHash);
-		}
+		shared_ptr <Pkcs5Kdf> kdf = currentKdf;
 
 		while (true)
 		{
@@ -555,8 +574,24 @@ namespace VeraCrypt
 			newPassword = AskPassword (_("Enter new password"), true);
 
 		// New PIM
-		if ((newPim < 0) && !Preferences.NonInteractive)
-			newPim = AskPim (_("Enter new PIM"));
+		shared_ptr <Pkcs5Kdf> effectiveNewKdf = newKdf ? newKdf : volume->GetPkcs5Kdf();
+		bool newPimInteractive = false;
+		while (true)
+		{
+			if ((newPim < 0) && !Preferences.NonInteractive)
+			{
+				newPim = AskPim (_("Enter new PIM"));
+				newPimInteractive = true;
+			}
+
+			if (CheckCustomPimForPassword (this, newPassword, newPim, effectiveNewKdf, !Preferences.NonInteractive))
+				break;
+
+			if (!newPimInteractive)
+				throw UserAbort (SRC_POS);
+
+			newPim = -1;
+		}
 
 		// New keyfiles
 		if (!newKeyfiles.get() && !Preferences.NonInteractive)
@@ -571,8 +606,7 @@ namespace VeraCrypt
 		RandomNumberGenerator::SetEnrichedByUserStatus (false);
 		UserEnrichRandomPool();
 
-		Core->ChangePassword (volume, newPassword, newPim, newKeyfiles, true,
-			newHash ? Pkcs5Kdf::GetAlgorithm (*newHash) : shared_ptr <Pkcs5Kdf>());
+		Core->ChangePassword (volume, newPassword, newPim, newKeyfiles, true, newKdf);
 
 		ShowInfo ("PASSWORD_CHANGED");
 	}
@@ -648,6 +682,28 @@ namespace VeraCrypt
 				ShowString (L"\n");
 				options->Path = VolumePath (*AskVolumePath());
 			} while (options->Path.IsEmpty());
+		}
+
+		if (options->Path.IsDevice())
+		{
+			foreach_ref (const HostDevice &drive, Core->GetHostDevices())
+			{
+				bool selectedWholeDevice = drive.Path == options->Path;
+#ifdef TC_MACOSX
+				selectedWholeDevice = selectedWholeDevice
+					|| IsSameMacOSXDevicePath (string (drive.Path), string (options->Path));
+#endif
+				if (selectedWholeDevice && !drive.Partitions.empty())
+				{
+					foreach_ref (const HostDevice &partition, drive.Partitions)
+					{
+						if (partition.MountPoint == "/")
+							throw_err (LangString["LINUX_ERROR_TRY_ENCRYPT_SYSTEM_DRIVE"]);
+					}
+
+					throw_err (LangString["DEVICE_PARTITIONS_ERR"]);
+				}
+			}
 		}
 
 		// Sector size
@@ -731,8 +787,6 @@ namespace VeraCrypt
 					throw_err (_("Failed to get available disk space on the selected target."));
 				}
 			}
-
-			options->Quick = false;
 
 			uint32 sectorSizeRem = options->Size % options->SectorSize;
 			if (sectorSizeRem != 0)
@@ -845,27 +899,26 @@ namespace VeraCrypt
 			options->EA = encryptionAlgorithms[AskSelection (encryptionAlgorithms.size(), 1) - 1];
 		}
 
-		// Hash algorithm
+		// Header key derivation function
 		if (!options->VolumeHeaderKdf)
 		{
 			if (Preferences.NonInteractive)
 				throw MissingArgument (SRC_POS);
 
-			ShowInfo (_("\nHash algorithm:"));
+			ShowInfo (_("\nKey derivation function:"));
 
-			vector < shared_ptr <Hash> > hashes;
-			foreach (shared_ptr <Hash> hash, Hash::GetAvailableAlgorithms())
+			vector < shared_ptr <Pkcs5Kdf> > kdfs;
+			foreach (shared_ptr <Pkcs5Kdf> kdf, Pkcs5Kdf::GetAvailableAlgorithms())
 			{
-				if (!hash->IsDeprecated())
+				if (!kdf->IsDeprecated())
 				{
-					ShowString (StringFormatter (L" {0}) {1}\n", (uint32) hashes.size() + 1, hash->GetName()));
-					hashes.push_back (hash);
+					ShowString (StringFormatter (L" {0}) {1}\n", (uint32) kdfs.size() + 1, kdf->GetName()));
+					kdfs.push_back (kdf);
 				}
 			}
 
-			shared_ptr <Hash> selectedHash = hashes[AskSelection (hashes.size(), 1) - 1];
-			RandomNumberGenerator::SetHash (selectedHash);
-			options->VolumeHeaderKdf = Pkcs5Kdf::GetAlgorithm (*selectedHash);
+			options->VolumeHeaderKdf = kdfs[AskSelection (kdfs.size(), 1) - 1];
+			RandomNumberGenerator::SetHash (options->VolumeHeaderKdf->GetHash());
 
 		}
 
@@ -884,9 +937,14 @@ namespace VeraCrypt
 				ShowInfo (_("\nFilesystem:"));
 
 				vector <VolumeCreationOptions::FilesystemType::Enum> filesystems;
+				bool fatAvailable = filesystemSize >= TC_MIN_FAT_FS_SIZE
+					&& filesystemSize <= TC_MAX_FAT_SECTOR_COUNT * (uint64) options->SectorSize;
 
 				ShowInfo (wxString::Format (L" %li) %s", filesystems.size() + 1, LangString["NONE"])); filesystems.push_back (VolumeCreationOptions::FilesystemType::None);
-				ShowInfo (wxString::Format (L" %li) %s", filesystems.size() + 1, "FAT")); filesystems.push_back (VolumeCreationOptions::FilesystemType::FAT);
+				if (fatAvailable)
+				{
+					ShowInfo (wxString::Format (L" %li) %s", filesystems.size() + 1, "FAT")); filesystems.push_back (VolumeCreationOptions::FilesystemType::FAT);
+				}
 #if defined (TC_LINUX)
 				ShowInfo (wxString::Format (L" %li) %s", filesystems.size() + 1, "Linux Ext2")); filesystems.push_back (VolumeCreationOptions::FilesystemType::Ext2);
 				ShowInfo (wxString::Format (L" %li) %s", filesystems.size() + 1, "Linux Ext3")); filesystems.push_back (VolumeCreationOptions::FilesystemType::Ext3);
@@ -915,7 +973,21 @@ namespace VeraCrypt
 				ShowInfo (wxString::Format (L" %li) %s", filesystems.size() + 1, "UFS")); filesystems.push_back (VolumeCreationOptions::FilesystemType::UFS);
 #endif
 
-				options->Filesystem = filesystems[AskSelection (filesystems.size(), 2) - 1];
+				ssize_t defaultFilesystem = fatAvailable ? 2 : 1;
+				if (!fatAvailable)
+				{
+					VolumeCreationOptions::FilesystemType::Enum nativeFilesystem = VolumeCreationOptions::FilesystemType::GetPlatformNative();
+					for (size_t i = 0; i < filesystems.size(); ++i)
+					{
+						if (filesystems[i] == nativeFilesystem)
+						{
+							defaultFilesystem = (ssize_t) i + 1;
+							break;
+						}
+					}
+				}
+
+				options->Filesystem = filesystems[AskSelection (filesystems.size(), defaultFilesystem) - 1];
 			}
 		}
 
@@ -931,6 +1003,18 @@ namespace VeraCrypt
 			throw_err (_("Specified volume size is too small to be used with Btrfs filesystem."));
 		}
 
+		if (options->Quick && options->Type == VolumeType::Normal)
+		{
+			if (Preferences.NonInteractive)
+			{
+				ShowWarning (_("Quick Format is enabled. Do not use --quick for an outer volume intended to contain a hidden volume. It skips writing random data to unused volume space, reducing plausible deniability. For file containers, actual disk savings depend on host filesystem sparse-file support, and later writes can fail if host space runs out."));
+			}
+			else if (!AskYesNo (LangString["WARN_QUICK_FORMAT"], false, true))
+			{
+				throw UserAbort (SRC_POS);
+			}
+		}
+
 		// Password
 		if (!options->Password && !Preferences.NonInteractive)
 		{
@@ -939,10 +1023,23 @@ namespace VeraCrypt
 		}
 
 		// PIM
-		if ((options->Pim < 0) && !Preferences.NonInteractive)
+		bool pimInteractive = false;
+		while (true)
 		{
-			ShowString (L"\n");
-			options->Pim = AskPim (_("Enter PIM"));
+			if ((options->Pim < 0) && !Preferences.NonInteractive)
+			{
+				ShowString (L"\n");
+				options->Pim = AskPim (_("Enter PIM"));
+				pimInteractive = true;
+			}
+
+			if (CheckCustomPimForPassword (this, options->Password, options->Pim, options->VolumeHeaderKdf, !Preferences.NonInteractive))
+				break;
+
+			if (!pimInteractive)
+				throw UserAbort (SRC_POS);
+
+			options->Pim = -1;
 		}
 
 		// Keyfiles
@@ -1004,6 +1101,10 @@ namespace VeraCrypt
 				throw ParameterIncorrect (SRC_POS);
 
 			MountOptions mountOptions (GetPreferences().DefaultMountOptions);
+#ifdef TC_LINUX
+			if (CmdLine->ArgMountOptions.NoKernelCrypto)
+				mountOptions.NoKernelCrypto = true;
+#endif
 			mountOptions.Path = make_shared <VolumePath> (options->Path);
 			mountOptions.NoFilesystem = true;
 			mountOptions.Protection = VolumeProtection::None;
@@ -1018,14 +1119,22 @@ namespace VeraCrypt
 			Thread::Sleep (2000);	// Try to prevent race conditions caused by OS
 
 			// Temporarily take ownership of the device if the user is not an administrator
-			UserId origDeviceOwner ((uid_t) -1);
-
 			DevicePath virtualDevice = volume->VirtualDevice;
 #ifdef TC_MACOSX
 			string virtualDeviceStr = virtualDevice;
-			if (virtualDeviceStr.find ("/dev/rdisk") != 0)
-				virtualDevice = "/dev/r" + virtualDeviceStr.substr (5);
-#endif
+			virtualDevice = GetMacOSXRawDevicePath (virtualDeviceStr);
+
+			MacOSXFormatterDeviceOwnerRestoreList changedDeviceOwners;
+			finally_do_arg (MacOSXFormatterDeviceOwnerRestoreList *, &changedDeviceOwners,
+			{
+				RestoreMacOSXFormatterDeviceOwners (*finally_arg);
+			});
+			bool useElevatedAPFSFormatter = UseElevatedMacOSXAPFSFormatter (fsFormatter);
+			if (!useElevatedAPFSFormatter)
+				PrepareMacOSXFormatterDevice (virtualDevice, changedDeviceOwners);
+#else
+			UserId origDeviceOwner ((uid_t) -1);
+
 			try
 			{
 				File file;
@@ -1045,6 +1154,7 @@ namespace VeraCrypt
 				if (finally_arg2.SystemId != (uid_t) -1)
 					Core->SetFileOwner (finally_arg, finally_arg2);
 			});
+#endif
 
 			// Create filesystem
 			list <string> args;
@@ -1066,9 +1176,21 @@ namespace VeraCrypt
 				}
 			}
 
+#ifdef TC_MACOSX
+			if (IsMacOSXExFATFormatter (fsFormatter))
+				AddMacOSXExFATFormatterArgs (args);
+
+			if (IsMacOSXAPFSFormatter (fsFormatter) && !useElevatedAPFSFormatter)
+				AddMacOSXAPFSFormatterUserArgs (args);
+#endif
+
 			args.push_back (string (virtualDevice));
 
+#ifdef TC_MACOSX
+			ExecuteMacOSXFilesystemFormatter (fsFormatter, args);
+#else
 			Process::Execute (fsFormatter, args);
+#endif
 		}
 #endif // TC_UNIX
 
@@ -1542,11 +1664,7 @@ namespace VeraCrypt
 
 		// Ask whether to restore internal or external backup
 		bool restoreInternalBackup;
-		shared_ptr <Pkcs5Kdf> kdf;
-		if (CmdLine->ArgHash)
-		{
-			kdf = Pkcs5Kdf::GetAlgorithm (*CmdLine->ArgHash);
-		}
+		shared_ptr <Pkcs5Kdf> kdf = CmdLine->ArgHash;
 
 		ShowInfo (LangString["HEADER_RESTORE_EXTERNAL_INTERNAL"]);
 		ShowInfo (L"\n1) " + LangString["HEADER_RESTORE_INTERNAL"]);
@@ -1795,7 +1913,7 @@ namespace VeraCrypt
 			return;
 
 		if (CmdLine->ArgHash)
-			RandomNumberGenerator::SetHash (CmdLine->ArgHash);
+			RandomNumberGenerator::SetHash (CmdLine->ArgHash->GetHash());
 
 		if (!CmdLine->ArgRandomSourcePath.IsEmpty())
 		{

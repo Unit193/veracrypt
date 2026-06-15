@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,26,24,0
- PRODUCTVERSION 1,26,24,0
+ FILEVERSION 1,26,29,3
+ PRODUCTVERSION 1,26,29,3
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -46,11 +46,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "AM Crypto"
             VALUE "FileDescription", "VeraCrypt Setup"
-            VALUE "FileVersion", "1.26.24"
+            VALUE "FileVersion", "1.26.29"
             VALUE "LegalTrademarks", "VeraCrypt"
             VALUE "OriginalFilename", "VeraCrypt Setup.exe"
             VALUE "ProductName", "VeraCrypt"
-            VALUE "ProductVersion", "1.26.24"
+            VALUE "ProductVersion", "1.26.29"
         END
     END
     BLOCK "VarFileInfo"
@@ -156,7 +156,7 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,112,315,10
     PUSHBUTTON      "?",IDC_DISABLE_MEMORY_PROTECTION_HELP,337,107,7,14
     CONTROL         "Disable protection against screenshots and screen recording",IDC_DISABLE_SCREEN_PROTECTION,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,122,209,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,122,323,10
     CONTROL         "Create System &Restore point",IDC_SYSTEM_RESTORE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,132,194,11
     LTEXT           "Please select or type the location where you want to install the VeraCrypt program files. If the specified folder does not exist, it will be automatically created.",IDT_INSTALL_DESTINATION,11,14,319,25
 END
