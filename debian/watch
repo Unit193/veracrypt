@@ -1,3 +1,4 @@
-version=3
-opts=pgpsigurlmangle=s/$/.sig/ \
-https://sf.net/veracrypt/[Vv]era[Cc]rypt_([\d\w\._-]+)_[Ss]ource\.tar\.(?:gz|bz2|xz)
+Version: 5
+Source: https://sf.net/veracrypt/
+Matching-Pattern: [Vv]era[Cc]rypt_([\d\w\._-]+)_[Ss]ource\.tar\.(?:gz|bz2|xz)
+Pgpsigurlmangle: s/$/.sig/
